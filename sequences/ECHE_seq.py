@@ -19,8 +19,8 @@ __all__ = [
 ]
 
 
-from helaocore.schema import ExperimentPlanMaker
-from helaocore.model.electrolyte import Electrolyte
+from helao.helpers.premodels import ExperimentPlanMaker
+from helaocore.models.electrolyte import Electrolyte
 
 
 SEQUENCES = __all__

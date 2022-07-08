@@ -6,7 +6,7 @@ __all__ = ["ADSS_duaribilty_CAv1", "ADSS_tray_unload"]
 
 
 from typing import List
-from helaocore.schema import ExperimentPlanMaker
+from helao.helpers.premodels import ExperimentPlanMaker
 
 
 SEQUENCES = __all__

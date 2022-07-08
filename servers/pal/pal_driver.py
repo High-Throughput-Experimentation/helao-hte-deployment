@@ -12,12 +12,12 @@ import aiofiles
 import subprocess
 import psutil
 
-from helaocore.schema import Action
-from helaocore.server.base import Base
+from helao.helpers.premodels import Action
+from helao.servers.base import Base
 from helaocore.error import ErrorCodes
-from helaocore.helper.helaodict import HelaoDict
+from helaocore.helaodict import HelaoDict
 
-from helaocore.model.sample import (
+from helaocore.models.sample import (
     SampleUnion,
     NoneSample,
     AssemblySample,
@@ -25,11 +25,12 @@ from helaocore.model.sample import (
     SampleInheritance,
     SampleType,
 )
-from helaocore.model.file import FileConnParams
-from helaocore.model.active import ActiveParams
-from helaocore.model.data import DataModel
-from helao.driver.data.archive_driver import Archive
-from helao.driver.robot.enum import (
+from helaocore.models.file import FileConnParams
+from helao.helpers.active_params import ActiveParams
+from helao.helpers.update_sample_vol import update_vol
+from helaocore.models.data import DataModel
+from helao.drivers.data.archive_driver import Archive
+from helao.drivers.robot.enum import (
     PALtools,
     CAMS,
     Spacingmethod,
@@ -354,7 +355,7 @@ class PAL:
                     await asyncio.sleep(0.1)
 
         except Exception as e:
-            tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             self.base.print_message(
                 f"_poll_trigger_task excited with error: {repr(e), tb,}", error=True
             )
@@ -399,7 +400,9 @@ class PAL:
                 if not self.IO_signalq.empty():
                     self.IO_measuring = await self.IO_signalq.get()
                 if not self.IO_measuring:
-                    self.base.print_message("IO_measuring is true, breaking palaction loop.")
+                    self.base.print_message(
+                        "IO_measuring is true, breaking palaction loop."
+                    )
                     break
 
                 # (0) split action
@@ -1637,7 +1640,7 @@ class PAL:
         try:
             val = await asyncio.wait_for(self.IO_trigger_startq.get(), self.timeout)
         except Exception as e:
-            tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             self.base.print_message(
                 f"PAL start trigger timeout with error: {repr(e), tb,}", error=True
             )
@@ -1656,7 +1659,7 @@ class PAL:
         try:
             val = await asyncio.wait_for(self.IO_trigger_continueq.get(), self.timeout)
         except Exception as e:
-            tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             self.base.print_message(
                 f"PAL continue trigger timeout with error: {repr(e), tb,}", error=True
             )
@@ -1671,7 +1674,7 @@ class PAL:
         try:
             val = await asyncio.wait_for(self.IO_trigger_doneq.get(), self.timeout)
         except Exception as e:
-            tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             self.base.print_message(
                 f"PAL done trigger timeout with error: {repr(e), tb,}", error=True
             )
@@ -1720,7 +1723,7 @@ class PAL:
                 self.PAL_pid = subprocess.Popen(cmd_to_execute, shell=True)
                 self.base.print_message(f"PAL command send: {self.PAL_pid}")
             except Exception as e:
-                tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
                 self.base.print_message(
                     "CMD error. Could not send commands.", error=True
                 )
@@ -1739,7 +1742,9 @@ class PAL:
                     )
                     ssh_connected = True
                 except Exception as e:
-                    tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                    tb = "".join(
+                        traceback.format_exception(type(e), e, e.__traceback__)
+                    )
                     ssh_connected = False
                     self.base.print_message(
                         f"SSH connection error. Retrying in 1 seconds.\n{repr(e), tb,}",
@@ -1799,9 +1804,10 @@ class PAL:
                 self.base.print_message(f"PAL command: '{cmd_to_execute}'", info=True)
 
             except Exception as e:
-                tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
                 self.base.print_message(
-                    f"SSH connection error 1. Could not send commands.\n{repr(e), tb,}", error=True
+                    f"SSH connection error 1. Could not send commands.\n{repr(e), tb,}",
+                    error=True,
                 )
 
                 error = ErrorCodes.ssh_error
@@ -1817,9 +1823,10 @@ class PAL:
                     mysshclient.close()
 
             except Exception as e:
-                tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
                 self.base.print_message(
-                    f"SSH connection error 2. Could not send commands.\n{repr(e), tb,}", error=True
+                    f"SSH connection error 2. Could not send commands.\n{repr(e), tb,}",
+                    error=True,
                 )
                 error = ErrorCodes.ssh_error
 
@@ -1922,12 +1929,14 @@ class PAL:
                 # if sample.sample_type == SampleType.assembly:
                 for part in sample.parts:
                     if part.sample_type == palaction.dilute_type[i]:
-                        part.update_vol(
-                            palaction.samples_in_delta_vol_ml[i], palaction.dilute[i]
+                        update_vol(
+                            part,
+                            palaction.samples_in_delta_vol_ml[i],
+                            palaction.dilute[i],
                         )
             else:
-                sample.update_vol(
-                    palaction.samples_in_delta_vol_ml[i], palaction.dilute[i]
+                update_vol(
+                    sample, palaction.samples_in_delta_vol_ml[i], palaction.dilute[i]
                 )
 
     async def _init_PAL_IOloop(self, A: Action, palcam: PalCam) -> dict:
@@ -2184,7 +2193,7 @@ class PAL:
         self.IO_measuring = False
         self.base.print_message("PAL is done")
 
-        #await asyncio.sleep(0.1)
+        # await asyncio.sleep(0.1)
 
         # need to check here again in case estop was triggered during
         # measurement
@@ -2194,7 +2203,6 @@ class PAL:
             self.active = None
             self.action = None
             _ = await last_active.finish()
-
 
     async def method_arbitrary(self, A: Action) -> dict:
         palcam = PalCam(**A.action_params)
@@ -2907,10 +2915,11 @@ class PAL:
                 )
                 ssh_connected = True
             except Exception as e:
-                tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
                 ssh_connected = False
                 self.base.print_message(
-                    f"SSH connection error. Retrying in 1 seconds.\n{repr(e), tb,}", error=True
+                    f"SSH connection error. Retrying in 1 seconds.\n{repr(e), tb,}",
+                    error=True,
                 )
                 await asyncio.sleep(1)
 
@@ -2924,9 +2933,10 @@ class PAL:
             mysshclient.close()
 
         except Exception as e:
-            tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             self.base.print_message(
-                f"SSH connection error 1. Could not send commands.\n{repr(e), tb,}", error=True
+                f"SSH connection error 1. Could not send commands.\n{repr(e), tb,}",
+                error=True,
             )
             self.base.print_message(e, error=True)
 

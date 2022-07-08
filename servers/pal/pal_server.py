@@ -8,8 +8,8 @@ from time import strftime
 from fastapi import Body, Query
 from typing import Optional, List, Tuple
 
-from helaocore.server.base import makeActionServ
-from helao.driver.robot.pal_driver import (
+from helao.servers.base import makeActionServ
+from helao.drivers.robot.pal_driver import (
     PAL,
     Spacingmethod,
     PALtools,
@@ -19,12 +19,12 @@ from helao.driver.robot.pal_driver import (
     SampleInheritance,
     SampleStatus,
 )
-from helao.driver.data.archive_driver import ScanDirection, ScanOperator
+from helao.drivers.data.archive_driver import ScanDirection, ScanOperator
 
-from helaocore.model.sample import SampleType, LiquidSample, SampleUnion, NoneSample
-from helaocore.helper.make_str_enum import make_str_enum
-from helaocore.schema import Action
-from helaocore.helper.config_loader import config_loader
+from helaocore.models.sample import SampleType, LiquidSample, SampleUnion, NoneSample
+from helao.helpers.make_str_enum import make_str_enum
+from helao.helpers.premodels import Action
+from helao.helpers.config_loader import config_loader
 
 
 def makeApp(confPrefix, servKey, helao_root):

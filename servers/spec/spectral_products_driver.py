@@ -6,17 +6,17 @@ import ctypes
 import asyncio
 import traceback
 
-from helaocore.schema import Action
+from helao.helpers.premodels import Action
 from helaocore.error import ErrorCodes
-from helaocore.model.data import DataModel
-from helaocore.model.file import FileConnParams, HloHeaderModel
-from helaocore.model.active import ActiveParams
-from helaocore.model.hlostatus import HloStatus
-from helaocore.data.sample import UnifiedSampleDataAPI
-from helaocore.model.sample import SampleInheritance, SampleStatus
-from helaocore.server.base import Base
-from helao.driver.io.enum import TriggerType
-from helao.driver.spec.enum import SpecTrigType
+from helaocore.models.data import DataModel
+from helaocore.models.file import FileConnParams, HloHeaderModel
+from helao.helpers.active_params import ActiveParams
+from helaocore.models.hlostatus import HloStatus
+from helao.helpers.sample_api import UnifiedSampleDataAPI
+from helaocore.models.sample import SampleInheritance, SampleStatus
+from helao.servers.base import Base
+from helao.drivers.io.enum import TriggerType
+from helao.drivers.spec.enum import SpecTrigType
 
 
 class SM303:

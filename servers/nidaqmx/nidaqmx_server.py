@@ -20,13 +20,13 @@ from typing import Optional, List
 from socket import gethostname
 
 
-from helaocore.server.base import makeActionServ
-from helao.driver.io.nidaqmx_driver import cNIMAX
-from helaocore.model.sample import LiquidSample, SampleUnion
-from helaocore.helper.make_str_enum import make_str_enum
-from helaocore.schema import Action
+from helao.servers.base import makeActionServ
+from helao.drivers.io.nidaqmx_driver import cNIMAX
+from helaocore.models.sample import LiquidSample, SampleUnion
+from helao.helpers.make_str_enum import make_str_enum
+from helao.helpers.premodels import Action
 from helaocore.error import ErrorCodes
-from helaocore.helper.config_loader import config_loader
+from helao.helpers.config_loader import config_loader
 
 
 def makeApp(confPrefix, servKey, helao_root):

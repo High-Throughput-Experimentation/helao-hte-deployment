@@ -30,14 +30,14 @@ __all__ = [
 from socket import gethostname
 from typing import Optional
 
-from helaocore.schema import Experiment, ActionPlanMaker
-from helao.driver.robot.pal_driver import PALtools
-from helaocore.model.sample import SolidSample, LiquidSample
-from helaocore.model.machine import MachineModel
-from helaocore.model.action_start_condition import ActionStartCondition
-from helaocore.model.process_contrib import ProcessContrib
-from helaocore.helper.ref_electrode import REF_TABLE
-from helao.driver.motion.galil_motion_driver import MoveModes, TransformationModes
+from helao.helpers.premodels import Experiment, ActionPlanMaker
+from helao.drivers.robot.pal_driver import PALtools
+from helaocore.models.sample import SolidSample, LiquidSample
+from helaocore.models.machine import MachineModel
+from helaocore.models.action_start_condition import ActionStartCondition
+from helaocore.models.process_contrib import ProcessContrib
+from helao.helpers.ref_electrode import REF_TABLE
+from helao.drivers.motion.galil_motion_driver import MoveModes, TransformationModes
 
 # list valid experiment functions
 EXPERIMENTS = __all__

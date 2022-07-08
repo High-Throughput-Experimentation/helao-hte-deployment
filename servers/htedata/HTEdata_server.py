@@ -5,9 +5,9 @@ __all__ = ["makeApp"]
 from typing import Optional
 from fastapi import Body
 from importlib import import_module
-from helaocore.server.base import makeActionServ
-from helaocore.schema import Action
-from helaocore.helper.config_loader import config_loader
+from helao.servers.base import makeActionServ
+from helao.helpers.premodels import Action
+from helao.helpers.config_loader import config_loader
 
 
 def makeApp(confPrefix, servKey, helao_root):
@@ -23,7 +23,7 @@ def makeApp(confPrefix, servKey, helao_root):
 
     if S["mode"] == "legacy":
         # print("Legacy data managament mode")
-        from helao.driver.data.HTEdata_legacy import HTEdata
+        from helao.drivers.data.HTEdata_legacy import HTEdata
     # elif S['mode'] == "modelyst":
     #     pass
     # print("Modelyst data managament mode")

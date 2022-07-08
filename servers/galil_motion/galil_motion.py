@@ -17,16 +17,16 @@ from fastapi import Body
 import numpy as np
 
 
-from helao.driver.motion.galil_motion_driver import (
+from helao.drivers.motion.galil_motion_driver import (
     MoveModes,
     TransformationModes,
     Galil,
 )
-from helaocore.server.base import makeActionServ
-from helaocore.helper.make_str_enum import make_str_enum
-from helaocore.schema import Action
+from helao.servers.base import makeActionServ
+from helao.helpers.make_str_enum import make_str_enum
+from helao.helpers.premodels import Action
 from helaocore.error import ErrorCodes
-from helaocore.helper.config_loader import config_loader
+from helao.helpers.config_loader import config_loader
 
 
 async def galil_dyn_endpoints(app=None):

@@ -9,14 +9,14 @@ __all__ = ["makeApp"]
 
 from typing import Optional, List
 from fastapi import Body
-from helaocore.schema import Action
-from helaocore.server.base import makeActionServ
-from helaocore.model.sample import SampleUnion
-from helaocore.model.file import HloHeaderModel
-from helao.driver.spec.spectral_products import SM303
-from helaocore.helper.config_loader import config_loader
+from helao.helpers.premodels import Action
+from helao.servers.base import makeActionServ
+from helaocore.models.sample import SampleUnion
+from helaocore.models.file import HloHeaderModel
+from helao.drivers.spec.spectral_products import SM303
+from helao.helpers.config_loader import config_loader
 
-from helao.driver.io.enum import TriggerType
+from helao.drivers.io.enum import TriggerType
 
 def makeApp(confPrefix, servKey, helao_root):
 

@@ -27,12 +27,12 @@ from bokeh.events import ButtonClick, DoubleTap, MouseWheel, Pan
 from bokeh.layouts import gridplot
 from bokeh.models.widgets import FileInput
 
-from helaocore.server.vis import Vis
-from helaocore.data.legacy import HTELegacyAPI
-from helaocore.model.data import DataModel
+from helao.servers.vis import Vis
+from helao.helpers.legacy_api import HTELegacyAPI
+from helaocore.models.data import DataModel
 from helaocore.error import ErrorCodes
 
-from helao.driver.motion.enum import MoveModes, TransformationModes
+from helao.drivers.motion.enum import MoveModes, TransformationModes
 
 
 class Aligner:

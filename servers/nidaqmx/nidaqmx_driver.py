@@ -14,15 +14,15 @@ from nidaqmx.constants import CurrentShuntResistorLocation
 from nidaqmx.constants import UnitsPreScaled
 from nidaqmx.constants import TriggerType
 
-from helaocore.schema import Action
-from helaocore.server.base import Base
+from helao.helpers.premodels import Action
+from helao.servers.base import Base
 from helaocore.error import ErrorCodes
-from helaocore.helper.make_str_enum import make_str_enum
-from helaocore.data.sample import UnifiedSampleDataAPI
-from helaocore.model.sample import SampleInheritance, SampleStatus
-from helaocore.model.file import FileConnParams, HloHeaderModel
-from helaocore.model.active import ActiveParams
-from helaocore.model.data import DataModel
+from helao.helpers.make_str_enum import make_str_enum
+from helao.helpers.sample_api import UnifiedSampleDataAPI
+from helaocore.models.sample import SampleInheritance, SampleStatus
+from helaocore.models.file import FileConnParams, HloHeaderModel
+from helao.helpers.active_params import ActiveParams
+from helaocore.models.data import DataModel
 
 
 class cNIMAX:

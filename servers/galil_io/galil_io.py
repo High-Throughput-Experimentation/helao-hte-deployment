@@ -2,11 +2,11 @@ __all__ = ["makeApp"]
 
 from typing import Optional, Union, List
 from fastapi import Body, Query
-from helaocore.server.base import makeActionServ
-from helao.driver.io.galil_io_driver import Galil, TriggerType
-from helaocore.schema import Action
+from helao.servers.base import makeActionServ
+from helao.drivers.io.galil_io_driver import Galil, TriggerType
+from helao.helpers.premodels import Action
 from helaocore.error import ErrorCodes
-from helaocore.helper.config_loader import config_loader
+from helao.helpers.config_loader import config_loader
 
 
 async def galil_dyn_endpoints(app=None):

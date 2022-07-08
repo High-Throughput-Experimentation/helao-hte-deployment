@@ -15,10 +15,10 @@ from enum import Enum
 import json
 
 
-from helaocore.server.base import Base
+from helao.servers.base import Base
 from helaocore.error import ErrorCodes
 
-from helaocore.model.sample import (
+from helaocore.models.sample import (
     SampleType,
     SampleUnion,
     LiquidSample,
@@ -29,9 +29,8 @@ from helaocore.model.sample import (
     SampleStatus,
     SampleInheritance,
     object_to_sample,
-    SampleType,
 )
-from helaocore.model.position import (
+from helao.helpers.sample_positions import (
     Custom,
     VT54,
     VT70,
@@ -40,11 +39,12 @@ from helaocore.model.position import (
 )
 
 
-from helaocore.helper.print_message import print_message
-from helaocore.helper.unpack_samples import unpack_samples_helper
+from helao.helpers.print_message import print_message
+from helao.helpers.unpack_samples import unpack_samples_helper
 
-from helaocore.data.sample import UnifiedSampleDataAPI
-from helaocore.schema import Action
+from helao.helpers.sample_api import UnifiedSampleDataAPI
+from helao.helpers.premodels import Action
+from helao.helpers.update_sample_vol import update_vol
 
 
 class ScanDirection(str, Enum):
@@ -182,7 +182,9 @@ class Archive:
                 test = pattern.match(key)
                 if test is None:
                     if key == "custom":
-                        self.base.print_message("Custom position defined in config.", info=True)
+                        self.base.print_message(
+                            "Custom position defined in config.", info=True
+                        )
                         for custom_name, custom_type in val.items():
                             positions.customs_dict.update(
                                 {
@@ -243,7 +245,9 @@ class Archive:
                     data = json.loads(f.readline())
                     return Positions(**data)
                 except Exception as e:
-                    tb = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+                    tb = "".join(
+                        traceback.format_exception(type(e), e, e.__traceback__)
+                    )
                     self.base.print_message(
                         f"error loading {self.archivepck}: {repr(e), tb,}", error=True
                     )
@@ -658,7 +662,7 @@ class Archive:
                                         ):
                                             continue
                                         else:
-                                            if vial[vial_no] == True:
+                                            if vial[vial_no]:
                                                 new_tray = tray_no
                                                 new_slot = slot_no
                                                 new_vial = (
@@ -1123,7 +1127,9 @@ class Archive:
             source_chemical = await self._add_listA_to_listB(
                 sample.chemical, source_chemical
             )
-            source_partial_molarity = await self._add_listA_to_listB(sample.partial_molarity, source_partial_molarity)
+            source_partial_molarity = await self._add_listA_to_listB(
+                sample.partial_molarity, source_partial_molarity
+            )
             source_supplier = await self._add_listA_to_listB(
                 sample.supplier, source_supplier
             )
@@ -1294,7 +1300,7 @@ class Archive:
         # update volume of samples_in
         # also sets status to destroyed if vol <= 0
         # never dilute reservoir
-        samples_in[0].update_vol(delta_vol_ml=-volume_ml, dilute=False)
+        update_vol(samples_in[0], delta_vol_ml=-volume_ml, dilute=False)
 
         # (5) now decide what the new sample should be
         # (5-1) custom is empty --> new sample is ref_samples_out[0]
@@ -1328,7 +1334,7 @@ class Archive:
         # too, e.g. not allowed if custom is a reservoir type position
         elif (
             (custom_sample.sample_type == SampleType.liquid)
-            and combine_liquids == True
+            and combine_liquids
             and self.custom_dilution_allowed(custom=custom)
         ):
             # convert the ref samples that gets added to a real sample
@@ -1361,8 +1367,10 @@ class Archive:
             ref_samples_out2[0].sample_position = custom
             ref_samples_out2[0].volume_ml = custom_sample.volume_ml
             ref_samples_out2[0].dilution_factor = custom_sample.dilution_factor
-            ref_samples_out2[0].update_vol(
-                delta_vol_ml=samples_out[0].volume_ml, dilute=dilute_liquids
+            update_vol(
+                ref_samples_out2[0],
+                delta_vol_ml=samples_out[0].volume_ml,
+                dilute=dilute_liquids,
             )
 
             # a reference assembly was successfully created
@@ -1580,13 +1588,13 @@ class Archive:
         platemap_xys_operator: ScanOperator = None,
     ):
         """generate the sample list based on filters:
-            - which direction to move
-            (raster rows, raster columns, left-to-right, top-to-bottom)
-            - platemap composition (A>0 and/or B=0)
-            - platemap sample codes (code=0, code!=1)
-            - skip every N samples
-            - sample number equals, gt, gte, lt, lte, not
-            - platemap x,y equals, gt, gte, lt, lte, not
+        - which direction to move
+        (raster rows, raster columns, left-to-right, top-to-bottom)
+        - platemap composition (A>0 and/or B=0)
+        - platemap sample codes (code=0, code!=1)
+        - skip every N samples
+        - sample number equals, gt, gte, lt, lte, not
+        - platemap x,y equals, gt, gte, lt, lte, not
         """
         if (
             active is None

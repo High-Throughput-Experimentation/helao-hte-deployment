@@ -10,16 +10,16 @@ __all__ = [
 from typing import Optional, List, Tuple
 from socket import gethostname
 
-from helaocore.schema import Experiment, ActionPlanMaker
+from helao.helpers.premodels import Experiment, ActionPlanMaker
 
-# from helaocore.model.action_start_condition import ActionStartCondition
-from helaocore.model.sample import (
+# from helaocore.models.action_start_condition import ActionStartCondition
+from helaocore.models.sample import (
     LiquidSample,
     GasSample,
     AssemblySample,
     SolidSample,
 )
-from helaocore.model.machine import MachineModel
+from helaocore.models.machine import MachineModel
 
 
 EXPERIMENTS = __all__

@@ -4,7 +4,7 @@ __all__ = ["ANEC_sample_ready", "ANEC_series_CA", "ANEC_photo_CA", "ANEC_cleanup
 
 from typing import List
 from typing import Optional
-from helaocore.schema import ExperimentPlanMaker
+from helao.helpers.premodels import ExperimentPlanMaker
 
 
 SEQUENCES = __all__

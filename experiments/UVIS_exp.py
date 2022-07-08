@@ -18,16 +18,16 @@ __all__ = [
 from typing import Optional, List, Union
 from socket import gethostname
 
-from helaocore.schema import Action, Experiment, ActionPlanMaker
-from helaocore.model.action_start_condition import ActionStartCondition
-from helaocore.model.sample import SolidSample, LiquidSample
-from helaocore.model.machine import MachineModel
-from helaocore.model.process_contrib import ProcessContrib
-from helaocore.model.electrolyte import Electrolyte
+from helao.helpers.premodels import Action, Experiment, ActionPlanMaker
+from helaocore.models.action_start_condition import ActionStartCondition
+from helaocore.models.sample import SolidSample, LiquidSample
+from helaocore.models.machine import MachineModel
+from helaocore.models.process_contrib import ProcessContrib
+from helaocore.models.electrolyte import Electrolyte
 
-from helao.driver.motion.enum import MoveModes, TransformationModes
-from helao.driver.io.enum import TriggerType
-from helao.driver.robot.enum import PALtools, Spacingmethod
+from helao.drivers.motion.enum import MoveModes, TransformationModes
+from helao.drivers.io.enum import TriggerType
+from helao.drivers.robot.enum import PALtools, Spacingmethod
 
 
 EXPERIMENTS = __all__
