@@ -23,7 +23,7 @@ from helao.servers.vis import Vis
 
 
 class C_co2:
-    """potentiostat visualizer module class"""
+    """CO2 sensor visualizer module class"""
 
     def __init__(self, visServ: Vis, serv_key: str):
         self.vis = visServ
