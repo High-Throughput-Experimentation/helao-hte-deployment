@@ -205,7 +205,7 @@ class DryUvisAnalysis(BaseAnalysis):
     process_name: str
     run_type: str
     technique_name: str
-    inputs: AnalysisInput
+    inputs: DryUvisInputs
     outputs: DryUvisOutputs
     action_attr: str
     analysis_codehash: str
