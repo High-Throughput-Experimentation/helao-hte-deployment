@@ -36,6 +36,7 @@ __all__ = [
     "ADSS_sub_clean_PALtool",
     "ADSS_sub_PAL_deep_clean",
     "ADSS_sub_PAL_tray_to_tray",
+    "ADSS_sub_PAL_export_icpms",
     "ADSS_sub_cellfill_prefilled",
     "ADSS_sub_cellfill_flush",
     "ADSS_sub_keep_electrolyte",
@@ -67,8 +68,8 @@ from helao.core.models.machine import MachineModel
 from helao.core.models.process_contrib import ProcessContrib
 from helao.helpers.ref_electrode import REF_TABLE
 
-from helao.drivers.motion.galil_motion_driver import MoveModes, TransformationModes
-from helao.drivers.robot.pal_driver import Spacingmethod, PALtools
+from ..drivers.motion.galil_motion_driver import MoveModes, TransformationModes
+from ..drivers.robot.pal_driver import Spacingmethod, PALtools
 
 from helao.core.models.run_use import RunUse
 
@@ -1243,23 +1244,11 @@ def ADSS_sub_CV(
                 EquilibrationTime_s= 0,
                 PAL_Injector=PAL_Injector,
                 PAL_Injector_id=PAL_Injector_id,
-                rinse_1 = 1,
-                rinse_2= 1,
-                rinse_3= 0,
-                rinse_4= 0,
+                rinse_1 = washone,
+                rinse_2= washtwo,
+                rinse_3= washthree,
+                rinse_4= washfour,
             )
-        )
-        apm.add(
-            PAL_server,
-            "PAL_deepclean",
-            {
-                "tool": PAL_Injector,
-                "volume_ul": 500,
-                "wash1":0,
-                "wash2":0,
-                "wash3":1,
-                "wash4":1,
-            },
         )
 
 
@@ -1328,23 +1317,11 @@ def ADSS_sub_OCV(
                 EquilibrationTime_s= 0,
                 PAL_Injector=PAL_Injector,
                 PAL_Injector_id=PAL_Injector_id,
-                rinse_1 = 1,
-                rinse_2= 1,
-                rinse_3= 0,
-                rinse_4= 0,
+                rinse_1 = washone,
+                rinse_2= washtwo,
+                rinse_3= washthree,
+                rinse_4= washfour,
             )
-        )
-        apm.add(
-            PAL_server,
-            "PAL_deepclean",
-            {
-                "tool": PAL_Injector,
-                "volume_ul": 500,
-                "wash1":0,
-                "wash2":0,
-                "wash3":1,
-                "wash4":1,
-            },
         )
 
     # OCV
@@ -2310,14 +2287,13 @@ def ADSS_sub_keep_electrolyte(
 # need to move to clean spot first before beginning clean
 def ADSS_sub_clean_cell(
     experiment: Experiment,
-    experiment_version: int = 4,   #4 introduces manual pause for water injection/circulation/drain
+    experiment_version: int = 3,
     Clean_volume_ul: float = 3000,
     Syringe_rate_ulsec: float = 300,
     PurgeWait_s: float = 3,
-    ReturnLineWait_s: float = 60,
-    DrainWait_s: float = 80,
-    ReturnLineReverseWait_s: float = 15,
-    Watercleancycle: bool = True,
+    ReturnLineWait_s: float = 30,
+    DrainWait_s: float = 60,
+    ReturnLineReverseWait_s: float = 5,
     lift: bool = False,
     #    ResidualWait_s: float = 15,
 ):
@@ -2379,27 +2355,6 @@ def ADSS_sub_clean_cell(
             # ResidualWait_s=ResidualWait_s,
         )
     )
-
-    if Watercleancycle:
-        apm.add(ORCH_server, "interrupt", {"reason": "Manual injection of water"})
-
-
-        apm.add(NI_server, "pump", {"pump": "direction", "on": 0})
-        apm.add(NI_server, "pump", {"pump": "peripump", "on": 1})
-        apm.add(ORCH_server, "wait", {"waittime": ReturnLineWait_s})
-        apm.add(NI_server, "pump", {"pump": "peripump", "on": 0})
-
-
-        apm.add_actions(
-            ADSS_sub_drain_cell(
-                experiment=experiment,
-                DrainWait_s=DrainWait_s,
-                ReturnLineReverseWait_s=ReturnLineReverseWait_s,
-                # ResidualWait_s=ResidualWait_s,
-            )
-        )
-
-
     if lift:
         apm.add(MOTOR_server, "z_move", {"z_position": "load"})
 
@@ -2857,7 +2812,7 @@ def ADSS_sub_PAL_tray_to_tray(
     dest_vial: int = 52,
     PAL_Injector: str = "LS 4",
     PAL_Injector_id: str = "fill serial number here",
-    rinse_1: int = 0,
+    rinse_1: int = 1,
     rinse_2: int = 0,
     rinse_3: int = 0,
     rinse_4: int = 0,
@@ -2882,6 +2837,36 @@ def ADSS_sub_PAL_tray_to_tray(
             "wash2": rinse_2,
             "wash3": rinse_3,
             "wash4": rinse_4,
+        },
+    )
+
+    return apm.planned_actions  # returns complete action list to orch
+
+
+
+def ADSS_sub_PAL_export_icpms(
+    experiment: Experiment,
+    experiment_version: int = 1,
+    tray: int = 2,
+    slot: int = 1,
+    survey_runs: int = 1,
+    main_runs: int = 3,
+    rack: int = 2,
+    dilution_factor: float = 10
+
+):
+    apm = ActionPlanMaker()
+
+    apm.add(
+        PAL_server,
+        "archive_tray_export_icpms",
+        {
+            "tray": tray,
+            "slot": slot,
+            "survey_runs": survey_runs,
+            "main_runs": main_runs,
+            "rack": rack,
+            "dilution_factor": dilution_factor,
         },
     )
 
