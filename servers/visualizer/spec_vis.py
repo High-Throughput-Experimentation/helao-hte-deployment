@@ -2,7 +2,6 @@ from copy import deepcopy
 from datetime import datetime
 from functools import partial
 
-import matplotlib.colors as mcolors
 from bokeh.layouts import Spacer, layout
 from bokeh.models import (
     ColumnDataSource,
@@ -10,12 +9,12 @@ from bokeh.models import (
 )
 from bokeh.models.widgets import Div
 from bokeh.plotting import figure
-from matplotlib import colormaps
 
 from helao.helpers import helao_logging as logging
 
 LOGGER = logging.make_logger(__file__) if logging.LOGGER is None else logging.LOGGER
 from helao.core.models.hlostatus import HloStatus
+from helao.core.servers.palette import PANEL_BG, red_ramp
 from helao.core.servers.vis import Vis
 from helao.core.servers.vis_subscriber import ActionVisualizer
 from helao.helpers.dispatcher import private_dispatcher
@@ -47,7 +46,9 @@ class C_vis(ActionVisualizer):
     Attributes:
         max_spectra: Maximum number of spectra retained per action.
         downsample: Stride applied to ``wl``, ``ev``, and ``trans`` data.
-        cmap: Matplotlib colormap used to colour individual spectra.
+        _ramp: Recency-shading swatches from
+            :func:`~helao.core.servers.palette.red_ramp`, one per retained
+            spectrum, used to colour individual spectra.
         latest_coloridx: Reserved counter for the newest spectrum's colour.
         wl: Wavelength axis fetched from the action server.
         ev: Energy axis derived from ``wl``.
@@ -80,7 +81,7 @@ class C_vis(ActionVisualizer):
         self.max_spectra = 5
         self.downsample = 2
 
-        self.cmap = colormaps["Reds_r"].resampled(self.max_spectra)
+        self._ramp = red_ramp(self.max_spectra)
         self.latest_coloridx = 0
 
         self.wl = private_dispatcher(
@@ -157,7 +158,7 @@ class C_vis(ActionVisualizer):
                 [self.plot, Spacer(width=20), self.plot_prev],
                 Spacer(height=10),
             ],
-            background="#D6DBDF",
+            background=PANEL_BG,
             width=1024,
         )
 
@@ -170,11 +171,11 @@ class C_vis(ActionVisualizer):
         self.reset_plot(self.cur_action_uuid, forceupdate=True)
 
     def callback_input_max_spectra(self, attr, old, new, sender):
-        """Validate the ``max num spectra`` input and resize the colormap.
+        """Validate the ``max num spectra`` input and resize the colour ramp.
 
         Parses ``new`` as an int, falls back to ``old`` (or ``500``) on bad
         input, then clamps to ``[2, 10000]`` before storing it as
-        ``self.max_spectra``, regenerating the ``Reds_r`` colormap, and
+        ``self.max_spectra``, regenerating the red recency ramp, and
         refreshing the widget.
 
         Args:
@@ -205,7 +206,7 @@ class C_vis(ActionVisualizer):
             newpts = 10000
 
         self.max_spectra = newpts
-        self.cmap = colormaps["Reds_r"].resampled(self.max_spectra)
+        self._ramp = red_ramp(self.max_spectra)
 
         self.vis.doc.add_next_tick_callback(
             partial(self.update_input_value, sender, f"{self.max_spectra}")
@@ -275,13 +276,13 @@ class C_vis(ActionVisualizer):
                         "wl": [self.wl[:: self.downsample]],
                         "ev": [self.ev[:: self.downsample]],
                         "trans": [[uuid_dict[k] for k in ch_keys][:: self.downsample]],
-                        "color": [mcolors.rgb2hex(self.cmap(0))],
+                        "color": [self._ramp[0]],
                         "time": [dtstr],
                     }
 
                     current_colors = self.datasource.data["color"]
                     new_colors = [
-                        mcolors.rgb2hex(self.cmap((i + 1) % self.max_spectra))
+                        self._ramp[(i + 1) % self.max_spectra]
                         for i, _ in enumerate(current_colors)
                     ]
                     self.datasource.patch(
