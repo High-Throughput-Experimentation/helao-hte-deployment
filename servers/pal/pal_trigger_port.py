@@ -1,6 +1,6 @@
 """PalTriggerPort (P3a-PAL plan §Ports/domain bullet D, slice 5): the
 NI-DAQmx start/continue/done DIO handshake. Lifted out of
-``helao/deploy/hte/drivers/robot/pal_driver.py``'s ``_poll_trigger_task``/
+``helao/deploy/hte/servers/pal/pal_driver.py``'s ``_poll_trigger_task``/
 ``_sendcommand_triggerwait``/``_clear_trigger_qs`` and the three trigger
 queues.
 

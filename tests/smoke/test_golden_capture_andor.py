@@ -12,7 +12,7 @@ golden_capture_andor.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/hexagon/tests/smoke/test_golden_capture_andor.py -q
+    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_andor.py -q
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import tempfile
 from pathlib import Path
 
 from harness.manifest import ProvenanceManifest
-from helao.hexagon.tests.smoke.golden_capture_andor import (
+from helao.deploy.hte.tests.smoke.golden_capture_andor import (
     ANDOR_ACT_YML_MASKED_META_KEYS,
     ANDOR_HLO_COLUMNS,
     ANDOR_MASKED_HLO_COLUMNS,
@@ -87,7 +87,7 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
         assert manifest.scenario == SCENARIO
         assert manifest.config_prefix == "andorgold"
         assert manifest.config_path.replace("\\", "/").endswith(
-            "helao/hexagon/tests/smoke/configs/andorgold.yml"
+            "helao/deploy/hte/tests/smoke/configs/andorgold.yml"
         )
         assert manifest.masked_hlo_columns == ANDOR_MASKED_HLO_COLUMNS
         # the per-run action_params.action_path is masked via masked_meta_keys

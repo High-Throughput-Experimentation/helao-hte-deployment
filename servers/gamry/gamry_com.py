@@ -187,7 +187,7 @@ class GamryComThread:
 
 def _default_driver_factory(config: dict):
     """Construct the legacy GamryDriver (lazy import; COM happens in its ctor)."""
-    from helao.deploy.hte.drivers.pstat.gamry.driver import GamryDriver
+    from helao.deploy.hte.servers.gamry.driver import GamryDriver
 
     return GamryDriver(config=config)
 
@@ -465,6 +465,6 @@ class GamryComAdapter(HelaoDriver):
     @staticmethod
     def _bare_kill():
         """psutil GamryCOM kill without an owning thread (recovery path)."""
-        from helao.deploy.hte.drivers.pstat.gamry.driver import GamryDriver
+        from helao.deploy.hte.servers.gamry.driver import GamryDriver
 
         return GamryDriver.kill_gamrycom(GamryDriver.__new__(GamryDriver))

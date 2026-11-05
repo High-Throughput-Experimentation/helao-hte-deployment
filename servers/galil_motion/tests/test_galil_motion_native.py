@@ -16,9 +16,11 @@ import pytest
 
 from helao.core.drivers.helao_driver import HelaoDriver
 from helao.core.error import ErrorCodes
-from helao.hexagon.adapters.shared.galil_command_channel import GclibCommandChannel
-from helao.hexagon.adapters.native.galil_motion_native import NativeGalilMotion
-from helao.hexagon.ports.galil_command_channel import (
+from helao.deploy.hte.servers.galil_motion.galil_command_channel import (
+    GclibCommandChannel,
+)
+from helao.deploy.hte.servers.galil_motion.galil_motion_native import NativeGalilMotion
+from helao.deploy.hte.servers.galil_motion.galil_command_channel_port import (
     GalilChannelError,
     GalilCommandChannel,
 )
@@ -456,7 +458,7 @@ def test_build_transform_warns_on_missing_calibration(monkeypatch):
     diagnostic for a mis-placed plate_calib file that silently miscalibrates
     motor targets).
     """
-    from helao.hexagon.adapters.native import galil_motion_native as mod
+    from helao.deploy.hte.servers.galil_motion import galil_motion_native as mod
 
     d, _ = _drv()
     warnings: list = []
@@ -471,7 +473,7 @@ def test_build_transform_warns_on_missing_calibration(monkeypatch):
 
 def test_build_transform_no_warning_when_config_m_instr_present(monkeypatch):
     """A configured M_instr is a real transform -> no identity-instrument warning."""
-    from helao.hexagon.adapters.native import galil_motion_native as mod
+    from helao.deploy.hte.servers.galil_motion import galil_motion_native as mod
 
     cfg = dict(AXIS_CFG)
     cfg["M_instr"] = [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]

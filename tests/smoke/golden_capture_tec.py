@@ -22,7 +22,7 @@ color) for this canary, exactly as already documented for galil/gamry.
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
 orch-less, db-less tec 2-server topology (TEC@8008 + ACTVIS@5001 only
 -- no ORCH, no DB), mirroring gamry's
-``helao.hexagon.tests.smoke.golden_capture`` / galil's
+``helao.deploy.hte.tests.smoke.golden_capture`` / galil's
 ``golden_capture_galil`` (see those modules' docstrings for the full
 topology-gap rationale already recorded there). The hardware-agnostic
 settle/anti-vacuous-guard logic (``settle``, ``_run_artifacts``,
@@ -37,7 +37,7 @@ controller must be powered on and reachable at the configured serial ``port``
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py tecgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_tec ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_tec ^
         --config-prefix tecgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\tec
 
@@ -61,7 +61,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -237,7 +237,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_tec",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_tec",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

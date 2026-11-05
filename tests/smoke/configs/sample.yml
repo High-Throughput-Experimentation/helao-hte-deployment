@@ -1,6 +1,6 @@
 # STANDALONE sample_server canary config (P3a special-split, SAMPLE). The
 # FOURTH hardware canary but the FIRST fully-Linux-runnable one: sample_server
-# wraps driver_classes=[Archive] (helao/deploy/hte/drivers/data/
+# wraps driver_classes=[Archive] (helao/deploy/hte/servers/sample/
 # archive_driver.py), a pure SOFTWARE sample-DB / tray-position manager with
 # NO hardware dependency whatsoever -- no gclib, no COM, no external DB
 # server. Archive.__init__ only needs the `positions` config block (falls

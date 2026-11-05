@@ -13,10 +13,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from helao.deploy.hte.drivers.spec.andor import driver as andor_driver
-from helao.deploy.hte.drivers.spec.andor import wl_calibration as wlc
-from helao.deploy.hte.drivers.spec.andor.calibrated import AndorCalibratedDriver
-from helao.deploy.hte.drivers.spec.andor import wl_fit
+from helao.deploy.hte.servers.andor import driver as andor_driver
+from helao.deploy.hte.servers.andor import wl_calibration as wlc
+from helao.deploy.hte.servers.andor.calibrated import AndorCalibratedDriver
+from helao.deploy.hte.servers.andor import wl_fit
 
 CALIB = wlc.WavelengthCalibration(
     model=wlc.MODEL_POLY,
@@ -48,9 +48,9 @@ def test_construct_does_not_import_the_spectrograph_module(tmp_path):
     """The whole point: this station has no pyAndorSpectrograph installed."""
     import sys
 
-    sys.modules.pop("helao.deploy.hte.drivers.spec.andor.spectrograph", None)
+    sys.modules.pop("helao.deploy.hte.servers.andor.spectrograph", None)
     _driver(tmp_path)
-    assert "helao.deploy.hte.drivers.spec.andor.spectrograph" not in sys.modules
+    assert "helao.deploy.hte.servers.andor.spectrograph" not in sys.modules
 
 
 def test_calibration_file_follows_the_convention(tmp_path):
@@ -256,7 +256,7 @@ def _stub_fit(monkeypatch, **overrides):
 
 def test_the_bundled_catalogue_is_krypton_in_air():
     """The lamp list is data, not a guess, and its medium is recorded."""
-    from helao.deploy.hte.drivers.spec.andor import kr_lines
+    from helao.deploy.hte.servers.andor import kr_lines
 
     assert kr_lines.MEDIUM == "air"
     assert len(kr_lines.KR_LINES_AIR_NM) > 50

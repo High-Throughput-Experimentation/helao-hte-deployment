@@ -14,7 +14,7 @@ documentation, not a dependency. Import statements are the actual hazard.
 import ast
 from pathlib import Path
 
-ANDOR = Path("helao/deploy/hte/drivers/spec/andor")
+ANDOR = Path("helao/deploy/hte/servers/andor")
 ALLOWED = {"spectrograph.py"}
 
 

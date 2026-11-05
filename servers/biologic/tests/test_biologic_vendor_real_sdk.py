@@ -22,8 +22,8 @@ import pathlib
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import vendor
-from helao.deploy.hte.drivers.pstat.biologic.technique import BIOTECHS
+from helao.deploy.hte.servers.biologic.biologic import vendor
+from helao.deploy.hte.servers.biologic.biologic.technique import BIOTECHS
 
 SDK = os.environ.get("HELAO_ECLIB1_SDK_PATH")
 pytestmark = pytest.mark.skipif(not SDK, reason="HELAO_ECLIB1_SDK_PATH not set")
@@ -80,7 +80,7 @@ def test_the_firmware_blobs_this_driver_would_load_are_present():
 
 def test_get_error_msg_agrees_with_the_transcribed_names():
     """The DLL will translate its own codes; the names are ours."""
-    from helao.deploy.hte.drivers.pstat.biologic.eclib_client import EclibClient
+    from helao.deploy.hte.servers.biologic.biologic.eclib_client import EclibClient
 
     client = EclibClient(sdk_path=SDK, simulate=False)
     try:

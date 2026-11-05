@@ -86,7 +86,7 @@ import enum
 
 import pytest
 
-from helao.deploy.hte.drivers.motion.enum import MoveModes
+from helao.deploy.hte.servers.galil_motion.enum import MoveModes
 from helao.helpers.premodels import Sequence
 
 

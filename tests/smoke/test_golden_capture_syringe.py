@@ -13,7 +13,7 @@ only runs against a launched server (see golden_capture_syringe.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/hexagon/tests/smoke/test_golden_capture_syringe.py -q
+    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_syringe.py -q
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 
 from harness.manifest import ProvenanceManifest
-from helao.hexagon.tests.smoke.golden_capture_syringe import (
+from helao.deploy.hte.tests.smoke.golden_capture_syringe import (
     SCENARIO,
     SYRVOL_MASKED_HLO_COLUMNS,
     SYRVOL_MASKED_META_KEYS,
@@ -58,7 +58,7 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
         assert manifest.scenario == SCENARIO
         assert manifest.config_prefix == "syringegold"
         assert manifest.config_path.replace("\\", "/").endswith(
-            "helao/hexagon/tests/smoke/configs/syringegold.yml"
+            "helao/deploy/hte/tests/smoke/configs/syringegold.yml"
         )
         # MASKING = NONE is the load-bearing decision for this scenario: the
         # present_volume_ul value is config-deterministic on a fresh idle pump

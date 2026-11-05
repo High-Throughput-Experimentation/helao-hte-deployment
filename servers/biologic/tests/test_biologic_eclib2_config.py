@@ -9,7 +9,9 @@ commit rather than here.
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_eclib2.driver import BiologicEclib2Driver
+from helao.deploy.hte.servers.biologic.biologic_eclib2.driver import (
+    BiologicEclib2Driver,
+)
 
 PREFIX = "biologiceclib2"
 
@@ -129,7 +131,7 @@ def test_it_declares_an_orchestrator_so_the_group_is_a_real_group(config):
 
 def test_the_action_server_names_the_biologic_module(config):
     # The launcher finds makeApp by import path, so this value and the file
-    # name under servers/action/ must agree.
+    # name under servers/biologic/ must agree.
     assert config["servers"]["BIOLOGIC"]["fast"] == "biologic_server"
 
 

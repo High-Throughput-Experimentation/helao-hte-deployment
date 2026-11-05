@@ -1,4 +1,4 @@
-"""Unit tests for `helao.hexagon.adapters.shared.pal_trigger` (P3a-PAL
+"""Unit tests for `helao.deploy.hte.servers.pal.pal_trigger` (P3a-PAL
 slice 5): `NidaqmxPalTrigger` + `NullPalTrigger`.
 
 `wait_for_triggers`/`clear_queues` are pure-asyncio-queue logic with zero
@@ -19,8 +19,8 @@ py's docstring), so async bodies run via `asyncio.run(...)` from plain
 import asyncio
 
 from helao.core.error import ErrorCodes
-from helao.hexagon.adapters.shared.pal_trigger import NidaqmxPalTrigger, NullPalTrigger
-from helao.hexagon.ports.pal_trigger import PalTriggerPort
+from helao.deploy.hte.servers.pal.pal_trigger import NidaqmxPalTrigger, NullPalTrigger
+from helao.deploy.hte.servers.pal.pal_trigger_port import PalTriggerPort
 
 
 def test_nidaqmx_trigger_is_pal_trigger_port():

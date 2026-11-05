@@ -4,7 +4,7 @@ special-split).
 *** DRIVES THE REAL SM303 SPECTROMETER. THIS IS NOT A SIMULATION. ***
 
 Like gamry/galil (and unlike sample), spec_server has NO sim/dummy data path:
-``SM303.__init__``/``connect`` (helao/deploy/hte/drivers/spec/
+``SM303.__init__``/``connect`` (helao/deploy/hte/servers/spec/
 spectral_products_driver.py) unconditionally loads the vendor ``SPdbUSBm.dll``
 via ctypes and configures the physical device, and ``spec_server.py``
 instantiates ``driver_classes=[SM303]`` unconditionally -- the config's
@@ -46,7 +46,7 @@ FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py specgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_spec ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_spec ^
         --config-prefix specgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\spec
 
@@ -68,7 +68,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -222,7 +222,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_spec",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_spec",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

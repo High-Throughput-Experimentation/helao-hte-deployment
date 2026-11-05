@@ -14,7 +14,7 @@ import types
 import pytest
 
 from helao.core.drivers.helao_driver import DriverStatus, HelaoDriver
-from helao.hexagon.adapters.native.gamry_com import (
+from helao.deploy.hte.servers.gamry.gamry_com import (
     COINIT_APARTMENTTHREADED,
     COINIT_MULTITHREADED,
     GamryComAdapter,

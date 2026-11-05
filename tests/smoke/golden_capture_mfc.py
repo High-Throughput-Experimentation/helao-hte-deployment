@@ -4,7 +4,7 @@ special-split).
 *** DRIVES THE REAL ALICAT MASS FLOW CONTROLLER (READ-ONLY, NON-PERTURBING). ***
 
 Like gamry/galil (and unlike sample), mfc_server has NO sim/dummy data path:
-``AliCatMFC.connect`` (helao/deploy/hte/drivers/mfc/alicat_driver.py) opens a
+``AliCatMFC.connect`` (helao/deploy/hte/servers/mfc/alicat_driver.py) opens a
 real ``FlowController`` on the configured serial COM port and ``mfc_server.py``
 instantiates ``driver_classes=[AliCatMFC]`` unconditionally -- the config's
 ``dummy``/``simulation`` YAML keys are cosmetic (banner color) for this canary
@@ -72,7 +72,7 @@ Usage (AT-STATION, Windows, conda env ``helao``) -- ATTACH THE ALICAT MFC FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py mfcgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_mfc ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_mfc ^
         --config-prefix mfcgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\mfc
 
@@ -94,7 +94,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -116,7 +116,7 @@ CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 DEVICE_NAME = "CO2"
 
 # acquire_flowrate (MfcExec._poll) streams the per-poll live-buffer status dict
-# (helao/deploy/hte/drivers/mfc/alicat_driver.py: FlowController.get_status +
+# (helao/deploy/hte/servers/mfc/alicat_driver.py: FlowController.get_status +
 # the executor's added epoch_s) as the .hlo body. These columns are live
 # sensor/clock readings pulled straight off the Alicat -- no seeded/
 # deterministic sim values exist in this driver -- so their VALUES are masked
@@ -278,7 +278,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_mfc",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_mfc",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

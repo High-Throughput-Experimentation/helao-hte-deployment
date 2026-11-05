@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import vendor
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import vendor
 
 
 @pytest.fixture(autouse=True)

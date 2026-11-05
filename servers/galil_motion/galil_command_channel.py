@@ -1,7 +1,7 @@
 """gclib-backed GalilCommandChannel (P3a galil-3 native deepening).
 
 The at-station adapter: wraps the Windows-only ``gclib`` runtime behind the
-:class:`~helao.hexagon.ports.galil_command_channel.GalilCommandChannel` port.
+:class:`~helao.deploy.hte.servers.galil_motion.galil_command_channel_port.GalilCommandChannel` port.
 ``import gclib`` is lazy (inside ``open``), so this module and the native motion
 driver import and construct on Linux without gclib; only ``open()`` (and the
 subsequent I/O) require the vendor runtime + a reachable controller.
@@ -9,7 +9,9 @@ subsequent I/O) require the vendor runtime + a reachable controller.
 
 from typing import Any, Optional
 
-from helao.hexagon.ports.galil_command_channel import GalilChannelError
+from helao.deploy.hte.servers.galil_motion.galil_command_channel_port import (
+    GalilChannelError,
+)
 
 __all__ = ["GclibCommandChannel"]
 

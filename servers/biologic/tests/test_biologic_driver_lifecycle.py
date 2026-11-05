@@ -7,8 +7,8 @@ from helao.core.drivers.helao_driver import (
     DriverStatus,
     HelaoDriver,
 )
-from helao.deploy.hte.drivers.pstat.biologic import sim, vendor
-from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
+from helao.deploy.hte.servers.biologic.biologic import sim, vendor
+from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
 
 CONFIG = {
     "address": "192.168.200.100",
@@ -109,7 +109,7 @@ def test_firmware_path_joins_a_real_name_but_passes_an_empty_sentinel_through():
     yields `f"{sdk_path}/"`, which is not empty and tells the DLL to look for
     a file that does not exist. The simulator ignores `xlxfile` entirely, so
     only a direct test of the join catches a regression here."""
-    from helao.deploy.hte.drivers.pstat.biologic.driver import _firmware_path
+    from helao.deploy.hte.servers.biologic.biologic.driver import _firmware_path
 
     assert _firmware_path("/sdk", "kernel.bin") == "/sdk/kernel.bin"
     assert _firmware_path("/sdk", "") == ""
@@ -236,7 +236,7 @@ def test_connect_reloads_the_kernel_when_the_channel_reports_none(monkeypatch):
     unrecoverable: connect aborted on the probe it uses to decide whether to
     reload. Seen at a station on 2026-09-18 after a `BL_LoadTechnique`
     returned -200 and took the channel's kernel with it."""
-    from helao.deploy.hte.drivers.pstat.biologic.eclib_client import (
+    from helao.deploy.hte.servers.biologic.biologic.eclib_client import (
         EclibClient,
         EclibError,
     )
@@ -263,7 +263,7 @@ def test_connect_reloads_the_kernel_when_the_channel_reports_none(monkeypatch):
 
 def test_connect_still_fails_on_an_error_that_is_not_a_missing_kernel(monkeypatch):
     """Only -308 means "reload"; every other code stays a failed connect."""
-    from helao.deploy.hte.drivers.pstat.biologic.eclib_client import (
+    from helao.deploy.hte.servers.biologic.biologic.eclib_client import (
         EclibClient,
         EclibError,
     )

@@ -3,7 +3,7 @@
 Unlike a delegating wrapper over the legacy ``Galil``, ``NativeGalilMotion`` OWNS
 the motion logic: it issues
 Galil command strings through a
-:class:`~helao.hexagon.ports.galil_command_channel.GalilCommandChannel` and does
+:class:`~helao.deploy.hte.servers.galil_motion.galil_command_channel_port.GalilCommandChannel` and does
 the coordinate/parse math itself, reusing the slice-1 ``TransformXY`` and slice-2
 ``JsonFileCalibrationStore``. Because the only vendor seam is the channel, the
 command generation + TP/PA/SC parsing are unit-testable on Linux with a fake
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from helao.hexagon.ports.hardware import DriverHostPort
 from helao.core.error import ErrorCodes
 from helao.core.models.sample import SolidSample
-from helao.deploy.hte.drivers.motion.enum import MoveModes, TransformationModes
+from helao.deploy.hte.servers.galil_motion.enum import MoveModes, TransformationModes
 from helao.helpers import helao_logging as logging
 from helao.hexagon.adapters.shared.calibration_store import JsonFileCalibrationStore
 from helao.hexagon.domain.motion_transform import (
@@ -51,7 +51,7 @@ from helao.hexagon.domain.motion_transform import (
     plan_move_target,
     wants_counts,
 )
-from helao.hexagon.ports.galil_command_channel import (
+from helao.deploy.hte.servers.galil_motion.galil_command_channel_port import (
     GalilChannelError,
     GalilCommandChannel,
 )
@@ -92,7 +92,7 @@ class NativeGalilMotion(HelaoDriver):
         if channel is None:
             # production default: the at-station gclib channel (lazy import so
             # this module still imports/constructs on Linux without gclib).
-            from helao.hexagon.adapters.shared.galil_command_channel import (
+            from helao.deploy.hte.servers.galil_motion.galil_command_channel import (
                 GclibCommandChannel,
             )
 

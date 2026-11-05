@@ -9,10 +9,10 @@ import threading
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import data as ec2data
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import sim
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import technique as ec2tech
-from helao.deploy.hte.drivers.pstat.biologic_eclib2.sdk_client import (
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import data as ec2data
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import sim
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import technique as ec2tech
+from helao.deploy.hte.servers.biologic.biologic_eclib2.sdk_client import (
     Eclib2Error,
     SdkClient,
     open_client,

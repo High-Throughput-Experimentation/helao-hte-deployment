@@ -14,9 +14,9 @@ from helao.core.drivers.helao_driver import (
     DriverStatus,
     HelaoDriver,
 )
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import data as ec2data
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import technique as ec2tech
-from helao.deploy.hte.drivers.pstat.biologic_eclib2.driver import (
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import data as ec2data
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import technique as ec2tech
+from helao.deploy.hte.servers.biologic.biologic_eclib2.driver import (
     MAX_DRAINS_PER_CALL,
     NOT_PLUGGED,
     BiologicEclib2Driver,
@@ -579,7 +579,7 @@ def test_done_needs_running_observed_first(connected):
 
 
 def test_a_channel_that_never_starts_is_stopped_then_times_out(connected, monkeypatch):
-    from helao.deploy.hte.drivers.pstat.biologic_eclib2 import driver as ec2driver
+    from helao.deploy.hte.servers.biologic.biologic_eclib2 import driver as ec2driver
 
     monkeypatch.setattr(ec2driver, "MAX_STARTING_POLLS", 2)
     setup(connected, "OCV")

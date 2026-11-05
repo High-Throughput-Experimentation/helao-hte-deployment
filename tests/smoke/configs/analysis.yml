@@ -18,7 +18,7 @@
 # than icpm1/xrfs1's `analyses: [icpms_local, xrfs_local]`) because those
 # modules live under a private nested deployment's
 # drivers/data/analyses/ and do not exist in this repo's
-# helao/deploy/hte/drivers/data/analyses/ (only echeuvis_stability.py and
+# helao/deploy/hte/servers/analysis/analyses/ (only echeuvis_stability.py and
 # uvis_bkgsubnorm.py) -- load_analysis_classes() would only log-and-skip a
 # missing module (not crash), but an empty list keeps the launched surface
 # deterministic and identical from run to run.

@@ -17,9 +17,9 @@ from typing import Any
 
 import pytest
 
-from helao.deploy.hte.drivers.spec.andor.calibrated import AndorCalibratedDriver
-from helao.deploy.hte.drivers.spec.andor.spectrograph import AndorSpectrographDriver
-from helao.deploy.hte.servers.action import andor_server
+from helao.deploy.hte.servers.andor.calibrated import AndorCalibratedDriver
+from helao.deploy.hte.servers.andor.spectrograph import AndorSpectrographDriver
+from helao.deploy.hte.servers.andor import andor_server
 from helao.helpers import config_loader
 
 
@@ -242,13 +242,14 @@ def test_hispec_still_selects_the_spectrograph_driver(monkeypatch):
 
 
 def test_a_raising_connect_keeps_the_andor_server_up(monkeypatch, tmp_path, caplog):
-    from helao.deploy.hte.drivers.spec.andor.driver import AndorDriver
-    from helao.hexagon.tests.hosted_server import start_with_raising_connect
+    from helao.deploy.hte.servers.andor.driver import AndorDriver
+    from helao.deploy.hte.tests.hosted_server import start_with_raising_connect
 
     out = start_with_raising_connect(
         monkeypatch,
         tmp_path,
         caplog,
+        deployment="hte",
         module="andor_server",
         prefix="hispec",
         server_key="ANDOR",

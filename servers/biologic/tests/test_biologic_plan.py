@@ -4,10 +4,10 @@ import asyncio
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import data as biodata
-from helao.deploy.hte.drivers.pstat.biologic import sim, vendor
-from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
-from helao.deploy.hte.drivers.pstat.biologic.technique import (
+from helao.deploy.hte.servers.biologic.biologic import data as biodata
+from helao.deploy.hte.servers.biologic.biologic import sim, vendor
+from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
+from helao.deploy.hte.servers.biologic.biologic.technique import (
     PlanEntry,
     PlanLoop,
     TechniqueError,
@@ -282,7 +282,7 @@ _PEIS = dict(
     Bandwidth="BW4",
 )
 
-from helao.deploy.hte.drivers.pstat.biologic.data import (
+from helao.deploy.hte.servers.biologic.biologic.data import (
     COLUMNS as _COLUMNS,
 )  # noqa: E402
 

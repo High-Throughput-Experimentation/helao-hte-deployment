@@ -9,8 +9,8 @@ import sys
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import vendor
-from helao.deploy.hte.drivers.pstat.biologic.enum import (
+from helao.deploy.hte.servers.biologic.biologic import vendor
+from helao.deploy.hte.servers.biologic.biologic.enum import (
     EC_Bandwidth,
     EC_ERange,
     EC_IRange,

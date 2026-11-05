@@ -1,7 +1,7 @@
 """PalTransportPort (P3a-PAL plan §Ports/domain bullet C, slice 4): PAL
 joblist submission transport -- local subprocess or SSH/Cygwin remote
 dispatch, plus process kill/reap. Lifted out of
-``helao/deploy/hte/drivers/robot/pal_driver.py``'s
+``helao/deploy/hte/servers/pal/pal_driver.py``'s
 ``_sendcommand_submitjoblist_helper``/``_sendcommand_write_local_rshs_aux_
 header``/``kill_PAL``/``kill_PAL_cygwin``/``kill_PAL_local``.
 

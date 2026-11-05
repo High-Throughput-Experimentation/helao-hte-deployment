@@ -12,7 +12,7 @@ golden_capture_mfc.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/hexagon/tests/smoke/test_golden_capture_mfc.py -q
+    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_mfc.py -q
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import tempfile
 from pathlib import Path
 
 from harness.manifest import ProvenanceManifest
-from helao.hexagon.tests.smoke.golden_capture_mfc import (
+from helao.deploy.hte.tests.smoke.golden_capture_mfc import (
     DEVICE_NAME,
     MFC_ACT_YML_MASKED_META_KEYS,
     MFC_HLO_COLUMNS,
@@ -91,7 +91,7 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
         assert manifest.scenario == SCENARIO
         assert manifest.config_prefix == "mfcgold"
         assert manifest.config_path.replace("\\", "/").endswith(
-            "helao/hexagon/tests/smoke/configs/mfcgold.yml"
+            "helao/deploy/hte/tests/smoke/configs/mfcgold.yml"
         )
         assert manifest.masked_hlo_columns == MFC_MASKED_HLO_COLUMNS
         # the one data-derived summary that acquire_flowrate lands in -act.yml

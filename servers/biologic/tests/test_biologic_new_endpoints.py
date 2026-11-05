@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic.technique import BIOTECHS
+from helao.deploy.hte.servers.biologic.biologic.technique import BIOTECHS
 
 
 @pytest.fixture
@@ -16,9 +16,9 @@ def app(monkeypatch):
         DriverResponseType,
         DriverStatus,
     )
-    from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
+    from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
     from helao.helpers import config_loader
-    from helao.deploy.hte.servers.action import biologic_server
+    from helao.deploy.hte.servers.biologic import biologic_server
 
     monkeypatch.setattr(
         config_loader,
@@ -153,13 +153,14 @@ def test_a_raising_connect_keeps_biologic_up_with_no_action_routes(
     """Today's behaviour after a failed connect: the server answers, but
     ``dyn_endpoints`` waits on ``ready`` forever, so no action routes register and
     the endpoint-status init task stays pending."""
-    from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
-    from helao.hexagon.tests.hosted_server import start_with_raising_connect
+    from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
+    from helao.deploy.hte.tests.hosted_server import start_with_raising_connect
 
     out = start_with_raising_connect(
         monkeypatch,
         tmp_path,
         caplog,
+        deployment="hte",
         module="biologic_server",
         prefix="hispec",
         server_key="PSTAT",

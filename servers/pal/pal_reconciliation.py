@@ -1,6 +1,6 @@
 """PAL sample-reconciliation domain service (P3a-PAL slice 3): the source/
 dest position-resolution and post-trigger sample-pipeline algorithm lifted
-out of ``helao/deploy/hte/drivers/robot/pal_driver.py``'s ``PAL`` driver --
+out of ``helao/deploy/hte/servers/pal/pal_driver.py``'s ``PAL`` driver --
 the ``TransformXY``/``JsonFileCalibrationStore`` analogue for PAL (galil
 D6/slice-2 precedent). Base-free: no ``helao_logging``, no
 ``helao.core.servers.base``, no vendor (paramiko/nidaqmx) imports -- stdlib
@@ -38,14 +38,16 @@ from helao.hexagon.domain.models import (
     GasSample,
     LiquidSample,
     NoneSample,
-    PalAction,
-    PalCam,
-    PalMicroCam,
-    PALposition,
     SampleInheritance,
     SampleStatus,
     SampleType,
     SolidSample,
+)
+from helao.deploy.hte.servers.pal.models import (
+    PalAction,
+    PalCam,
+    PalMicroCam,
+    PALposition,
     _positiontype,
 )
 from helao.hexagon.domain.sample_state import SampleStateProtocol

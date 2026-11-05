@@ -4,7 +4,7 @@ special-split).
 *** DRIVES THE REAL ANDOR ZYLA CAMERA + ATSPECTROGRAPH. NOT A SIMULATION. ***
 
 Like gamry/spec/co2 (and unlike sample), andor_server has NO sim/dummy data
-path: ``AndorDriver.__init__``/``connect`` (helao/deploy/hte/drivers/spec/andor/
+path: ``AndorDriver.__init__``/``connect`` (helao/deploy/hte/servers/andor/
 driver.py) lazily loads the vendor ``pyAndorSDK3`` / ``pyAndorSpectrograph``
 runtimes and opens the physical camera + spectrograph, and ``andor_server.py``
 instantiates ``driver_classes=[AndorDriver]`` unconditionally -- the config's
@@ -69,7 +69,7 @@ SPECTROGRAPH FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py andorgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_andor ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_andor ^
         --config-prefix andorgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\andor
 
@@ -91,7 +91,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -289,7 +289,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_andor",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_andor",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

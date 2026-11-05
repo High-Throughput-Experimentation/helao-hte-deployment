@@ -24,13 +24,13 @@ import numpy as np
 import pytest
 
 from helao.core.error import ErrorCodes
-from helao.deploy.hte.drivers.spec.andor.calibrated import AndorCalibratedDriver
-from helao.deploy.hte.drivers.spec.andor import wl_calibration as wlc
-from helao.deploy.hte.drivers.spec.andor import wl_fit
-from helao.deploy.hte.drivers.spec.andor.spectrograph import (
+from helao.deploy.hte.servers.andor.calibrated import AndorCalibratedDriver
+from helao.deploy.hte.servers.andor import wl_calibration as wlc
+from helao.deploy.hte.servers.andor import wl_fit
+from helao.deploy.hte.servers.andor.spectrograph import (
     AndorSpectrographDriver,
 )
-from helao.deploy.hte.servers.action.andor_server import (
+from helao.deploy.hte.servers.andor.andor_server import (
     AndorCalibrateWavelength,
     andor_dyn_endpoints,
 )
@@ -445,7 +445,7 @@ def _executor_classes():
 
     from helao.helpers.executor import Executor
 
-    from helao.deploy.hte.servers.action import andor_server as mod
+    from helao.deploy.hte.servers.andor import andor_server as mod
 
     return [
         obj

@@ -5,8 +5,8 @@ import threading
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import sim, vendor
-from helao.deploy.hte.drivers.pstat.biologic.eclib_client import (
+from helao.deploy.hte.servers.biologic.biologic import sim, vendor
+from helao.deploy.hte.servers.biologic.biologic.eclib_client import (
     EclibClient,
     EclibError,
 )

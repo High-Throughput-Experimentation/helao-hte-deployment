@@ -6,10 +6,10 @@ before any station is switched over.
 
 import numpy as np
 
-from helao.deploy.hte.drivers.spec.andor.spectrograph import AndorSpectrographDriver
+from helao.deploy.hte.servers.andor.spectrograph import AndorSpectrographDriver
 
-from helao.deploy.hte.drivers.spec.andor import wl_calibration as wlc
-from helao.deploy.hte.drivers.spec.andor import wl_fit
+from helao.deploy.hte.servers.andor import wl_calibration as wlc
+from helao.deploy.hte.servers.andor import wl_fit
 
 #: Enough to seed a degree-4 fit. Values are irrelevant here: the fit is
 #: stubbed, because this file is about which variant APPLIES a calibration,
@@ -166,7 +166,7 @@ def test_a_comparison_fit_records_that_it_is_one(tmp_path, monkeypatch):
     its live axis with nothing anywhere saying it was never meant to be one.
     """
     _stub_fit(monkeypatch)
-    from helao.deploy.hte.drivers.spec.andor import wl_calibration as wlc
+    from helao.deploy.hte.servers.andor import wl_calibration as wlc
 
     d = AndorSpectrographDriver(
         config={"states_root": str(tmp_path), "host": "teststation"},

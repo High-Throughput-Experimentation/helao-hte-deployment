@@ -13,7 +13,7 @@ only runs at-station with the camera reachable (see golden_capture_cam.py docstr
 
 Runnable two ways (no ``import pytest`` -- mirrors the other capture tests):
 
-    conda run -n helao python -m pytest helao/hexagon/tests/smoke/test_golden_capture_cam.py -q
+    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_cam.py -q
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from pathlib import Path
 from harness.manifest import ProvenanceManifest
 from harness.treepass import snapshot as tree_snapshot
 from harness.uuidmap import UuidMapper
-from helao.hexagon.tests.smoke.golden_capture_cam import (
+from helao.deploy.hte.tests.smoke.golden_capture_cam import (
     CAM_CONTENT_MASKED_FILES,
     CAM_MASKED_HLO_COLUMNS,
     SCENARIO,

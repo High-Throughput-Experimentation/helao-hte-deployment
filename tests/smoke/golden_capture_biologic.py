@@ -5,7 +5,7 @@ special-split).
 
 Step 0 of the parent task investigated whether ``run_OCV`` can produce data
 under ``simulation: true``/``dummy: true`` with no real instrument attached,
-and found: no. ``BiologicDriver.__init__`` (helao/deploy/hte/drivers/pstat/
+and found: no. ``BiologicDriver.__init__`` (helao/deploy/hte/servers/biologic/
 biologic/driver.py) unconditionally calls ``connect()``, which opens a real
 ``easy_biologic.BiologicDevice`` TCP connection to the instrument, and
 ``biologic_server.py`` instantiates ``driver_classes=[BiologicDriver]``
@@ -26,7 +26,7 @@ any data at all.
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
 orch-less, db-less biologic 2-server topology (BIOLOGIC@8016 +
 ACTVIS@5001 only -- no ORCH, no DB), mirroring gamry's
-``helao.hexagon.tests.smoke.golden_capture`` (see that module's docstring for
+``helao.deploy.hte.tests.smoke.golden_capture`` (see that module's docstring for
 the full topology-gap rationale already recorded there).
 The hardware-agnostic settle/anti-vacuous-guard logic (``settle``,
 ``_run_artifacts``, ``_act_status_map``) and the production action-dispatch
@@ -43,7 +43,7 @@ instrument, and a dummy cell gives a stable open-circuit reading):
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py biologicgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_biologic ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_biologic ^
         --config-prefix biologicgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\biologic
 
@@ -67,7 +67,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -310,7 +310,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_biologic",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_biologic",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

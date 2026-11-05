@@ -4,7 +4,7 @@
 
 Step 0 of the parent task investigated whether ``run_OCV`` can produce data
 under ``simulation: true``/``dummy: true`` with no real potentiostat attached,
-and found: no. ``GamryDriver.__init__`` (helao/deploy/hte/drivers/pstat/gamry/
+and found: no. ``GamryDriver.__init__`` (helao/deploy/hte/servers/gamry/
 driver.py) unconditionally opens a real GamryCOM connection, and
 ``gamry_server2.py`` instantiates ``driver_classes=[GamryDriver]``
 unconditionally -- there is no dummy/sim driver swap anywhere in this code
@@ -32,7 +32,7 @@ CAL RESISTOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py gamrygold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture ^
         --config-prefix gamrygold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\gamry
 
@@ -92,7 +92,7 @@ SCENARIO = "GM-OCV"
 # its own configs/ sibling directory -- no longer under helao/deploy/hte/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
-# helao/deploy/hte/drivers/pstat/gamry/dtaq.py: DTAQ_OCV.output_keys. These
+# helao/deploy/hte/servers/gamry/dtaq.py: DTAQ_OCV.output_keys. These
 # are raw ADC/COM samples pulled straight off the live potentiostat -- no
 # seeded/deterministic sim values exist anywhere in this driver -- so their
 # VALUES must be masked for parity; row counts are compared within a small
@@ -434,7 +434,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

@@ -26,7 +26,7 @@ to prevent.
 
 Run it standalone; it needs no orchestration group::
 
-    python helao/core/tests/browser_parity/check_aligner.py
+    python helao/deploy/hte/tests/browser_parity/check_aligner.py
 """
 
 import json
@@ -161,7 +161,9 @@ def start_host(root: str):
         tuple: ``(host, motor)``.
     """
     from helao.helpers import config_loader
-    from helao.hexagon.adapters.vis.galil_aligner_host import GalilAlignerHost
+    from helao.deploy.hte.servers.galil_motion.galil_aligner_host import (
+        GalilAlignerHost,
+    )
     from helao.hexagon.app.ui_host import BokehServerUiHost
 
     world_cfg = build_config(root)

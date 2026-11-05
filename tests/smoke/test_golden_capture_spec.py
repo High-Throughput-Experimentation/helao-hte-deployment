@@ -10,7 +10,7 @@ only runs at-station with the SM303 attached (see golden_capture_spec.py docstri
 
 Run:
 
-    conda run -n helao python -m pytest helao/hexagon/tests/smoke/test_golden_capture_spec.py -q
+    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_spec.py -q
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 
 from harness.manifest import ProvenanceManifest
-from helao.hexagon.tests.smoke.golden_capture_spec import (
+from helao.deploy.hte.tests.smoke.golden_capture_spec import (
     N_PIXELS,
     SCENARIO,
     SPEC_HLO_COLUMNS,
@@ -75,7 +75,7 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
         assert manifest.scenario == SCENARIO
         assert manifest.config_prefix == "specgold"
         assert manifest.config_path.replace("\\", "/").endswith(
-            "helao/hexagon/tests/smoke/configs/specgold.yml"
+            "helao/deploy/hte/tests/smoke/configs/specgold.yml"
         )
         assert manifest.masked_hlo_columns == SPEC_MASKED_HLO_COLUMNS
         # no data-derived summary lands in -act.yml for acquire_spec -> no

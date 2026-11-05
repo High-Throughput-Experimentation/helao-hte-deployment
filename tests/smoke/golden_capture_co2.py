@@ -4,7 +4,7 @@ special-split).
 *** DRIVES THE REAL SprintIR-6S CO2 SENSOR. THIS IS NOT A SIMULATION. ***
 
 Like gamry/spec (and unlike sample), co2sensor_server has NO sim/dummy data
-path: ``SprintIR.connect`` (helao/deploy/hte/drivers/sensor/sprintir_driver.py)
+path: ``SprintIR.connect`` (helao/deploy/hte/servers/co2sensor/sprintir_driver.py)
 unconditionally opens the serial port (``serial.Serial(port=...)``) and
 configures the physical sensor, and ``co2sensor_server.py`` instantiates
 ``driver_classes=[SprintIR]`` / ``poller_class=SprintIRPoller`` unconditionally
@@ -55,7 +55,7 @@ Usage (AT-STATION, Windows, conda env ``helao``) -- ATTACH THE SENSOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py co2gold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_co2 ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_co2 ^
         --config-prefix co2gold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\co2
 
@@ -77,7 +77,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -237,7 +237,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_co2",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_co2",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

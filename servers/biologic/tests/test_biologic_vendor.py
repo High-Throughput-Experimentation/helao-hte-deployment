@@ -9,7 +9,7 @@ import ctypes.util
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import vendor
+from helao.deploy.hte.servers.biologic.biologic import vendor
 
 
 def test_ecc_param_is_76_bytes_with_a_64_byte_label():
@@ -180,7 +180,7 @@ def test_import_loads_no_dll():
     """`biologic_server.py` imports this module on Linux."""
     import sys
 
-    assert "helao.deploy.hte.drivers.pstat.biologic.vendor" in sys.modules
+    assert "helao.deploy.hte.servers.biologic.biologic.vendor" in sys.modules
     assert vendor.load_dll.__module__ == vendor.__name__
 
 
@@ -291,7 +291,7 @@ def test_load_dll_names_a_missing_export(tmp_path, monkeypatch):
 def test_the_client_calls_through_the_typed_lookup(tmp_path, monkeypatch):
     """`EclibClient._call` must index whatever `load_dll` returned -- not the
     raw library, which is what re-introduces the untyped call."""
-    from helao.deploy.hte.drivers.pstat.biologic import eclib_client
+    from helao.deploy.hte.servers.biologic.biologic import eclib_client
 
     exports = vendor.load_dll(_fake_sdk(tmp_path, monkeypatch))
     client = eclib_client.EclibClient.__new__(eclib_client.EclibClient)

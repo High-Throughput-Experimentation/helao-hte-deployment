@@ -14,7 +14,7 @@ documentation that exists to prevent the problem.
 import ast
 from pathlib import Path
 
-OLE = Path("helao/deploy/hte/drivers/pstat/biologic_ole")
+OLE = Path("helao/deploy/hte/servers/biologic/biologic_ole")
 ALLOWED = {"olecom_client.py"}
 VENDOR_PREFIXES = ("comtypes", "win32com", "pythoncom", "pywintypes")
 

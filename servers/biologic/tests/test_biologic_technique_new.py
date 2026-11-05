@@ -6,8 +6,8 @@ transcribed from the rendered PDF page, not from its text layer.
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import data, vendor
-from helao.deploy.hte.drivers.pstat.biologic.technique import (
+from helao.deploy.hte.servers.biologic.biologic import data, vendor
+from helao.deploy.hte.servers.biologic.biologic.technique import (
     BIOTECHS,
     ExitCond,
     LimitTest,

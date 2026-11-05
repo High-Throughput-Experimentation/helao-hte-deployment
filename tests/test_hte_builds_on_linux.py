@@ -28,6 +28,8 @@ import importlib
 
 import pytest
 
+from helao.helpers.launcher_bootstrap import app_module_path
+
 from helao.helpers.config_loader import install_global_config, read_validated_config
 
 #: (module, config prefix, server key) -- one representative station per module.
@@ -75,7 +77,7 @@ def test_module_builds_under_its_station_config(
     from helao.hexagon.app.action_host import ActionHost
 
     install_global_config(read_validated_config(config)[0])
-    mod = importlib.import_module(f"helao.deploy.hte.servers.action.{module}")
+    mod = importlib.import_module(app_module_path("hte", module))
     app = mod.makeApp(server_key)
 
     # `title`, not `server_key`: a legacy BaseAPI has no `server_key` attribute
@@ -102,7 +104,7 @@ def test_windows_only_module_fails_the_way_we_recorded(
     BUILDS should grow to claim it.
     """
     with pytest.raises(BaseException) as exc:
-        importlib.import_module(f"helao.deploy.hte.servers.action.{module}")
+        importlib.import_module(app_module_path("hte", module))
     assert expected in str(
         exc.value
     ), f"{module} raised {exc.value!r}, not {expected!r}"

@@ -25,7 +25,7 @@ HTE_ANALYSES = ["echeuvis_stability", "uvis_bkgsubnorm"]
 #: package the moment any one module happened to resolve.
 HTE_ENDPOINTS = {"analyze_echeuvis_stability", "analyze_uvis_bkgsubnorm"}
 
-HTE_PKG = "helao.deploy.hte.drivers.data.analyses"
+HTE_PKG = "helao.deploy.hte.servers.analysis.analyses"
 
 
 # ---------------------------------------------------------------------------

@@ -12,9 +12,9 @@ counts.
 import numpy as np
 import pytest
 
-from helao.deploy.hte.drivers.spec.andor import wl_calibration as wlc
-from helao.deploy.hte.drivers.spec.andor import wl_fit
-from helao.deploy.hte.drivers.spec.andor.kr_lines import KR_LINES_AIR_NM
+from helao.deploy.hte.servers.andor import wl_calibration as wlc
+from helao.deploy.hte.servers.andor import wl_fit
+from helao.deploy.hte.servers.andor.kr_lines import KR_LINES_AIR_NM
 
 N_PIXELS = 2560
 

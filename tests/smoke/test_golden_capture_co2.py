@@ -11,7 +11,7 @@ golden_capture_co2.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/hexagon/tests/smoke/test_golden_capture_co2.py -q
+    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_co2.py -q
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ import tempfile
 from pathlib import Path
 
 from harness.manifest import ProvenanceManifest
-from helao.hexagon.tests.smoke.golden_capture_co2 import (
+from helao.deploy.hte.tests.smoke.golden_capture_co2 import (
     CO2_ACT_YML_MASKED_META_KEYS,
     CO2_HLO_COLUMNS,
     CO2_HLO_ROW_COUNT_TOLERANCE,
@@ -86,7 +86,7 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
         assert manifest.scenario == SCENARIO
         assert manifest.config_prefix == "co2gold"
         assert manifest.config_path.replace("\\", "/").endswith(
-            "helao/hexagon/tests/smoke/configs/co2gold.yml"
+            "helao/deploy/hte/tests/smoke/configs/co2gold.yml"
         )
         assert manifest.masked_hlo_columns == CO2_MASKED_HLO_COLUMNS
         assert manifest.hlo_row_count_tolerance == CO2_HLO_ROW_COUNT_TOLERANCE

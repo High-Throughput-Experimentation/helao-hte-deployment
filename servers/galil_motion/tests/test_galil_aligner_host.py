@@ -18,7 +18,7 @@ at-station gate; these tests prove the seam is wired correctly:
 import asyncio
 
 from helao.core.error import ErrorCodes
-from helao.hexagon.adapters.vis.galil_aligner_host import (
+from helao.deploy.hte.servers.galil_motion.galil_aligner_host import (
     AlignerMotorContext,
     GalilAlignerHost,
 )
