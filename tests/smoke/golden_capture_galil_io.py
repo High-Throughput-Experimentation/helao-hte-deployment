@@ -6,7 +6,7 @@ ACTUATION). ***
 
 Step 0 of the parent task investigated whether ``get_digital_in`` needs a
 live controller to produce data and found: yes, and more strictly than
-galil_motion. ``Galil.connect()`` (helao/deploy/hte/drivers/io/
+galil_motion. ``Galil.connect()`` (helao/deploy/hte/servers/galil_io/
 galil_io_driver.py) unconditionally opens a real ``gclib`` TCP connection to
 ``galil_ip_str`` and swallows any connection failure into
 ``galil_enabled = False`` (no exception propagates, no dummy/sim data path
@@ -34,7 +34,7 @@ line, never a ``dev_do`` output.
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
 orch-less, db-less galilio 2-server topology (IO@8005 +
 ACTVIS@5001 only -- no ORCH, no DB), mirroring gamry's
-``helao.hexagon.tests.smoke.golden_capture`` and galil_motion's
+``helao.deploy.hte.tests.smoke.golden_capture`` and galil_motion's
 ``golden_capture_galil`` (see those modules' docstrings for the full
 topology-gap rationale already recorded there). The hardware-agnostic
 settle/anti-vacuous-guard logic (``settle``,
@@ -45,14 +45,14 @@ not reference gamry's OCV scenario name or masking). Only the
 scenario-specific pieces (endpoint, masking, manifest notes) are new in this
 module. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- the galil controller must
+Usage (AT-STATION, conda env ``helao``) -- the galil controller must
 be powered on and reachable at ``galil_ip_str`` (192.168.200.234 by default).
 NO pump/valve/LED is actuated for this scenario (only a digital INPUT is
 read):
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py galiliogold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_galil_io ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_galil_io ^
         --config-prefix galiliogold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\galilio
 
@@ -76,7 +76,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -89,8 +89,9 @@ SCENARIO = "GM-DIN"
 
 DI_ITEM = "gamry_ttl0"
 
-# hte canary configs (P3a/P3e relocation) live alongside this module, in
-# its own configs/ sibling directory -- no longer under helao/deploy/hte/.
+# hte canary configs live alongside this module, in
+# its own configs/ sibling directory (helao/deploy/hte/tests/smoke/configs), not
+# helao/deploy/*/configs/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
 # galil_io.py's get_digital_in endpoint calls `Galil.get_digital_in(di_name=
@@ -258,7 +259,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_galil_io",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_galil_io",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

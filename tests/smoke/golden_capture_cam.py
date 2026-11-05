@@ -3,7 +3,7 @@ special-split).
 
 *** DRIVES THE REAL AXIS WEBCAM (fetches one live JPEG frame). ***
 
-cam_server wraps ``AxisCam`` (helao/deploy/hte/drivers/sensor/axiscam_driver.py),
+cam_server wraps ``AxisCam`` (helao/deploy/hte/servers/cam/axiscam_driver.py),
 which pulls a JPEG over HTTP from the camera's ``/jpg/1/image.jpg`` endpoint.
 ``AxisCam.connect()`` opens no persistent connection, but ``acquire_image``
 actually fetches a frame, so the camera must be REACHABLE at ``axis_ip`` for the
@@ -42,7 +42,7 @@ Usage (AT-STATION, Windows, conda env ``helao``) -- CAMERA REACHABLE AT axis_ip:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py camgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_cam ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_cam ^
         --config-prefix camgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\cam
 
@@ -64,7 +64,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -75,8 +75,9 @@ CAM_HOST, CAM_PORT = "127.0.0.1", 8013
 
 SCENARIO = "GM-CAM"
 
-# hte canary configs (P3a/P3e relocation) live alongside this module, in
-# its own configs/ sibling directory -- no longer under helao/deploy/hte/.
+# hte canary configs live alongside this module, in
+# its own configs/ sibling directory (helao/deploy/hte/tests/smoke/configs), not
+# helao/deploy/*/configs/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
 # AxisCamExec.write_image streams live_dict {"epoch_s": ..., "filename": ...} as
@@ -212,7 +213,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_cam",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_cam",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

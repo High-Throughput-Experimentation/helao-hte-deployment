@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic.technique import BIOTECHS
+from helao.deploy.hte.servers.biologic.biologic.technique import BIOTECHS
 
 
 @pytest.fixture
@@ -16,9 +16,9 @@ def app(monkeypatch):
         DriverResponseType,
         DriverStatus,
     )
-    from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
+    from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
     from helao.helpers import config_loader
-    from helao.deploy.hte.servers.action import biologic_server
+    from helao.deploy.hte.servers.biologic import biologic_server
 
     monkeypatch.setattr(
         config_loader,
@@ -64,6 +64,7 @@ def app(monkeypatch):
 
     built = biologic_server.makeApp("BIOLOGIC")
     built.driver = biologic_server.BACKENDS["eclib"](config=built.server_params)
+    built.driver.connect()  # the host connects before dyn_endpoints runs
     asyncio.run(biologic_server.biologic_dyn_endpoints(built))
     return built
 
@@ -141,3 +142,34 @@ def test_run_cv_docstring_no_longer_claims_it_subtracts_a_cycle(app):
     doc = route.endpoint.__doc__ or ""
     assert "Subtracts one" not in doc
     assert "derives" not in doc
+
+
+# --- a raising host connect keeps the server up, parked on `ready` ----------
+
+
+def test_a_raising_connect_keeps_biologic_up_with_no_action_routes(
+    monkeypatch, tmp_path, caplog
+):
+    """Today's behaviour after a failed connect: the server answers, but
+    ``dyn_endpoints`` waits on ``ready`` forever, so no action routes register and
+    the endpoint-status init task stays pending."""
+    from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
+    from helao.deploy.hte.tests.hosted_server import start_with_raising_connect
+
+    out = start_with_raising_connect(
+        monkeypatch,
+        tmp_path,
+        caplog,
+        deployment="hte",
+        module="biologic_server",
+        prefix="hispec",
+        server_key="PSTAT",
+        driver_class=BiologicDriver,
+        ready=lambda app: False,  # no late routes register; wait out the window
+        wait_s=1.5,
+        probe=lambda app: app.endpoint_mgr._init_task.done(),
+    )
+    assert len(out.startup_errors) == 1
+    assert out.get_status_code == 200
+    assert not any(p.endswith("/run_CA") for p in out.route_paths if p)
+    assert out.probe is False  # the endpoint-status init task is still pending

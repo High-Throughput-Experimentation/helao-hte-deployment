@@ -1,6 +1,6 @@
 """Every hte action module still declares its frozen route set (B5).
 
-``helao/hexagon/tests/checklists/hte/*.json`` is a verbatim AST extraction of
+``helao/deploy/hte/tests/checklists/*.json`` is a verbatim AST extraction of
 the PRE-migration legacy source: 175 action routes and 81 private routes,
 each with every parameter's name, annotation and default. B5 rewrites the
 decorator form of all 175 action routes, so this is the gate that says the
@@ -11,7 +11,7 @@ Windows-only is checked here exactly like any other -- and so are routes
 registered inside ``dyn_endpoints``, which are decorated in source but do not
 exist on the app until startup.
 
-**Never regenerate the checklists.** ``harness/hte_freeze.py`` writes that
+**Never regenerate the checklists.** ``python -m harness.freeze`` writes that
 directory from whatever the source currently says; running it after a port
 replaces the record with the port's own output, and this test then passes by
 construction, proving nothing. The frozen files are the pre-port record and
@@ -44,7 +44,25 @@ from harness.endpoints import (
     filter_allowed_additions,
     filter_allowed_param_additions,
 )
-from harness.hte_freeze import HTE_ACTION, OUT, SERVERS
+from harness.freeze import load_manifest
+from helao.helpers.server_modules import module_file
+
+OUT = Path(__file__).resolve().parent / "checklists"
+
+#: (module filename, representative server_key), read from the frozen manifest.
+SERVERS: list[tuple[str, Optional[str]]] = [
+    (e["module"], e["representative_key"]) for e in load_manifest(OUT)
+]
+assert len(SERVERS) == 23
+
+
+def hte_module(filename: str) -> Path:
+    """The hte action module file for ``filename`` (``andor_server.py``)."""
+    path = module_file("hte", Path(filename).stem, "app")
+    if path is None:
+        raise FileNotFoundError(f"hte has no action module {filename!r}")
+    return path
+
 
 ADDITIONS_PATH = OUT / "_additions.json"
 #: Optional parameters deliberately added to frozen routes; see
@@ -55,8 +73,10 @@ PARAM_ADDITIONS_PATH = OUT / "_param_additions.json"
 #: spec first quoted 175/81 from a grep over source, which counted seven
 #: commented-out decorators and two docstring mentions; the AST extractor
 #: ignores both. These are the measured numbers, and deliberate additions
-#: are added to them rather than folded into them.
-FROZEN_ACTION_TOTAL = 168
+#: are added to them rather than folded into them. Two owner-approved
+#: retirements (SAMPLE ``convert_v1DB``, HTEdata ``get_rcp_plateid``,
+#: 2026-10-23) took 168 down to 166.
+FROZEN_ACTION_TOTAL = 166
 FROZEN_PRIVATE_TOTAL = 79
 
 
@@ -125,7 +145,7 @@ def test_module_matches_its_frozen_checklist(
 ) -> None:
     checklist = OUT / (Path(module).stem + ".json")
     frozen = json.loads(checklist.read_text(encoding="utf-8"))
-    current = extract_routes(HTE_ACTION / module, server_key=server_key)
+    current = extract_routes(hte_module(module), server_key=server_key)
     diffs, _allowed = filter_allowed_additions(
         diff_route_sets(frozen, current), _additions_for(module)
     )
@@ -153,7 +173,8 @@ def test_every_addition_entry_is_well_formed() -> None:
 def test_the_gate_covers_the_whole_measured_surface() -> None:
     """Pin the totals, so a module silently dropped from SERVERS is caught.
 
-    168 and 79 are counted from the frozen JSONs. B5's spec first quoted 175
+    166 and 79 are counted from the frozen JSONs (168 before the two 2026-10-23
+    retirements). B5's spec first quoted 175
     and 81, from a grep for ``tags=["action"]`` over the source -- which counts
     seven commented-out decorators (``# @app.post(...)`` in diapump, nidaqmx,
     pal and mfc) and two mentions in ``sample_server``'s module docstring. The
@@ -184,7 +205,7 @@ def test_the_gate_covers_the_whole_measured_surface() -> None:
     resolved = 0
     for entry in _load_additions():
         current = extract_routes(
-            HTE_ACTION / entry["module"], server_key=by_module[entry["module"]]
+            hte_module(entry["module"]), server_key=by_module[entry["module"]]
         )
         for route in current:
             if (route["path"], route["method"]) == (entry["path"], entry["method"]):
@@ -205,7 +226,7 @@ def test_no_addition_entry_is_stale() -> None:
     by_module = dict(SERVERS)
     for entry in _load_additions():
         current = extract_routes(
-            HTE_ACTION / entry["module"], server_key=by_module[entry["module"]]
+            hte_module(entry["module"]), server_key=by_module[entry["module"]]
         )
         present = {(r["path"], r["method"]) for r in current}
         assert (entry["path"], entry["method"]) in present, (
@@ -249,7 +270,7 @@ def test_no_param_addition_entry_is_stale() -> None:
     by_module = dict(SERVERS)
     for entry in _load_param_additions():
         current = extract_routes(
-            HTE_ACTION / entry["module"], server_key=by_module[entry["module"]]
+            hte_module(entry["module"]), server_key=by_module[entry["module"]]
         )
         route = next(
             (
@@ -280,3 +301,14 @@ def test_no_param_addition_entry_is_stale() -> None:
             f"{entry['path']}: {sorted(folded)} are already in the frozen record; "
             "remove them from _param_additions.json"
         )
+
+
+def test_frozen_at_b7c_list_is_present_and_complete():
+    """Gate 3 reads ``_at_b7c.json``; a missing file would silently demote to notes."""
+    from helao.hexagon import preflight
+
+    cdir = preflight._checklist_dir("hte")
+    assert cdir is not None
+    names = preflight._frozen_checklists(cdir)
+    assert len(names) == 23, sorted(names)
+    assert [n for n in names if not (cdir / f"{n}.json").exists()] == []

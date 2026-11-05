@@ -21,12 +21,12 @@ from pathlib import Path
 import pytest
 
 from helao.core.drivers.helao_driver import DriverResponseType
-from helao.deploy.hte.drivers.pstat.biologic import sim as eclib_sim
-from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
-from helao.deploy.hte.drivers.pstat.biologic.technique import BIOTECHS
-from helao.deploy.hte.drivers.pstat.biologic_ole import technique as ot
-from helao.deploy.hte.drivers.pstat.biologic_ole.driver import BiologicOleDriver
-from helao.deploy.hte.drivers.pstat.biologic_ole.sim import SimConfig, set_sim_config
+from helao.deploy.hte.servers.biologic.biologic import sim as eclib_sim
+from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
+from helao.deploy.hte.servers.biologic.biologic.technique import BIOTECHS
+from helao.deploy.hte.servers.biologic.biologic_ole import technique as ot
+from helao.deploy.hte.servers.biologic.biologic_ole.driver import BiologicOleDriver
+from helao.deploy.hte.servers.biologic.biologic_ole.sim import SimConfig, set_sim_config
 
 TECHNIQUES = ["OCV", "CA", "CP", "CV", "PEIS", "GEIS", "CAOCV"]
 
@@ -96,7 +96,7 @@ def test_ocv_emits_only_time_and_potential():
 #: synthetic one for this test and exercise the real per-technique files
 #: instead of a stand-in, so they are used directly rather than falling back
 #: to a synthetic fixture.
-REAL_TEMPLATES = Path("helao/deploy/hte/drivers/pstat/biologic_ole/templates")
+REAL_TEMPLATES = Path("helao/deploy/hte/servers/biologic/biologic_ole/templates")
 
 
 def run_once(name: str, templates, tmp_path) -> dict:

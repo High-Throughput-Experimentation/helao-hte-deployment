@@ -11,9 +11,11 @@ import inspect
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_backend import BiologicBackend
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import technique as ec2tech
-from helao.deploy.hte.drivers.pstat.biologic_eclib2.driver import BiologicEclib2Driver
+from helao.deploy.hte.servers.biologic.biologic_backend import BiologicBackend
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import technique as ec2tech
+from helao.deploy.hte.servers.biologic.biologic_eclib2.driver import (
+    BiologicEclib2Driver,
+)
 from helao.hexagon.tests.biologic_eclib2_sample_params import params
 
 BACKEND_NAME = "eclib2"
@@ -35,7 +37,7 @@ def _static_conformance(driver: BiologicEclib2Driver) -> BiologicBackend:
 def server_module():
     # Imported inside a fixture: the module pulls in the whole action-server
     # stack, and the pure-unit files in this suite must not depend on it.
-    from helao.deploy.hte.servers.action import biologic_server
+    from helao.deploy.hte.servers.biologic import biologic_server
 
     return biologic_server
 
@@ -71,7 +73,7 @@ def _protocol_methods():
 
 
 def _backend_classes():
-    from helao.deploy.hte.servers.action import biologic_server
+    from helao.deploy.hte.servers.biologic import biologic_server
 
     return biologic_server.BACKENDS
 
@@ -261,7 +263,7 @@ def test_the_endpoint_technique_names_are_the_same_across_backends(server_module
     # it. eclib carrying extra, eclib-only techniques cannot break a station
     # -- an eclib2 station never resolves a name eclib2 does not advertise --
     # so that is not part of what this test checks.
-    from helao.deploy.hte.drivers.pstat.biologic.technique import BIOTECHS
+    from helao.deploy.hte.servers.biologic.biologic.technique import BIOTECHS
 
     assert SHARED_TECHNIQUE_NAMES <= set(ec2tech.TECHNIQUE_NAMES)
     assert SHARED_TECHNIQUE_NAMES <= set(BIOTECHS)

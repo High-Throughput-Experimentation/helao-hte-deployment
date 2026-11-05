@@ -2,8 +2,11 @@
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import vendor
-from helao.deploy.hte.drivers.pstat.biologic.data import MAX_DRAINS_PER_CALL, RunTracker
+from helao.deploy.hte.servers.biologic.biologic import vendor
+from helao.deploy.hte.servers.biologic.biologic.data import (
+    MAX_DRAINS_PER_CALL,
+    RunTracker,
+)
 
 
 class V:
@@ -172,7 +175,7 @@ def test_skipped_irqs_accumulate():
 
 def test_skipped_irqs_are_not_a_column():
     """Dropped points are a log line and a counter; the emitted set is frozen."""
-    from helao.deploy.hte.drivers.pstat.biologic import data
+    from helao.deploy.hte.servers.biologic.biologic import data
 
     for columns in data.COLUMNS.values():
         assert "IRQskipped" not in columns

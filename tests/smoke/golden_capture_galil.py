@@ -5,7 +5,7 @@ special-split).
 
 Step 0 of the parent task investigated whether ``query_positions`` needs a
 live controller to produce data and found: yes. ``Galil.connect()``
-(helao/deploy/hte/drivers/motion/galil_motion_driver.py) unconditionally
+(helao/deploy/hte/servers/galil_motion/galil_motion_native.py) unconditionally
 opens a real ``gclib`` TCP connection to ``galil_ip_str`` and swallows any
 connection failure into ``galil_enabled = False`` (no exception propagates,
 no dummy/sim data path anywhere in this code path) -- if the controller is
@@ -25,7 +25,7 @@ produce any position data at all.
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
 orch-less, db-less galil 2-server topology (MOTOR@8003 +
 ACTVIS@5001 only -- no ORCH, no DB), mirroring gamry's
-``helao.hexagon.tests.smoke.golden_capture`` (see that module's docstring for
+``helao.deploy.hte.tests.smoke.golden_capture`` (see that module's docstring for
 the full topology-gap rationale already recorded there). The hardware-agnostic
 settle/anti-vacuous-guard logic (``settle``,
 ``_run_artifacts``, ``_act_status_map``) is IMPORTED from
@@ -35,14 +35,14 @@ not reference gamry's OCV scenario name or masking). Only the
 scenario-specific pieces (endpoint, masking, manifest notes) are new in this
 module. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- the galil controller must
+Usage (AT-STATION, conda env ``helao``) -- the galil controller must
 be powered on and reachable at ``galil_ip_str`` (192.168.200.234 by default).
 NO dummy cell / calibration resistor is needed (this is a motion controller,
 not a potentiostat), and THE STAGE DOES NOT MOVE for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py galilgold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_galil ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_galil ^
         --config-prefix galilgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\galil
 
@@ -66,7 +66,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -77,8 +77,9 @@ MOTOR_HOST, MOTOR_PORT = "127.0.0.1", 8003
 
 SCENARIO = "GM-QPOS"
 
-# hte canary configs (P3a/P3e relocation) live alongside this module, in
-# its own configs/ sibling directory -- no longer under helao/deploy/hte/.
+# hte canary configs live alongside this module, in
+# its own configs/ sibling directory (helao/deploy/hte/tests/smoke/configs), not
+# helao/deploy/*/configs/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
 # galil_motion.py's query_positions endpoint calls
@@ -236,7 +237,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_galil",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_galil",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

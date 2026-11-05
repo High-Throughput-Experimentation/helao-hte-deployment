@@ -17,10 +17,10 @@ import ast
 import sys
 from pathlib import Path
 
-from helao.deploy.hte.drivers.pstat.biologic import technique as biologic_technique
-from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
+from helao.deploy.hte.servers.biologic.biologic import technique as biologic_technique
+from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
 
-PACKAGE_DIR = Path("helao/deploy/hte/drivers/pstat/biologic")
+PACKAGE_DIR = Path("helao/deploy/hte/servers/biologic/biologic")
 
 
 def test_import_loads_no_dll():
@@ -59,7 +59,7 @@ def test_technique_registry_imports_without_an_sdk_and_holds_eleven_entries():
 
 
 def test_the_server_module_imports_on_linux_with_eclib_in_backends():
-    from helao.deploy.hte.servers.action import biologic_server
+    from helao.deploy.hte.servers.biologic import biologic_server
 
     assert "eclib" in biologic_server.BACKENDS
     assert biologic_server.BACKENDS["eclib"] is BiologicDriver
@@ -87,9 +87,9 @@ def test_no_module_in_the_package_references_easy_biologic():
 
 def test_both_drivers_satisfy_the_backend_protocol():
     """The contract the action server calls, made explicit."""
-    from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
-    from helao.deploy.hte.drivers.pstat.biologic_backend import BiologicBackend
-    from helao.deploy.hte.drivers.pstat.biologic_ole.driver import BiologicOleDriver
+    from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
+    from helao.deploy.hte.servers.biologic.biologic_backend import BiologicBackend
+    from helao.deploy.hte.servers.biologic.biologic_ole.driver import BiologicOleDriver
 
     for cls in (BiologicDriver, BiologicOleDriver):
         for name in (
@@ -110,7 +110,7 @@ def test_both_drivers_satisfy_the_backend_protocol():
 
 def test_the_endpoints_no_longer_coerce_the_range_enums():
     """Coercion belongs in each backend's setup(), not the shared layer."""
-    source = Path("helao/deploy/hte/servers/action/biologic_server.py").read_text(
+    source = Path("helao/deploy/hte/servers/biologic/biologic_server.py").read_text(
         encoding="utf-8"
     )
     assert "EC_IRange_map[" not in source

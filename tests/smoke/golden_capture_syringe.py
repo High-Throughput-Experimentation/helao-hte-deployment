@@ -46,7 +46,7 @@ withdraw, which drive the pump -- deliberately NOT chosen for this canary).
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
 orch-less, db-less syringe 2-server topology (WORKSYRINGE@8013 +
 ACTVIS@5001 only -- no ORCH, no DB), mirroring galil's
-``helao.hexagon.tests.smoke.golden_capture_galil`` and gamry's
+``helao.deploy.hte.tests.smoke.golden_capture_galil`` and gamry's
 ``golden_capture`` (see those modules for the full topology-gap rationale). The
 hardware-agnostic settle/anti-vacuous-guard logic (``settle``,
 ``_run_artifacts``, ``_act_status_map``, ``dispatch_action``) is IMPORTED from
@@ -59,7 +59,7 @@ capture, and THE PLUNGER DOES NOT MOVE for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py syringegold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_syringe ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_syringe ^
         --config-prefix syringegold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\syringe
 
@@ -83,7 +83,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -94,8 +94,9 @@ SYRINGE_HOST, SYRINGE_PORT = "127.0.0.1", 8013
 
 SCENARIO = "GM-SYRVOL"
 
-# hte canary configs (P3a/P3e relocation) live alongside this module, in
-# its own configs/ sibling directory -- no longer under helao/deploy/hte/.
+# hte canary configs live alongside this module, in
+# its own configs/ sibling directory (helao/deploy/hte/tests/smoke/configs), not
+# helao/deploy/*/configs/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
 # MASKING = NONE (deliberate -- see module docstring). get_present_volume
@@ -260,7 +261,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_syringe",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_syringe",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

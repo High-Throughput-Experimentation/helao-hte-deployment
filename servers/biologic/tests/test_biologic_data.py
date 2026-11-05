@@ -9,8 +9,8 @@ import math
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import data, vendor
-from helao.deploy.hte.drivers.pstat.biologic import sim
+from helao.deploy.hte.servers.biologic.biologic import data, vendor
+from helao.deploy.hte.servers.biologic.biologic import sim
 
 VMP3 = vendor.BoardFamily.VMP3
 VMP300 = vendor.BoardFamily.VMP300

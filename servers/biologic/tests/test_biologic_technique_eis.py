@@ -2,8 +2,8 @@
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import vendor
-from helao.deploy.hte.drivers.pstat.biologic.technique import (
+from helao.deploy.hte.servers.biologic.biologic import vendor
+from helao.deploy.hte.servers.biologic.biologic.technique import (
     BIOTECHS,
     SweepMode,
     ec_sweep,

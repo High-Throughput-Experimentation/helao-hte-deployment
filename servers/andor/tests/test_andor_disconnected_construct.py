@@ -13,10 +13,10 @@ Both subclasses are covered: the base is abstract and cannot be constructed.
 
 import pytest
 
-from helao.deploy.hte.drivers.spec.andor import driver as andor_driver
-from helao.deploy.hte.drivers.spec.andor import spectrograph as andor_spectrograph
-from helao.deploy.hte.drivers.spec.andor.driver import AndorDriver
-from helao.deploy.hte.drivers.spec.andor.spectrograph import AndorSpectrographDriver
+from helao.deploy.hte.servers.andor import driver as andor_driver
+from helao.deploy.hte.servers.andor import spectrograph as andor_spectrograph
+from helao.deploy.hte.servers.andor.driver import AndorDriver
+from helao.deploy.hte.servers.andor.spectrograph import AndorSpectrographDriver
 
 
 def test_the_base_is_abstract():

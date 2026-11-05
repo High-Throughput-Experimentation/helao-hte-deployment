@@ -19,9 +19,9 @@ import os
 import pytest
 
 from helao.hexagon.tests.biologic_eclib2_sample_params import params
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import enum as ec2enum
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import technique as ec2tech
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import vendor
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import enum as ec2enum
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import technique as ec2tech
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import vendor
 
 SDK_PATH = os.environ.get("HELAO_ECLIB2_SDK_PATH")
 

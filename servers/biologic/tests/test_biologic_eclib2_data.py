@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import data as ec2data
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import data as ec2data
 
 
 @dataclass

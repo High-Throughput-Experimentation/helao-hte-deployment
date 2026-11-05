@@ -13,7 +13,7 @@ while EClib2 splits them into a separate ``IRangeMode`` passed alongside a value
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import enum as ec2
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import enum as ec2
 
 
 def test_the_module_imports_without_the_vendor_sdk():

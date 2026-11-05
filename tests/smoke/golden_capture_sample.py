@@ -5,9 +5,9 @@ special-split).
 
 Step 0 of the parent task investigated whether ``get_loaded_positions`` needs
 any hardware/backend beyond config to produce data and found: no.
-``sample_server.py`` (helao/deploy/hte/servers/action/sample_server.py)
+``sample_server.py`` (helao/deploy/hte/servers/sample/sample_server.py)
 instantiates ``BaseAPI(..., driver_classes=[Archive])``, and ``Archive``
-(helao/deploy/hte/drivers/data/archive_driver.py) is a pure in-memory/SQLite
+(helao/deploy/hte/servers/sample/archive_driver.py) is a pure in-memory/SQLite
 sample-DB and tray/custom-position manager -- ``Archive.__init__`` opens no
 hardware connection of any kind. It reads the ``positions`` config block
 (``config_dict.get("positions", None)``, falling back to an empty dict when
@@ -52,7 +52,7 @@ regression.
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
 orch-less, db-less sample 2-server topology (SAMPLE@8008 +
 ACTVIS@5001 only -- no ORCH, no DB, no S3), mirroring galil's
-``helao.hexagon.tests.smoke.golden_capture_galil`` (see that module's and
+``helao.deploy.hte.tests.smoke.golden_capture_galil`` (see that module's and
 gamry's ``golden_capture.py``'s docstrings for the full topology-gap
 rationale already recorded there). The hardware-agnostic settle/
 anti-vacuous-guard logic (``settle``, ``_run_artifacts``, ``_act_status_map``)
@@ -65,7 +65,7 @@ Usage (Linux, conda env ``helao``) -- no hardware, no pre-check needed:
 
     rm -rf /tmp/INST_hlo_sample_golden               (or pick a fresh --root)
     conda run -n helao python launch.py samplegold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture_sample \\
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_sample \\
         --config-prefix samplegold --root /tmp/INST_hlo_sample_golden \\
         --out /tmp/golden/sample
 
@@ -87,7 +87,7 @@ from harness import HARNESS_VERSION
 from harness.capture import assert_fresh, wait_for_server
 from harness.manifest import ProvenanceManifest
 from harness.treepass import PARITY_TOPS
-from helao.hexagon.tests.smoke.golden_capture import (
+from helao.deploy.hte.tests.smoke.golden_capture import (
     _act_status_map,
     _run_artifacts,
     dispatch_action,
@@ -98,8 +98,9 @@ SAMPLE_HOST, SAMPLE_PORT = "127.0.0.1", 8008
 
 SCENARIO = "GM-POS"
 
-# hte canary configs (P3a/P3e relocation) live alongside this module, in
-# its own configs/ sibling directory -- no longer under helao/deploy/hte/.
+# hte canary configs live alongside this module, in
+# its own configs/ sibling directory (helao/deploy/hte/tests/smoke/configs), not
+# helao/deploy/*/configs/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
 # get_loaded_positions writes no .hlo data file at all (see module docstring)
@@ -209,7 +210,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture_sample",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture_sample",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

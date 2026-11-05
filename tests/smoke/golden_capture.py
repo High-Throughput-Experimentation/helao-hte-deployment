@@ -4,7 +4,7 @@
 
 Step 0 of the parent task investigated whether ``run_OCV`` can produce data
 under ``simulation: true``/``dummy: true`` with no real potentiostat attached,
-and found: no. ``GamryDriver.__init__`` (helao/deploy/hte/drivers/pstat/gamry/
+and found: no. ``GamryDriver.__init__`` (helao/deploy/hte/servers/gamry/
 driver.py) unconditionally opens a real GamryCOM connection, and
 ``gamry_server2.py`` instantiates ``driver_classes=[GamryDriver]``
 unconditionally -- there is no dummy/sim driver swap anywhere in this code
@@ -32,7 +32,7 @@ CAL RESISTOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
     conda run -n helao python launch.py gamrygold --no-hot-reload
-    conda run -n helao python -m helao.hexagon.tests.smoke.golden_capture ^
+    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture ^
         --config-prefix gamrygold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\gamry
 
@@ -64,7 +64,9 @@ from helao.core.error import ErrorCodes
 from helao.core.models.machine import MachineModel
 from helao.helpers.config_loader import read_config
 from helao.helpers.dispatcher import async_action_dispatcher
+from helao.helpers.meta_io import meta_glob
 from helao.helpers.premodels import Action
+from helao.hexagon.domain.naming import DATA_SUFFIX
 
 # async_action_dispatcher's RPC-first path opens a zmq.asyncio socket, which
 # requires the add_reader event-loop family the Windows Proactor loop (the
@@ -86,11 +88,12 @@ PSTAT_HOST, PSTAT_PORT = "127.0.0.1", 8001
 
 SCENARIO = "GM-OCV"
 
-# hte canary configs (P3a/P3e relocation) live alongside this module, in
-# its own configs/ sibling directory -- no longer under helao/deploy/hte/.
+# hte canary configs live alongside this module, in
+# its own configs/ sibling directory (helao/deploy/hte/tests/smoke/configs), not
+# helao/deploy/*/configs/.
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 
-# helao/deploy/hte/drivers/pstat/gamry/dtaq.py: DTAQ_OCV.output_keys. These
+# helao/deploy/hte/servers/gamry/dtaq.py: DTAQ_OCV.output_keys. These
 # are raw ADC/COM samples pulled straight off the live potentiostat -- no
 # seeded/deterministic sim values exist anywhere in this driver -- so their
 # VALUES must be masked for parity; row counts are compared within a small
@@ -183,11 +186,11 @@ def run_ocv_action(host: str, port: int, tval_s: float, acq_s: float) -> dict:
 
 
 def _run_artifacts(root: Path) -> tuple:
-    """(-act.yml paths, .hlo paths) anywhere under root's captured run trees."""
+    """(-act.json/.yml paths, .hlo/.jsonl paths) anywhere under root's captured run trees."""
     root = Path(root)
     return (
-        sorted(str(p) for p in root.rglob("*-act.yml")),
-        sorted(str(p) for p in root.rglob("*.hlo")),
+        sorted(str(p) for p in meta_glob(root, "act", "**/*")),
+        sorted(str(p) for sfx in (".hlo", DATA_SUFFIX) for p in root.rglob(f"*{sfx}")),
     )
 
 
@@ -195,7 +198,7 @@ def _act_status_map(root: Path) -> dict:
     """{-act.yml path: action_status list}. A file that is missing/partial/
     unreadable (mid-write) yields [] -> treated as not-yet-terminal."""
     out: dict = {}
-    for a in Path(root).rglob("*-act.yml"):
+    for a in meta_glob(root, "act", "**/*"):
         try:
             data = load_yml_plain(a)
             st = data.get("action_status") or []
@@ -432,7 +435,7 @@ def snapshot(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m helao.hexagon.tests.smoke.golden_capture",
+        prog="python -m helao.deploy.hte.tests.smoke.golden_capture",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

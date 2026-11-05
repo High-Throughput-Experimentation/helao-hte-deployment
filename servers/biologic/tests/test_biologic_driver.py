@@ -5,10 +5,10 @@ import asyncio
 import pytest
 
 from helao.core.drivers.helao_driver import DriverResponseType, DriverStatus
-from helao.deploy.hte.drivers.pstat.biologic import data, sim, vendor
-from helao.deploy.hte.drivers.pstat.biologic import technique as bt
-from helao.deploy.hte.drivers.pstat.biologic import driver as driver_module
-from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
+from helao.deploy.hte.servers.biologic.biologic import data, sim, vendor
+from helao.deploy.hte.servers.biologic.biologic import technique as bt
+from helao.deploy.hte.servers.biologic.biologic import driver as driver_module
+from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
 
 CONFIG = {
     "address": "192.168.200.100",
@@ -449,7 +449,7 @@ def test_start_warns_but_proceeds_when_the_channel_never_stops(
 def test_start_still_fails_when_the_channel_state_cannot_be_read(driver):
     """The other branch of that gate stays a refusal: an unreadable channel
     means the instrument is not answering, not that it is mid-halt."""
-    from helao.deploy.hte.drivers.pstat.biologic.eclib_client import EclibError
+    from helao.deploy.hte.servers.biologic.biologic.eclib_client import EclibError
 
     setup(driver)
 

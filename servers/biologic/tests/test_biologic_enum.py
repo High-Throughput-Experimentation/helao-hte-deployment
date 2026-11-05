@@ -2,15 +2,15 @@
 
 `EC_IRange`/`EC_ERange`/`EC_Bandwidth` are FastAPI annotations on the
 `run_*` endpoints, so a renamed member changes the recorded action params and
-the OpenAPI surface that `test_hte_route_checklist.py` freezes.
+the OpenAPI surface that `test_route_checklist.py` freezes.
 """
 
 import sys
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import vendor
-from helao.deploy.hte.drivers.pstat.biologic.enum import (
+from helao.deploy.hte.servers.biologic.biologic import vendor
+from helao.deploy.hte.servers.biologic.biologic.enum import (
     EC_Bandwidth,
     EC_ERange,
     EC_IRange,

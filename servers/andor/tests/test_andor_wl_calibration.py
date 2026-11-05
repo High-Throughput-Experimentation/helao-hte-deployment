@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from helao.deploy.hte.drivers.spec.andor import wl_calibration as wlc
+from helao.deploy.hte.servers.andor import wl_calibration as wlc
 
 
 def _synthetic_lamp(coeffs, n_pixels, line_pixels, width=2.0):

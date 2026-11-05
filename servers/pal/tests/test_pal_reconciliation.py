@@ -1,4 +1,4 @@
-"""Unit tests for `helao.hexagon.domain.pal_reconciliation.PalReconciliation`
+"""Unit tests for `helao.deploy.hte.servers.pal.pal_reconciliation.PalReconciliation`
 (P3a-PAL slice 3a source resolution + slice 3b dest resolution/cam-table
 assembly/`plan()`).
 
@@ -19,16 +19,18 @@ from helao.hexagon.domain.models import (
     GasSample,
     LiquidSample,
     NoneSample,
+    SampleStatus,
+    SampleType,
+)
+from helao.deploy.hte.servers.pal.models import (
     PalAction,
     PalCam,
     PalMicroCam,
     PALposition,
-    SampleStatus,
-    SampleType,
     _cam,
     _positiontype,
 )
-from helao.hexagon.domain.pal_reconciliation import PalReconciliation
+from helao.deploy.hte.servers.pal.pal_reconciliation import PalReconciliation
 from helao.hexagon.ports.sample_state import SampleStatePort
 
 

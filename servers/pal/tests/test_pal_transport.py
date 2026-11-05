@@ -1,4 +1,4 @@
-"""Unit tests for `helao.hexagon.adapters.shared.pal_transport.
+"""Unit tests for `helao.deploy.hte.servers.pal.pal_transport.
 LegacyPalTransport` (P3a-PAL slice 4).
 
 Covers construct-disconnected (no SSH/NI-DAQ opened at construction) and
@@ -15,8 +15,8 @@ import asyncio
 import sys
 
 from helao.core.error import ErrorCodes
-from helao.hexagon.adapters.shared.pal_transport import LegacyPalTransport
-from helao.hexagon.ports.pal_transport import PalTransportPort
+from helao.deploy.hte.servers.pal.pal_transport import LegacyPalTransport
+from helao.deploy.hte.servers.pal.pal_transport_port import PalTransportPort
 
 
 def test_is_pal_transport_port():
@@ -99,7 +99,7 @@ def test_unreachable_ssh_host_returns_error_without_blocking_loop(monkeypatch):
     connect retries, and exhaustion yields ssh_error."""
     import types
 
-    import helao.hexagon.adapters.shared.pal_transport as mod
+    import helao.deploy.hte.servers.pal.pal_transport as mod
 
     class _Boom:
         @staticmethod

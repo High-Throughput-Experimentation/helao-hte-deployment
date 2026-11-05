@@ -1,6 +1,6 @@
 """hte action modules still CONSTRUCT under a real config (B5).
 
-The checklist gate (``test_hte_route_checklist.py``) reads source and never
+The checklist gate (``test_route_checklist.py``) reads source and never
 imports, which is its strength -- it covers Windows-only modules and
 ``dyn_endpoints`` routes alike. Its blind spot is the constructor: a port that
 renames a driver keyword, drops a poller class or breaks an import passes the
@@ -28,7 +28,9 @@ import importlib
 
 import pytest
 
-from helao.helpers.config_loader import load_global_config
+from helao.helpers.launcher_bootstrap import app_module_path
+
+from helao.helpers.config_loader import install_global_config, read_validated_config
 
 #: (module, config prefix, server key) -- one representative station per module.
 #: Measured by loading each station config and calling makeApp; every one of
@@ -67,12 +69,6 @@ BUILDS: list[tuple[str, str, str]] = [
 WINDOWS_ONLY: dict[str, str] = {}
 
 
-def _not_yet_ported() -> frozenset[str]:
-    from helao.hexagon.tests.test_hte_is_native import NOT_YET_PORTED
-
-    return NOT_YET_PORTED
-
-
 @pytest.mark.parametrize("module,config,server_key", BUILDS, ids=[b[0] for b in BUILDS])
 def test_module_builds_under_its_station_config(
     module: str, config: str, server_key: str
@@ -80,8 +76,8 @@ def test_module_builds_under_its_station_config(
     from helao.helpers.server_api import HelaoFastAPI
     from helao.hexagon.app.action_host import ActionHost
 
-    load_global_config(config, set_global=True)
-    mod = importlib.import_module(f"helao.deploy.hte.servers.action.{module}")
+    install_global_config(read_validated_config(config)[0])
+    mod = importlib.import_module(app_module_path("hte", module))
     app = mod.makeApp(server_key)
 
     # `title`, not `server_key`: a legacy BaseAPI has no `server_key` attribute
@@ -91,12 +87,10 @@ def test_module_builds_under_its_station_config(
     assert isinstance(app, HelaoFastAPI), f"{module} built a {type(app).__name__}"
     assert app.title == server_key
 
-    # Before this module's port the app is a legacy BaseAPI, and the ratchet is
-    # what says which of the two to expect. After it, the host type IS the
-    # assertion -- a port that left a BaseAPI behind would still pass the
-    # checklist gate, which reads decorators rather than the constructor.
-    if module not in _not_yet_ported():
-        assert isinstance(app, ActionHost), f"{module} did not build an ActionHost"
+    # The host type IS the assertion -- a port that left a BaseAPI behind would
+    # still pass the checklist gate, which reads decorators rather than the
+    # constructor.
+    assert isinstance(app, ActionHost), f"{module} did not build an ActionHost"
 
 
 @pytest.mark.parametrize("module,expected", sorted(WINDOWS_ONLY.items()))
@@ -110,7 +104,7 @@ def test_windows_only_module_fails_the_way_we_recorded(
     BUILDS should grow to claim it.
     """
     with pytest.raises(BaseException) as exc:
-        importlib.import_module(f"helao.deploy.hte.servers.action.{module}")
+        importlib.import_module(app_module_path("hte", module))
     assert expected in str(
         exc.value
     ), f"{module} raised {exc.value!r}, not {expected!r}"
@@ -128,7 +122,7 @@ def test_the_orchestrator_builds_a_native_OrchHost() -> None:
     """
     from helao.hexagon.app.orch_host import OrchHost
 
-    load_global_config("adss3", set_global=True)
+    install_global_config(read_validated_config("adss3")[0])
     mod = importlib.import_module("helao.deploy.hte.servers.orchestrator.async_orch2")
     app = mod.makeApp("ORCH")
     assert isinstance(app, OrchHost), f"orchestrator built a {type(app).__name__}"

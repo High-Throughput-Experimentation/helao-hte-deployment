@@ -10,9 +10,9 @@ import tempfile
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic.driver import BiologicDriver
-from helao.deploy.hte.drivers.pstat.biologic_ole.driver import BiologicOleDriver
-from helao.deploy.hte.servers.action import biologic_server
+from helao.deploy.hte.servers.biologic.biologic.driver import BiologicDriver
+from helao.deploy.hte.servers.biologic.biologic_ole.driver import BiologicOleDriver
+from helao.deploy.hte.servers.biologic import biologic_server
 from helao.helpers import config_loader
 
 
@@ -96,14 +96,14 @@ def test_each_registry_resolves_all_seven_techniques():
 
 
 def test_the_eclib_registry_returns_eclib_technique_objects():
-    from helao.deploy.hte.drivers.pstat.biologic.technique import BiologicTechnique
+    from helao.deploy.hte.servers.biologic.biologic.technique import BiologicTechnique
 
     resolved = biologic_server.TECHNIQUE_REGISTRIES["eclib"]("CA")
     assert isinstance(resolved, BiologicTechnique)
 
 
 def test_the_olecom_registry_returns_ole_technique_objects():
-    from helao.deploy.hte.drivers.pstat.biologic_ole.technique import OleTechnique
+    from helao.deploy.hte.servers.biologic.biologic_ole.technique import OleTechnique
 
     resolved = biologic_server.TECHNIQUE_REGISTRIES["olecom"]("CA")
     assert isinstance(resolved, OleTechnique)
@@ -168,6 +168,7 @@ def test_run_protocol_registers_only_on_the_ole_backend(with_config, monkeypatch
         )
         app = biologic_server.makeApp("BIOLOGIC")
         app.driver = biologic_server.BACKENDS[backend](config=app.server_params)
+        app.driver.connect()  # the host connects before dyn_endpoints runs
         asyncio.run(biologic_server.biologic_dyn_endpoints(app))
         return {route.path for route in app.routes}
 
@@ -181,7 +182,7 @@ def test_run_protocol_is_recorded_in_the_additions_allowlist():
     from pathlib import Path
 
     additions = json.loads(
-        Path("helao/hexagon/tests/checklists/hte/_additions.json").read_text(
+        Path("helao/deploy/hte/tests/checklists/_additions.json").read_text(
             encoding="utf-8"
         )
     )
@@ -192,7 +193,7 @@ def test_run_protocol_is_recorded_in_the_additions_allowlist():
 
 
 def test_protocol_technique_picks_a_plan_from_the_technique_code():
-    from helao.deploy.hte.drivers.pstat.biologic_ole import technique as ot
+    from helao.deploy.hte.servers.biologic.biologic_ole import technique as ot
 
     assert ot.protocol_technique(54).column_plan.kind == "dc"
     assert ot.protocol_technique(60).column_plan.kind == "eis"
@@ -200,7 +201,7 @@ def test_protocol_technique_picks_a_plan_from_the_technique_code():
 
 def test_an_unrecognized_technique_code_falls_back_to_the_dc_triple():
     """Guessing a column set for an unknown technique would fabricate data."""
-    from helao.deploy.hte.drivers.pstat.biologic_ole import technique as ot
+    from helao.deploy.hte.servers.biologic.biologic_ole import technique as ot
 
     plan = ot.protocol_technique(999).column_plan
     assert plan.kind == "dc"
@@ -208,7 +209,7 @@ def test_an_unrecognized_technique_code_falls_back_to_the_dc_triple():
 
 
 def test_setup_protocol_loads_the_named_file_without_patching(tmp_path):
-    from helao.deploy.hte.drivers.pstat.biologic_ole.driver import BiologicOleDriver
+    from helao.deploy.hte.servers.biologic.biologic_ole.driver import BiologicOleDriver
 
     protocol = tmp_path / "my_protocol.mps"
     original = "Technique : 1\nChronoamperometry\n" + "Ei (V)".ljust(20) + "0.000\n"
@@ -230,7 +231,7 @@ def test_setup_protocol_loads_the_named_file_without_patching(tmp_path):
 
 def test_setup_protocol_refuses_a_path_outside_the_protocol_dir(tmp_path):
     """A declared library, not whatever the caller passes."""
-    from helao.deploy.hte.drivers.pstat.biologic_ole.driver import BiologicOleDriver
+    from helao.deploy.hte.servers.biologic.biologic_ole.driver import BiologicOleDriver
 
     driver = BiologicOleDriver(
         config={
@@ -248,7 +249,7 @@ def test_setup_protocol_refuses_a_path_outside_the_protocol_dir(tmp_path):
 
 
 def test_setup_protocol_refuses_a_missing_file(tmp_path):
-    from helao.deploy.hte.drivers.pstat.biologic_ole.driver import BiologicOleDriver
+    from helao.deploy.hte.servers.biologic.biologic_ole.driver import BiologicOleDriver
 
     driver = BiologicOleDriver(
         config={
@@ -293,6 +294,6 @@ def test_the_simulated_config_names_a_visualizer_the_panels_answer_to():
 def test_the_templates_directory_exists_and_explains_itself():
     from pathlib import Path
 
-    readme = Path("helao/deploy/hte/drivers/pstat/biologic_ole/templates/README.md")
+    readme = Path("helao/deploy/hte/servers/biologic/biologic_ole/templates/README.md")
     assert readme.is_file()
     assert "EC-Lab" in readme.read_text(encoding="utf-8")

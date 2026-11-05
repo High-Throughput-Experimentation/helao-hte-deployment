@@ -17,8 +17,8 @@ not exist as single EClib2 techniques:
 import pytest
 
 from helao.hexagon.tests.biologic_eclib2_sample_params import params as _params
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import data as ec2data
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import technique as ec2tech
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import data as ec2data
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import technique as ec2tech
 
 
 def _by_name(plan_tech, name):

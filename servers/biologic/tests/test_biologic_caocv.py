@@ -2,8 +2,8 @@
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import data, vendor
-from helao.deploy.hte.drivers.pstat.biologic.technique import (
+from helao.deploy.hte.servers.biologic.biologic import data, vendor
+from helao.deploy.hte.servers.biologic.biologic.technique import (
     BIOTECHS,
     TechniqueError,
     caocv_sub_params,

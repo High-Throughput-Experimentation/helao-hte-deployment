@@ -187,7 +187,7 @@ class GamryComThread:
 
 def _default_driver_factory(config: dict):
     """Construct the legacy GamryDriver (lazy import; COM happens in its ctor)."""
-    from helao.deploy.hte.drivers.pstat.gamry.driver import GamryDriver
+    from helao.deploy.hte.servers.gamry.driver import GamryDriver
 
     return GamryDriver(config=config)
 
@@ -208,6 +208,10 @@ class GamryComAdapter(HelaoDriver):
     thread-marshalled methods (``pstat_is_open``/``measure_v``/``measure_i``/
     ``measure_a``) so no COM call ever escapes the owning thread.
     """
+
+    connect_on_startup = (
+        True  # the host connects after _base_hook, before dyn_endpoints
+    )
 
     #: strategy currently occupying the pstat, so stop/cleanup dispatch cleanly
     #: (replaces the driver's implicit readz-vs-dtaqsink branch): one of
@@ -293,7 +297,9 @@ class GamryComAdapter(HelaoDriver):
             self._thread = self._thread_factory(coinit_flags=self._coinit_flags)
             self._thread.start()
         self._driver = self._thread.call(self._driver_factory, self._config)
-        # GamryDriver.__init__ already runs connect(); return its live status.
+        # GamryDriver.__init__ no longer connects: open the device here, on the
+        # same COM thread that built the driver, exactly once.
+        self._thread.call(self._driver.connect)
         return self._thread.call(self._driver.get_status)
 
     def get_status(self):
@@ -459,6 +465,6 @@ class GamryComAdapter(HelaoDriver):
     @staticmethod
     def _bare_kill():
         """psutil GamryCOM kill without an owning thread (recovery path)."""
-        from helao.deploy.hte.drivers.pstat.gamry.driver import GamryDriver
+        from helao.deploy.hte.servers.gamry.driver import GamryDriver
 
         return GamryDriver.kill_gamrycom(GamryDriver.__new__(GamryDriver))

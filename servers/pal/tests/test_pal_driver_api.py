@@ -16,8 +16,8 @@ Covers:
 
 import inspect
 
-from helao.deploy.hte.drivers.robot import pal_driver
-from helao.deploy.hte.drivers.robot.pal_driver import (
+from helao.deploy.hte.servers.pal import pal_driver
+from helao.deploy.hte.servers.pal.pal_driver import (
     PAL,
     GCsampletype,
     PALposition,

@@ -17,9 +17,11 @@ import math
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import data as ec2data
-from helao.deploy.hte.drivers.pstat.biologic_eclib2 import technique as ec2tech
-from helao.deploy.hte.drivers.pstat.biologic_eclib2.driver import BiologicEclib2Driver
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import data as ec2data
+from helao.deploy.hte.servers.biologic.biologic_eclib2 import technique as ec2tech
+from helao.deploy.hte.servers.biologic.biologic_eclib2.driver import (
+    BiologicEclib2Driver,
+)
 from helao.hexagon.tests.biologic_eclib2_sample_params import params as _raw_params
 
 CHANNEL = 0
@@ -424,7 +426,7 @@ def _routes_for(backend, params):
             }
         },
     }
-    from helao.deploy.hte.servers.action import biologic_server
+    from helao.deploy.hte.servers.biologic import biologic_server
 
     app = biologic_server.makeApp("BIOLOGIC")
     try:

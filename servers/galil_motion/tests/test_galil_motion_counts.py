@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 
 from helao.core.error import ErrorCodes
-from helao.hexagon.adapters.native.galil_motion_native import NativeGalilMotion
+from helao.deploy.hte.servers.galil_motion.galil_motion_native import NativeGalilMotion
 
 # adss MOTOR's B-axis scale, copied from the tracked hte config. Kept as a
 # literal so a station recalibration cannot silently retune this regression
@@ -39,6 +39,7 @@ class FakeChannel:
     """Records commands; returns programmed responses (default '0')."""
 
     def __init__(self, responses: Optional[dict] = None):
+        self.programs: list = []
         self.commands: list = []
         self.opened: Optional[str] = None
         self.closed = False
@@ -53,6 +54,9 @@ class FakeChannel:
         if isinstance(r, list):
             return r.pop(0)
         return r
+
+    def download_program(self, program: str) -> None:
+        self.programs.append(program)
 
     def info(self) -> str:
         return "fake-info"

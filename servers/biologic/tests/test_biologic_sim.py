@@ -8,7 +8,7 @@ import ctypes
 
 import pytest
 
-from helao.deploy.hte.drivers.pstat.biologic import sim, vendor
+from helao.deploy.hte.servers.biologic.biologic import sim, vendor
 
 
 @pytest.fixture(autouse=True)
