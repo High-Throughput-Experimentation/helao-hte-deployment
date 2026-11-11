@@ -9,7 +9,7 @@ The real-hardware POST to ``/TEC/record_tec`` (and ``verify_device_open``'s
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_tec.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_tec.py -q
 """
 
 from __future__ import annotations

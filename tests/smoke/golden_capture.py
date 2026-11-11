@@ -27,12 +27,12 @@ because a manual action writes its -act.yml at init with status "active"
 (base.py:1029) and only rewrites it terminal at finish; settling on existence
 would snapshot + kill the server mid-measurement.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- ATTACH THE DUMMY CELL /
+Usage (AT-STATION, Windows, helao env) -- ATTACH THE DUMMY CELL /
 CAL RESISTOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py gamrygold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture ^
+    python launch.py gamrygold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture ^
         --config-prefix gamrygold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\gamry
 
@@ -413,7 +413,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_run_OCV",
         sequence_params={
             "manual": True,

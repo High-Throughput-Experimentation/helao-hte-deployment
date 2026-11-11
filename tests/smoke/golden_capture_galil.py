@@ -35,14 +35,14 @@ not reference gamry's OCV scenario name or masking). Only the
 scenario-specific pieces (endpoint, masking, manifest notes) are new in this
 module. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, conda env ``helao``) -- the galil controller must
+Usage (AT-STATION, helao env) -- the galil controller must
 be powered on and reachable at ``galil_ip_str`` (192.168.200.234 by default).
 NO dummy cell / calibration resistor is needed (this is a motion controller,
 not a potentiostat), and THE STAGE DOES NOT MOVE for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py galilgold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_galil ^
+    python launch.py galilgold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_galil ^
         --config-prefix galilgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\galil
 
@@ -220,7 +220,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_query_positions",
         sequence_params={
             "manual": True,

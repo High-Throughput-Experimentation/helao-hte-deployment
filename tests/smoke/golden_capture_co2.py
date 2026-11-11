@@ -51,11 +51,11 @@ hardware-agnostic settle / anti-vacuous-guard logic (``settle``,
 re-implemented here; only the scenario-specific pieces (endpoint, masking,
 manifest notes) are new. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- ATTACH THE SENSOR FIRST:
+Usage (AT-STATION, Windows, helao env) -- ATTACH THE SENSOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py co2gold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_co2 ^
+    python launch.py co2gold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_co2 ^
         --config-prefix co2gold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\co2
 
@@ -217,7 +217,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_acquire_co2",
         sequence_params={
             "manual": True,

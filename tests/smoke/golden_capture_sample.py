@@ -61,11 +61,11 @@ and the production dispatch path (``dispatch_action``) are IMPORTED from
 scenario-specific pieces (endpoint, masking [none], manifest notes) are new
 in this module. ``golden_capture.py`` itself is NOT modified.
 
-Usage (Linux, conda env ``helao``) -- no hardware, no pre-check needed:
+Usage (Linux, helao env) -- no hardware, no pre-check needed:
 
     rm -rf /tmp/INST_hlo_sample_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py samplegold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_sample \\
+    python launch.py samplegold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_sample \\
         --config-prefix samplegold --root /tmp/INST_hlo_sample_golden \\
         --out /tmp/golden/sample
 
@@ -192,7 +192,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_get_loaded_positions",
         sequence_params={
             "manual": True,

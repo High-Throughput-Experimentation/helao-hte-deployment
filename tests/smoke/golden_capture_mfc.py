@@ -68,11 +68,11 @@ hardware-agnostic settle / anti-vacuous-guard logic (``settle``,
 re-implemented here; only the scenario-specific pieces (endpoint, masking,
 manifest notes) are new. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- ATTACH THE ALICAT MFC FIRST:
+Usage (AT-STATION, Windows, helao env) -- ATTACH THE ALICAT MFC FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py mfcgold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_mfc ^
+    python launch.py mfcgold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_mfc ^
         --config-prefix mfcgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\mfc
 
@@ -256,7 +256,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_acquire_flowrate",
         sequence_params={
             "manual": True,

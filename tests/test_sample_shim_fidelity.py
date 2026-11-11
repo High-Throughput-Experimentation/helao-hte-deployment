@@ -1,8 +1,8 @@
 """Standalone fidelity check for ``SampleArchiveShim`` (plan Phase 3 gate).
 
-Run (from repo root, ``helao`` conda env, ``PYTHONPATH`` = repo root)::
+Run (from repo root, ``helao`` env, ``PYTHONPATH`` = repo root)::
 
-    conda run -n helao python helao/deploy/hte/tests/test_sample_shim_fidelity.py
+    python helao/deploy/hte/tests/test_sample_shim_fidelity.py
 
 This spins up a minimal in-process FastAPI app exposing the 13 private
 endpoints the shim calls, backed by trivial fakes that return the *wire

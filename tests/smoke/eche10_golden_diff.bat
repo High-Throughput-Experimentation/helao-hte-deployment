@@ -83,10 +83,10 @@ if not exist "%GOLDENS%" mkdir "%GOLDENS%"
 set "OUT=%GOLDENS%\%WHICH%"
 set "CAPLOG=%GOLDENS%\capture_%WHICH%.txt"
 
-REM NOTE: `conda` is conda.bat on Windows -- every conda call MUST be prefixed
-REM with `call`, else this batch terminates when conda.bat returns.
+REM NOTE: run this from a shell where the helao env is active (call
+REM <repo>\activate_helao.bat); python is then the env interpreter.
 echo [golden] capturing %SEQ% from %ROOT% -^> %OUT%
-call conda run -n helao python "%~dp0station_golden_capture.py" --root "%ROOT%" --seq "%SEQ%" --out "%OUT%" --config-prefix %PREFIX% > "%CAPLOG%" 2>&1
+python "%~dp0station_golden_capture.py" --root "%ROOT%" --seq "%SEQ%" --out "%OUT%" --config-prefix %PREFIX% > "%CAPLOG%" 2>&1
 set "CAPTURE_RC=!errorlevel!"
 type "%CAPLOG%"
 echo.
@@ -120,7 +120,7 @@ REM repo root = five levels up from this script (helao\deploy\hte\tests\smoke\)
 pushd "%~dp0..\..\..\..\.." || exit /b 2
 
 set "HELPLOG=%GOLDENS%\parity_help.txt"
-call conda run -n helao python -m harness.parity --help > "%HELPLOG%" 2>&1
+python -m harness.parity --help > "%HELPLOG%" 2>&1
 findstr /C:"--remap-legacy-layout" "%HELPLOG%" >nul
 if errorlevel 1 (
   popd
@@ -135,7 +135,7 @@ for %%D in (RUNS_FINISHED RUNS_SYNCED RUNS_NOSYNC RUNS_DIAG) do if exist "%GOLDE
 echo [golden] running parity diff !REMAP!
 REM a stale report from an earlier run must not pass for this run's
 if exist "%GOLDENS%\parity-report.json" del /q "%GOLDENS%\parity-report.json"
-call conda run -n helao python -m harness.parity --golden "%GOLDENS%\pre" --candidate "%GOLDENS%\post" --report "%GOLDENS%\parity-report.json" !REMAP! > "%GOLDENS%\parity_stdout.txt" 2>&1
+python -m harness.parity --golden "%GOLDENS%\pre" --candidate "%GOLDENS%\post" --report "%GOLDENS%\parity-report.json" !REMAP! > "%GOLDENS%\parity_stdout.txt" 2>&1
 set "PARITY_RC=!errorlevel!"
 popd
 type "%GOLDENS%\parity_stdout.txt"

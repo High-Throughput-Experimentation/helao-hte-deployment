@@ -7,7 +7,7 @@ Action server for BioLogic potentiostats (`biologic_server.py`). It serves the s
 Install by hand (not pip/conda). What a station needs depends on `pstat_backend`; `simulate: true` needs none of it.
 
 - `eclib` (default): the BioLogic EC-Lab Development Package, which provides `EClib64.dll` and the firmware files. Python must be 64-bit. The driver looks in `sdk_path`, default `C:\EC-Lab Development Package\lib` (`biologic/vendor.py:71`, `:73`).
-- `olecom`: the EC-Lab application itself, installed and registered for OLE COM (ProgID `EC-Lab.Application`, key `progid`). The driver also needs `comtypes`, which `helao_dev_win-64.yml` installs. The `.mps` templates in `biologic_ole/templates/` are authored in the EC-Lab GUI; see `biologic_ole/templates/README.md`.
+- `olecom`: the EC-Lab application itself, installed and registered for OLE COM (ProgID `EC-Lab.Application`, key `progid`). The driver also needs `comtypes`, which the base `pixi.toml` installs on Windows. The `.mps` templates in `biologic_ole/templates/` are authored in the EC-Lab GUI; see `biologic_ole/templates/README.md`.
 - `eclib2`: the BioLogic EC-Lib 2.0 SDK (`biologic_ec_sdk`), unpacked anywhere and named by `sdk_path`. It ships no installable distribution. It must hold `Python/ECLibAPI.py`, `Python/Constants/`, `lib/eclib64.dll` and the license file `license_biologic_*.lic` at its root (`biologic_eclib2/vendor.py:21-26`). Without the license file every call fails with `EC_SDK_ERROR_LICENSE_NOT_VALID` (-99900). EC-Lib 2.0 supports Ethernet only.
 
 The code does not say where BioLogic distributes these packages; get them from BioLogic.

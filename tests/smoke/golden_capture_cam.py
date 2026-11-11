@@ -38,11 +38,11 @@ settle / anti-vacuous-guard logic (``settle``, ``_run_artifacts``,
 ``_act_status_map``) and the production dispatch path (``dispatch_action``) are
 IMPORTED from ``golden_capture.py``; only the scenario-specific pieces are new.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- CAMERA REACHABLE AT axis_ip:
+Usage (AT-STATION, Windows, helao env) -- CAMERA REACHABLE AT axis_ip:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py camgold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_cam ^
+    python launch.py camgold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_cam ^
         --config-prefix camgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\cam
 
@@ -191,7 +191,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_acquire_image",
         sequence_params={
             "manual": True,

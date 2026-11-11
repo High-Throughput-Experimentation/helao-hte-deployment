@@ -37,13 +37,13 @@ reference gamry's OCV scenario name or masking). Only the scenario-specific
 pieces (endpoint params, masking, verify_device_open probe, manifest notes)
 are new in this module. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- ATTACH THE DUMMY CELL /
+Usage (AT-STATION, Windows, helao env) -- ATTACH THE DUMMY CELL /
 CAL RESISTOR FIRST (run_OCV drives nothing, but connect() needs the live
 instrument, and a dummy cell gives a stable open-circuit reading):
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py biologicgold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_biologic ^
+    python launch.py biologicgold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_biologic ^
         --config-prefix biologicgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\biologic
 
@@ -290,7 +290,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_run_OCV",
         sequence_params={
             "manual": True,

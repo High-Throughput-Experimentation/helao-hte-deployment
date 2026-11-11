@@ -9,7 +9,7 @@ at-station (see golden_capture_galil.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_galil.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_galil.py -q
 """
 
 from __future__ import annotations

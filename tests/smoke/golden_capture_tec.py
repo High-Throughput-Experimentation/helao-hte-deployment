@@ -31,13 +31,13 @@ settle/anti-vacuous-guard logic (``settle``, ``_run_artifacts``,
 scenario-specific pieces (endpoint, masking, manifest notes) are new in this
 module. ``golden_capture.py`` itself is NOT modified.
 
-Usage (AT-STATION, Windows, conda env ``helao``) -- the Meerstetter
+Usage (AT-STATION, Windows, helao env) -- the Meerstetter
 controller must be powered on and reachable at the configured serial ``port``
 (COM5 by default). NO setpoint/enable change is issued for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py tecgold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_tec ^
+    python launch.py tecgold --no-hot-reload
+    python -m helao.deploy.hte.tests.smoke.golden_capture_tec ^
         --config-prefix tecgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\tec
 
@@ -219,7 +219,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_record_tec",
         sequence_params={
             "manual": True,
