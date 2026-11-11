@@ -31,7 +31,8 @@ Usage (AT-STATION, Windows, helao env) -- ATTACH THE DUMMY CELL /
 CAL RESISTOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py gamrygold --no-hot-reload
+    helao.bat gamrygold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture ^
         --config-prefix gamrygold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\gamry

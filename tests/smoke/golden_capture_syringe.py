@@ -58,7 +58,8 @@ Usage (helao env) -- the Legato pump need NOT be attached for a valid
 capture, and THE PLUNGER DOES NOT MOVE for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py syringegold --no-hot-reload
+    helao.bat syringegold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_syringe ^
         --config-prefix syringegold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\syringe

@@ -64,7 +64,8 @@ in this module. ``golden_capture.py`` itself is NOT modified.
 Usage (Linux, helao env) -- no hardware, no pre-check needed:
 
     rm -rf /tmp/INST_hlo_sample_golden               (or pick a fresh --root)
-    python launch.py samplegold --no-hot-reload
+    ./helao.sh samplegold --no-hot-reload
+    source activate_helao.sh     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_sample \\
         --config-prefix samplegold --root /tmp/INST_hlo_sample_golden \\
         --out /tmp/golden/sample

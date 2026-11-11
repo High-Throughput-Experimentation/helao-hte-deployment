@@ -42,7 +42,8 @@ CAL RESISTOR FIRST (run_OCV drives nothing, but connect() needs the live
 instrument, and a dummy cell gives a stable open-circuit reading):
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py biologicgold --no-hot-reload
+    helao.bat biologicgold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_biologic ^
         --config-prefix biologicgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\biologic

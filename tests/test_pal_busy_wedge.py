@@ -38,7 +38,7 @@ job occupies the busy slot; pass through while idle) covering the path the
 golden-master ``i_busy_rejection`` scenario stubs tautologically (it sets
 ``IO_measuring`` directly rather than exercising ``self._job``).
 
-Run (helao env, no pytest in this env -- run as a script)::
+Run (helao env, as a script)::
 
     python helao/deploy/hte/tests/test_pal_busy_wedge.py
 """

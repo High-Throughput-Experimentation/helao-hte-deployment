@@ -51,7 +51,8 @@ NO pump/valve/LED is actuated for this scenario (only a digital INPUT is
 read):
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py galiliogold --no-hot-reload
+    helao.bat galiliogold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_galil_io ^
         --config-prefix galiliogold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\galilio

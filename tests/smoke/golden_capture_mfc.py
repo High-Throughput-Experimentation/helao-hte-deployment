@@ -71,7 +71,8 @@ manifest notes) are new. ``golden_capture.py`` itself is NOT modified.
 Usage (AT-STATION, Windows, helao env) -- ATTACH THE ALICAT MFC FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py mfcgold --no-hot-reload
+    helao.bat mfcgold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_mfc ^
         --config-prefix mfcgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\mfc

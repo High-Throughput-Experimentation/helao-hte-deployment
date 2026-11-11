@@ -54,7 +54,8 @@ manifest notes) are new. ``golden_capture.py`` itself is NOT modified.
 Usage (AT-STATION, Windows, helao env) -- ATTACH THE SENSOR FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py co2gold --no-hot-reload
+    helao.bat co2gold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_co2 ^
         --config-prefix co2gold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\co2

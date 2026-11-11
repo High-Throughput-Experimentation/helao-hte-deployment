@@ -171,9 +171,9 @@ servers:
     fast: pal_server
     regular_update: true
     params:
-      # SSH identifiers come from env vars; set per station by
-      #   setting HELAO_PAL_SSH_USER, HELAO_PAL_SSH_KEY and HELAO_PAL_SSH_HOST as persistent user
-      #   environment variables (Windows: setx NAME value; Linux: the shell profile)
+      # SSH identifiers come from env vars; set HELAO_PAL_SSH_USER, HELAO_PAL_SSH_KEY and
+      # HELAO_PAL_SSH_HOST per station as persistent user env vars (Windows: `setx NAME value`;
+      # Linux: shell profile)
       user_env: HELAO_PAL_SSH_USER
       key_env: HELAO_PAL_SSH_KEY
       host_env: HELAO_PAL_SSH_HOST

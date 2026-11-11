@@ -41,7 +41,8 @@ NO dummy cell / calibration resistor is needed (this is a motion controller,
 not a potentiostat), and THE STAGE DOES NOT MOVE for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py galilgold --no-hot-reload
+    helao.bat galilgold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_galil ^
         --config-prefix galilgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\galil

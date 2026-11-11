@@ -68,7 +68,8 @@ Usage (AT-STATION, Windows, helao env) -- ATTACH THE CAMERA +
 SPECTROGRAPH FIRST:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    python launch.py andorgold --no-hot-reload
+    helao.bat andorgold --no-hot-reload
+    call activate_helao.bat     (second terminal)
     python -m helao.deploy.hte.tests.smoke.golden_capture_andor ^
         --config-prefix andorgold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\andor

@@ -5,6 +5,9 @@ REM Station golden diff for eche10: the legacy-layout run on the freeze
 REM branch against the same sequence on the unified-layout branch under test.
 REM Steps 1 and 6 of docs\superpowers\notes\2026-08-15-B5-station-gate-runbook.md.
 REM
+REM Run it from a shell where the helao env is active (call <repo>\activate_helao.bat);
+REM python is then the env interpreter.
+REM
 REM Usage:
 REM   eche10_golden_diff.bat capture pre  SEQNAME [goldens]
 REM   eche10_golden_diff.bat capture post SEQNAME [goldens]
@@ -83,8 +86,6 @@ if not exist "%GOLDENS%" mkdir "%GOLDENS%"
 set "OUT=%GOLDENS%\%WHICH%"
 set "CAPLOG=%GOLDENS%\capture_%WHICH%.txt"
 
-REM NOTE: run this from a shell where the helao env is active (call
-REM <repo>\activate_helao.bat); python is then the env interpreter.
 echo [golden] capturing %SEQ% from %ROOT% -^> %OUT%
 python "%~dp0station_golden_capture.py" --root "%ROOT%" --seq "%SEQ%" --out "%OUT%" --config-prefix %PREFIX% > "%CAPLOG%" 2>&1
 set "CAPTURE_RC=!errorlevel!"
