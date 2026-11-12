@@ -256,11 +256,23 @@ def test_spec_vis_retries_wavelengths_after_startup_failure(monkeypatch):
         raise ConnectionError("spec server down")
 
     monkeypatch.setattr(spec_vis, "private_dispatcher", down)
-    vis = _build(spec_vis)
-    monkeypatch.setattr(
-        spec_vis, "private_dispatcher", lambda *a, **k: ([400.0, 500.0], None)
-    )
-    vis.add_points([])
+
+    async def _run():
+        # The fetch runs in a worker thread (it blocks; inline it froze the
+        # Bokeh loop), so each attempt is awaited through its task.
+        vis = spec_vis.C_vis(_FakeVis(None), SERV_KEY)
+        vis.IOloop_data_run = False
+        vis.IOtask.cancel()
+        await vis._wl_task
+        assert vis.wl == []
+        monkeypatch.setattr(
+            spec_vis, "private_dispatcher", lambda *a, **k: ([400.0, 500.0], None)
+        )
+        vis.add_points([])
+        await vis._wl_task
+        return vis
+
+    vis = asyncio.run(_run())
     assert vis.wl == [400.0, 500.0] and len(vis.ev) == 2
 
 
