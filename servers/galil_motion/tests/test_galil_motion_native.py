@@ -534,3 +534,25 @@ def test_gclib_api_2_selects_wrapper_2():
 def test_unknown_gclib_api_fails_construction():
     with pytest.raises(ValueError, match="gclib_api"):
         NativeGalilMotion({"axis_id": {"x": "A"}, "gclib_api": "9"})
+
+
+# --------------------------------------------------------------------------
+# connect retry: galil_io and galil_motion open one controller at launch
+# --------------------------------------------------------------------------
+def test_connect_retries_an_empty_reply_from_a_busy_controller():
+    """hte-uvis-04, 2026-11-12: MOTOR's ``MG _MOA`` came back '' while IO was
+    opening the same controller; MOTOR stayed down until a manual restart."""
+    cfg = {**AXIS_CFG, "connect_retry_wait_s": 0}
+    d, ch = _drv(responses={"MG _MOA": ["", "0"], "MG _MOB": "0"}, config=cfg)
+    resp = d.connect()
+    assert resp.status.value == "ok" and d.galil_enabled is True
+    assert ch.closed, "the half-open channel was not closed before the retry"
+    assert ch.commands.count("PF 10.4") == 2
+
+
+def test_connect_gives_up_after_connect_attempts():
+    cfg = {**AXIS_CFG, "connect_retry_wait_s": 0, "connect_attempts": 3}
+    d, ch = _drv(responses={"MG _MOA": ["", "", "", "0"]}, config=cfg)
+    resp = d.connect()
+    assert resp.status.value == "error" and d.galil_enabled is False
+    assert ch.commands.count("PF 10.4") == 3

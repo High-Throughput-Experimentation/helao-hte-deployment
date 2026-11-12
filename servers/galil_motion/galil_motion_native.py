@@ -166,14 +166,24 @@ class NativeGalilMotion(HelaoDriver):
                     response=DriverResponseType.success,
                     status=DriverStatus.uninitialized,
                 )
-            self._channel.open(f"{galil_ip} --direct -s ALL")
-            self._channel.command("PF 10.4")
-            for axl in self.axis_id.values():
-                q = self._channel.command(f"MG _MO{axl}")
-                if float(q) == 1:
-                    self._channel.command(f"SH{axl}")
-                for ac, av in _AXIS_INIT:
-                    self._channel.command(f"{ac}{axl}={av}")
+
+            def _open_and_init():
+                self._channel.open(f"{galil_ip} --direct -s ALL")
+                self._channel.command("PF 10.4")
+                for axl in self.axis_id.values():
+                    q = self._channel.command(f"MG _MO{axl}")
+                    if float(q) == 1:
+                        self._channel.command(f"SH{axl}")
+                    for ac, av in _AXIS_INIT:
+                        self._channel.command(f"{ac}{axl}={av}")
+
+            from helao.deploy.hte.servers.galil_motion.galil_channels import (
+                connect_with_retry,
+            )
+
+            connect_with_retry(
+                _open_and_init, self._channel, self.config_dict, "galil_motion"
+            )
             self.galil_enabled = True
             return DriverResponse(
                 response=DriverResponseType.success, status=DriverStatus.ok

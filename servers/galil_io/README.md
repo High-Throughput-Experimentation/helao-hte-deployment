@@ -44,6 +44,8 @@ All keys are read by the `Galil` driver (`helao/deploy/hte/servers/galil_io/gali
 | `dev_do` | no | dict[str, int] | `{}` | Digital-output channels, `{name: port}`. Read and set with `@OUT[port]`; also the output names for digital cycles. | `helao/deploy/hte/servers/galil_io/galil_io_driver.py:110` |
 | `monitor_ai` | no | dict[str, number] | `{}` | `{ai_name: scale}` polled by `GalilPoller`; each raw reading is multiplied by `scale`. Names not present in `dev_ai` are dropped. | `helao/deploy/hte/servers/galil_io/galil_io_driver.py:100` |
 | `gclib_api` | no | str `"1"` or `"2"` (YAML int `1`/`2` accepted) | `"1"` | Which gclib Python wrapper API the env holds (see Vendor software). Any other value raises `ValueError` when the driver is constructed. | `helao/deploy/hte/servers/galil_motion/galil_channels.py:25` (called from `galil_io_driver.py:119`) |
+| `connect_attempts` | no | int | `5` | How many times the driver's connect (open plus init queries) is tried at startup. `galil_io` and `galil_motion` on one controller open it together at launch, and the second can fail its first try. | `helao/deploy/hte/servers/galil_motion/galil_channels.py:59` |
+| `connect_retry_wait_s` | no | float | `2.0` | Base wait between connect attempts; attempt *n* waits *n* x this (2, 4, 6, 8 s by default). | `helao/deploy/hte/servers/galil_motion/galil_channels.py:59` |
 
 Example:
 ```yaml
