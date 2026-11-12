@@ -50,6 +50,8 @@ Read by `galil_motion.py` (the server), `NativeGalilMotion` (the driver, constru
 | `bokeh_port` | no | int or null | `port + 1000` of the server block | Port of the aligner Bokeh server. Null counts as unset. | `helao/hexagon/preflight.py:109` (used by `galil_aligner_host.py:163`) |
 | `cutoff` | no | number | `6` | Aligner layout cutoff value, wrapped in `np.array`. | `helao/deploy/hte/layouts/aligner.py:129` |
 | `gclib_api` | no | str `"1"` or `"2"` (YAML int `1`/`2` accepted) | `"1"` | Which gclib Python wrapper API the env holds (see Vendor software). Any other value raises `ValueError` at driver construction. | `helao/deploy/hte/servers/galil_motion/galil_channels.py:25` |
+| `connect_attempts` | no | int | `5` | How many times the driver's connect (open plus init queries) is tried at startup. `galil_io` and `galil_motion` on one controller open it together at launch, and the second can fail its first try. | `helao/deploy/hte/servers/galil_motion/galil_channels.py:59` |
+| `connect_retry_wait_s` | no | float | `2.0` | Base wait between connect attempts; attempt *n* waits *n* x this (2, 4, 6, 8 s by default). | `helao/deploy/hte/servers/galil_motion/galil_channels.py:59` |
 
 Example:
 ```yaml

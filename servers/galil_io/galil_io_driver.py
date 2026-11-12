@@ -27,7 +27,10 @@ import time
 import traceback
 from typing import Optional, Union
 
-from helao.deploy.hte.servers.galil_motion.galil_channels import make_channel
+from helao.deploy.hte.servers.galil_motion.galil_channels import (
+    connect_with_retry,
+    make_channel,
+)
 from helao.helpers import helao_logging as logging
 
 LOGGER = logging.make_logger(__file__) if logging.LOGGER is None else logging.LOGGER
@@ -132,9 +135,13 @@ class Galil(HelaoDriver):
         try:
             galil_ip = self.config_dict.get("galil_ip_str", None)
             if galil_ip:
-                self._channel.open(f"{galil_ip} --direct -s ALL")
-                LOGGER.info(f"gclib version: {self._channel.version()}")
-                LOGGER.info(self._channel.info())
+
+                def _open():
+                    self._channel.open(f"{galil_ip} --direct -s ALL")
+                    LOGGER.info(f"gclib version: {self._channel.version()}")
+                    LOGGER.info(self._channel.info())
+
+                connect_with_retry(_open, self._channel, self.config_dict, "galil_io")
                 self.galilcmd = self._channel.command
                 # downloads a DMC program to galil
                 self.galilprgdownload = self._channel.download_program
