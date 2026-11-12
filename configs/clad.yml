@@ -171,8 +171,9 @@ servers:
     fast: pal_server
     regular_update: true
     params:
-      # SSH identifiers come from env vars; set per station with
-      #   conda env config vars set HELAO_PAL_SSH_USER=... HELAO_PAL_SSH_KEY=... HELAO_PAL_SSH_HOST=... -n helao
+      # SSH identifiers come from env vars; set HELAO_PAL_SSH_USER, HELAO_PAL_SSH_KEY and
+      # HELAO_PAL_SSH_HOST per station as persistent user env vars (Windows: `setx NAME value`;
+      # Linux: shell profile)
       user_env: HELAO_PAL_SSH_USER
       key_env: HELAO_PAL_SSH_KEY
       host_env: HELAO_PAL_SSH_HOST

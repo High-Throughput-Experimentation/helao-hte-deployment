@@ -1,8 +1,8 @@
 """Driver-guard test for the C1 fail-loud-not-hang contract (plan Phase 4).
 
-Run (from repo root, ``helao`` conda env, ``PYTHONPATH`` = repo root)::
+Run (from repo root, ``helao`` env, ``PYTHONPATH`` = repo root)::
 
-    conda run -n helao python helao/deploy/hte/tests/test_pal_ioloop_c1_guard.py
+    python helao/deploy/hte/tests/test_pal_ioloop_c1_guard.py
 
 C1 requires that a shim ``RuntimeError`` raised inside the PAL IO loop -- from
 either the ``_PAL_IOloop_meas_start_helper`` ``get_samples`` call (pal_driver

@@ -10,7 +10,7 @@ The real-hardware POST to ``/IO/get_digital_in`` (and ``verify_device_open``'s
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_galil_io.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_galil_io.py -q
 """
 
 from __future__ import annotations
