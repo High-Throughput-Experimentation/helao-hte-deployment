@@ -56,7 +56,7 @@ Action results (in `-act.json`):
 
 ### Live data (status/ws stream)
 
-`KDS100Poller.get_data` (`helao/deploy/hte/servers/syringe/legato_driver.py:521-599`) publishes one status dict per configured pump (`<pump_name>` is a key of the server's `pumps` config); never written to a file by the poller itself. A pump that did not answer, answered with a mismatching address, or any poll while polling is paused or the port is not open contributes nothing. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`) with `value` a dict:
+`KDS100Poller.get_data` (`helao/deploy/hte/servers/syringe/legato_driver.py:521-599`) publishes one status dict per configured pump (`<pump_name>` is a key of the server's `pumps` config); never written to a file by the poller itself. A pump that did not answer, answered with a mismatching address, or any poll while polling is paused or the port is not open contributes nothing. A flags string that is not exactly six characters, or a status line that does not split into four fields, makes `get_data` raise (`helao/deploy/hte/servers/syringe/legato_driver.py:551`, `helao/deploy/hte/servers/syringe/legato_driver.py:573-580`), and a prompt matching no known state leaves `state_split` as `None`, so `split(None)` returns the whole text and the `int(...)` conversion raises (`helao/deploy/hte/servers/syringe/legato_driver.py:570`); the poll is then dropped for every pump. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`) with `value` a dict:
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|

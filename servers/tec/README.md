@@ -46,7 +46,7 @@ Reads no params of its own.
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `epoch_s` | float | scalar per row | s | epoch stamp of the live-buffer `tec_vals` value | `helao/deploy/hte/servers/tec/mecom_driver.py:317` |
-| `<query>` | unknown (dynamic) | scalar per row | as in `COMMAND_TABLE` (`degC`, `A`, `V`, none) | one column per name in the server's `queries` param (default `enabled_status`, `object_temperature`, `target_object_temperature`, `output_current`, `temperature_is_stable`; allowed names in `COMMAND_TABLE`, `helao/deploy/hte/servers/tec/mecom_driver.py:42-52`). The Python type is whatever `MeCom.get_parameter` returns for that parameter id (vendor library) | `helao/deploy/hte/servers/tec/mecom_driver.py:319` (values from `:284`) |
+| `<query>` | unknown (dynamic) | scalar per row | as in `COMMAND_TABLE` (`degC`, `A`, `V`, none) | one column per name in the server's `queries` param whose read succeeded in the latest poll (the row is the whole `tec_vals` dict, replaced on every poll, `helao/hexagon/adapters/native/data_stream.py:359-361`; default `enabled_status`, `object_temperature`, `target_object_temperature`, `output_current`, `temperature_is_stable`; allowed names in `COMMAND_TABLE`, `helao/deploy/hte/servers/tec/mecom_driver.py:42-52`). The Python type is whatever `MeCom.get_parameter` returns for that parameter id (vendor library) | `helao/deploy/hte/servers/tec/mecom_driver.py:319` (values from `:284`) |
 
 ### `wait_till_stable` (action)
 
@@ -55,7 +55,7 @@ Reads no params of its own.
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `epoch_s` | float | scalar per row | s | epoch stamp of the live-buffer `tec_vals` value | `helao/deploy/hte/servers/tec/mecom_driver.py:372` |
-| `<query>` | unknown (dynamic) | scalar per row | as in `COMMAND_TABLE` | one column per name in the `queries` param, as for `record_tec`; the `queries` list must contain `temperature_is_stable`, see Notes | `helao/deploy/hte/servers/tec/mecom_driver.py:374` |
+| `<query>` | unknown (dynamic) | scalar per row | as in `COMMAND_TABLE` | one column per name in the `queries` param whose read succeeded in the latest poll, as for `record_tec`; the `queries` list must contain `temperature_is_stable`, see Notes | `helao/deploy/hte/servers/tec/mecom_driver.py:374` |
 
 ### `cancel_record_tec`, `cancel_wait_till_stable`, `set_temperature`, `enable_tec`, `disable_tec` (actions)
 

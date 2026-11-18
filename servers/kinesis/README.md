@@ -42,7 +42,7 @@ Notes:
 
 ## Outputs
 
-The `kmove`, `cancel_kmove` and `set_velocity` endpoints exist only when the server has at least one Kinesis axis configured (`helao/deploy/hte/servers/kinesis/kinesis_server.py:177`).
+The `kmove`, `cancel_kmove`, `set_velocity` and the private endpoints below exist only when the server has at least one Kinesis axis configured (`helao/deploy/hte/servers/kinesis/kinesis_server.py:177`; the private endpoints are registered inside the same block, `helao/deploy/hte/servers/kinesis/kinesis_server.py:291-453`).
 
 ### `kmove` (action)
 
@@ -68,7 +68,7 @@ Applies the velocity and acceleration to the axis. No data files or action resul
 
 ### Live data (status/ws stream)
 
-`KinesisPoller.get_data` (`helao/deploy/hte/servers/kinesis/kinesis_driver.py:325-328`) publishes `KinesisMotor.get_status()` each poll, never written to a file by the poller itself. One key per configured axis, `<axis>` being a key of the server's `axes` config; an axis for which the device returned nothing is left out, and if the whole status call raises nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`) with `value` a dict:
+`KinesisPoller.get_data` (`helao/deploy/hte/servers/kinesis/kinesis_driver.py:325-328`) publishes `KinesisMotor.get_status()` each poll, never written to a file by the poller itself. One key per configured axis, `<axis>` being a key of the server's `axes` config; an axis for which the device returned nothing is left out, and if the whole status call raises nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`) with `value` a dict. `KinesisMotorExec._poll` adds `epoch_s` to that stored dict in place (`helao/deploy/hte/servers/kinesis/kinesis_server.py:141-142`), so the live-buffer value carries `epoch_s` after the first `kmove` poll until the next publish replaces it:
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|

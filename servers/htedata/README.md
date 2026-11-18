@@ -37,13 +37,13 @@ Data file `get_platemap_plateid-*.jsonl` (+ `.meta.json`), one row. No action re
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `platemap` | dict \| null | list[dict] | none | one dict per sample of the plate's screening platemap (`null` when none is found) | `helao/deploy/hte/servers/htedata/HTEdata_server.py:67-69` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:193`; built at `helao/helpers/plate_api.py:216`) |
+| `platemap` | dict \| null | list[dict] | none | one dict per sample of the plate's screening platemap (`null` when none is found; for legacy plate ids without a live record it can also be `[]`, `helao/helpers/legacy_api.py:350-351`) | `helao/deploy/hte/servers/htedata/HTEdata_server.py:67-69` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:193`; built at `helao/helpers/plate_api.py:216`) |
 
-Each `platemap` dict is one row of the platemap text file read from S3, with column names cleaned of `(...)` suffixes and `%` (`helao/helpers/plate_api.py:187-193`). The column set and the types of columns other than those below come from that file and are `unknown (dynamic)`:
+For live plates each `platemap` dict is one row of the platemap text file read from S3, with column names cleaned of `(...)` suffixes and `%` (`helao/helpers/plate_api.py:187-193`). For legacy plate ids the dicts come from the legacy parser (`helao/helpers/legacy_api.py:350-353`) and their keys are not covered by the table below, which describes the live-plate dicts only. The column set and the types of columns other than those below come from that file and are `unknown (dynamic)`:
 
 | key | type | meaning | set at |
 |---|---|---|---|
-| `A`-`H` | float | composition fractions, converted from text where they are strings | `helao/helpers/plate_api.py:209-214` |
+| `A`-`H` | float | (live plates) composition fractions, converted from text where they are strings | `helao/helpers/plate_api.py:209-214` |
 | `sample_no` | unknown (dynamic) | copy of the file's `Sample` column | `helao/helpers/plate_api.py:215` |
 
 ### `get_platexycalibration` (action)
@@ -68,7 +68,7 @@ Data file `check_plateid-*.jsonl` (+ `.meta.json`), one row. No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `plateid` | bool | scalar per row | none | whether an info record exists for the plate (live API, then legacy share for old ids); the column holds the boolean, not the id | `helao/deploy/hte/servers/htedata/HTEdata_server.py:118` (driver `:191`) |
+| `plateid` | bool | scalar per row | none | whether an info record exists for the plate (live API, then legacy share for old ids); the column holds the boolean, not the id | `helao/deploy/hte/servers/htedata/HTEdata_server.py:118` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:191`) |
 
 ### `check_printrecord_plateid` (action)
 
@@ -76,7 +76,7 @@ Data file `check_printrecord_plateid-*.jsonl` (+ `.meta.json`), one row. No acti
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `printrecord` | bool | scalar per row | none | whether the plate's info record has a `screening_print_id` | `helao/deploy/hte/servers/htedata/HTEdata_server.py:133-135` (driver `:187`) |
+| `printrecord` | bool | scalar per row | none | whether the plate's info record has a `screening_print_id` | `helao/deploy/hte/servers/htedata/HTEdata_server.py:133-135` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:187`) |
 
 ### `check_annealrecord_plateid` (action)
 
@@ -84,7 +84,7 @@ Data file `check_annealrecord_plateid-*.jsonl` (+ `.meta.json`), one row. No act
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `annealrecord` | bool | scalar per row | none | whether the plate's info record has an `anneals` block | `helao/deploy/hte/servers/htedata/HTEdata_server.py:150-152` (driver `:183`) |
+| `annealrecord` | bool | scalar per row | none | whether the plate's info record has an `anneals` block | `helao/deploy/hte/servers/htedata/HTEdata_server.py:150-152` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:183`) |
 
 ### `get_info_plateid` (action)
 
@@ -92,4 +92,4 @@ Data file `get_info_plateid-*.jsonl` (+ `.meta.json`), one row. No action result
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `info` | dict \| null | list[dict] | none | despite the name, the platemap of the plate's `screening_map_id` (same per-sample dicts as `platemap` above); `null` when the info record is missing or has no `screening_map_id` | `helao/deploy/hte/servers/htedata/HTEdata_server.py:167` (driver `:179`; `helao/helpers/plate_api.py:218-232`) |
+| `info` | dict \| null | list[dict] | none | despite the name, the platemap of the plate's `screening_map_id` (same per-sample dicts as `platemap` above); `null` when the info record is missing or has no `screening_map_id`; legacy plate ids can return `[]` (`helao/helpers/legacy_api.py:350-351`) | `helao/deploy/hte/servers/htedata/HTEdata_server.py:167` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:179`; `helao/helpers/plate_api.py:218-232`) |

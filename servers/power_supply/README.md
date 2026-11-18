@@ -35,7 +35,7 @@ All three actions open the file with fixed columns (`json_data_keys`), file type
 
 ### `apply_voltage` (action)
 
-`ApplyVoltageExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:515`; `action_abbr` `APPLYVOLT`, `:509`) applies the voltage in `_exec` and polls the output current every 5 s (`:249`) until stopped or a read fails (a failed read ends the loop with status `errored`, `:305-307`). Data file `APPLYVOLT-*.jsonl` (+ `.meta.json`), one row per successful poll. A poll whose query raised returns success without data (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`), so it writes no row.
+`ApplyVoltageExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:515`; `action_abbr` `APPLYVOLT`, `:509`) applies the voltage in `_exec` and polls the output current; each cycle takes about 10 s: the driver sleeps 5 s after the read (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:305`, `sleep_time=self.poll_rate`, `helao/deploy/hte/servers/power_supply/power_supply_server.py:302`) and the runner sleeps `poll_rate` = 5 s (`helao/deploy/hte/servers/power_supply/power_supply_server.py:249`, `helao/hexagon/app/executor_runner.py:138`) until stopped or a read fails (a failed read ends the loop with status `errored`, `:305-307`). Data file `APPLYVOLT-*.jsonl` (+ `.meta.json`), one row per successful poll. A poll whose query raised returns success without data (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`), so it writes no row.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
