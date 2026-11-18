@@ -35,7 +35,7 @@ Partition values (directory names):
 | `cycle=<c>` | float, rendered by pyarrow as an integer when whole | CV cycle index of the spectrum from the fitted sawtooth interval table | `helao/deploy/hte/processors/libs/hispec_calibrate_downsample_parquet.py:425` |
 | `direction=<d>` | str | `anodic` or `cathodic` scan direction, with misclassified runs flipped | `helao/deploy/hte/processors/libs/hispec_calibrate_downsample_parquet.py:457`, `:459`, `:504` |
 
-Registration in the record's `files` list: one new `FileInfo` per `part-*.parquet` found under the dataset (`helao/deploy/hte/processors/hispec_process_all.py:100-115`), a copy of the source entry with `file_type` `andor_spec_parquet__file` (`:105`), `file_name` the part path relative to the action directory with forward slashes (`<dataset>/cycle=<c>/direction=<d>/part-0.parquet`, `:106-112`), `nosync` false (`:113`, so uploaded) and `data_keys` the melted columns `t_s, U_V, J_A, cycle, direction, wl_nm, intensity` (`:114`). The original `andor_helao__file` entry is kept (`:121`). An action of another experiment, or an exception (logged, `:117`), leaves only the original entry.
+Registration in the record's `files` list: one new `FileInfo` per `part-*.parquet` found under the dataset (`helao/deploy/hte/processors/hispec_process_all.py:100-115`), a copy of the source entry with `file_type` `andor_spec_parquet__file` (`:105`), `file_name` the part path relative to the action directory with forward slashes (`<dataset>/cycle=<c>/direction=<d>/part-0.parquet`, `:106-112`), `nosync` false (`:113`, so uploaded) and `data_keys` the melted columns `t_s, U_V, J_A, cycle, direction, wl_nm, intensity` (`:114`). The original `andor_helao__file` entry is kept (`:121`). An action of another experiment leaves only the original entry. An exception (logged, `:117`) keeps any parts already appended in the loop at `:100-115`; one raised after `write_to_dataset` but before that loop leaves the dataset on disk unregistered (local only).
 
 Side file (local only, not registered): the calibration library writes `interpolation.json` into the process's current working directory, not the action directory, overwriting the previous one (`helao/deploy/hte/processors/libs/hispec_calibrate_downsample_parquet.py:262`):
 
@@ -53,7 +53,7 @@ Inputs parsed: the action's data file, read with `read_hlo` (`helao/deploy/hte/p
 |---|---|---|---|---|
 | CSV copy | CSV with header, no index column | the data file name with its data suffix replaced by `.csv` (`data_sibling`), or `<stem>_<comment>.csv` when the `comment` param is non-empty | the data file's columns, one CSV column per key `read_hlo` returns, in file order; value types are those of the source file (`unknown (dynamic)`: the keys come from the action that wrote the data) | `helao/deploy/hte/processors/hlo_to_csv.py:42-49` |
 
-Registration: a copy of the source `FileInfo` with `file_type` having `helao__file` replaced by `csv__file` and `file_name` the CSV base name (`helao/deploy/hte/processors/hlo_to_csv.py:50-55`); `nosync` and `data_keys` are inherited from the source entry (not reset), so the CSV is uploaded unless the source is `nosync`. The source entry is kept (`:61`).
+Registration: a copy of the source `FileInfo` with `file_type` having `helao__file` replaced by `csv__file` and `file_name` the CSV base name, which is correct only when the source `file_name` has no subdirectory (`helao/deploy/hte/processors/hlo_to_csv.py:50-55`); `nosync` and `data_keys` are inherited from the source entry (not reset), so the CSV is uploaded unless the source is `nosync`. The source entry is kept (`:61`).
 
 ### `spec_melt_wls.PostProcess` (processor)
 
@@ -74,7 +74,7 @@ Parquet file `<data stem>.parquet` (or `<data stem>_<comment>.parquet`), sorted 
 
 The column set was checked on a synthetic frame through the same calls. The source `error_code` column is dropped (`:53`). Any other source column that is neither `ch_*` nor one of `t_s, epoch_s, peak_intensity` is melted as a wavelength row and makes the float cast at `:65` raise; the exception is caught, logged and the source file is kept (`:99-103`).
 
-Registration: a copy of the source `FileInfo` with `file_type` ending `_parquet__file` instead of `_helao__file` (`spec_r_parquet__file` or `spec_t_parquet__file`), `file_name` the parquet base name, `nosync` false and `data_keys` the five columns above (`helao/deploy/hte/processors/spec_melt_wls.py:75-87`). The source entry is not kept: the `.hlo`/`.jsonl` is deleted, and for a `.jsonl` its `.meta.json` too (`:90-95`). A source file of another type is passed through unchanged (`:96-97`).
+Registration: a copy of the source `FileInfo` with `file_type` ending `_parquet__file` instead of `_helao__file` (`spec_r_parquet__file` or `spec_t_parquet__file`), `file_name` the parquet path relative to the source file's parent directory (correct only when the source `file_name` has no subdirectory), `nosync` false and `data_keys` the five columns above without `__index_level_0__` (`helao/deploy/hte/processors/spec_melt_wls.py:75-87`). The source entry is not kept: the `.hlo`/`.jsonl` is deleted, and for a `.jsonl` its `.meta.json` too (`:90-95`). A source file of another type is passed through unchanged (`:96-97`).
 
 ### `append_params.PostProcess` (processor)
 
