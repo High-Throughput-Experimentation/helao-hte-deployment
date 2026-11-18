@@ -239,10 +239,10 @@ class AliCatMFC(HelaoDriver):
                 self.fcs[device_name]._set_control_point(last_mode, 5)
             LOGGER.info("MFC connection restored")
             return None
-        if all(
-            x in resp_dict
-            for x in ("mass_flow", "pressure", "setpoint", "control_point")
-        ):
+        if all(x in resp_dict for x in ("mass_flow", "pressure", "control_point")):
+            # A flow meter reports no setpoint (FlowMeter.get_status drops the
+            # key for a 5-value status); publish it with setpoint None.
+            resp_dict.setdefault("setpoint", None)
             self.fcs_last_mode[device_name] = resp_dict["control_point"]
             return resp_dict
         LOGGER.info(f"!!Received unexpected dict: {resp_dict}")
