@@ -59,3 +59,77 @@ Local mode (PAL on the HELAO machine) uses `host: localhost` and needs no `user`
 Notes:
 - The PAL server needs a `SAMPLE` server in the same config: the sample-archive shim looks up `world_cfg["servers"]["SAMPLE"]` for host and port (`sample_shim.py:190`).
 - `cam_file_path` is read twice with defaults `""` and `None` (`pal_driver.py:228`, `pal_driver.py:298`); only the second value reaches the `cams` table.
+
+## Outputs
+
+### PAL job actions (`PAL_run_method`, `PAL_ANEC_aliquot`, `PAL_ANEC_GC`, `PAL_injection_tray_GC`, `PAL_injection_custom_GC`, `PAL_injection_custom_HPLC`, `PAL_injection_tray_HPLC`, `PAL_transfer_tray_tray`, `PAL_transfer_tray_custom`, `PAL_transfer_custom_tray`, `PAL_transfer_custom_custom`, `PAL_archive`, `PAL_deepclean`) (actions)
+
+Each endpoint builds a `PalCam` from its params (`app.driver.build_palcam_*`, no `action_params` key is rewritten) and starts `PALJobExec` (`helao/deploy/hte/servers/pal/pal_server.py:144-157`); the endpoint exists only when the needed `cams` entries are configured (`:196`, `:292-337`, `:562-859`). A call made while E-STOP is latched, without a PAL host, or while a job runs returns an error code and writes no artifact (`:123-142`). `PALJobExec._poll` returns no data (`:70-72`); everything below is produced by the driver's job worker, `PAL._sendcommand_main` (`helao/deploy/hte/servers/pal/pal_driver.py:471-642`). `action_abbr` per endpoint: `GC_injection` (`PAL_ANEC_aliquot` `:330`, `PAL_ANEC_GC` `:364`, `PAL_injection_tray_GC` `:416`, `PAL_injection_custom_GC` `:466`), `HPLC_injection` (`:507`, `:552`), `transfer` (`:610`, `:664`, `:718`, `:767`), `archive` (`:814`), `deepclean` (`:890`); `PAL_run_method` sets none, so it defaults to the action name (`helao/hexagon/app/action_context.py:190`). `PAL_dilute` and `PAL_autodilute` are registered only when `cams` names `dilute`/`autodilute`, and then only set `not_available` and write nothing (`helao/deploy/hte/servers/pal/pal_server.py:897-989`). No action results.
+
+**Data file** `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`), file type `pal_helao__file` (`helao/deploy/hte/servers/pal/pal_server.py:154`). One row per PAL run (each repeat of each micro-method) after its three triggers have fired and the sample state is reconciled, only when `save_data` is on (`helao/deploy/hte/servers/pal/pal_driver.py:580`, queued at `:618-623`). From the second micro-method on the action is split first (`job.active.split()`, `helao/deploy/hte/servers/pal/pal_driver.py:535-536`), so each micro-method after the first lands in its own split action and file. Every value is stored as a one-element list: the row is `{column: [value]}` (`helao/deploy/hte/servers/pal/pal_driver.py:608-610`), columns from `FIFO_column_headings` (`:267-286`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `samples_in` | str \| null | array[str \| null, (1, n_samples)] | none | global labels of the samples at the SOURCE position before the run (the column name is historical; it is the source, not the action's `samples_in`) | `helao/deploy/hte/servers/pal/pal_driver.py:582-585` |
+| `samples_out` | str \| null | array[str \| null, (1, n_samples)] | none | global labels of the samples at the DESTINATION position before the run | `helao/deploy/hte/servers/pal/pal_driver.py:586-589` |
+| `epoch_PAL` | str | list[str] | none | `str()` of the joblist submission time in epoch ns, or `"None"` if unset | `helao/deploy/hte/servers/pal/pal_driver.py:590` |
+| `epoch_start` | str | list[str] | none | `str()` of the PAL `start` trigger time (epoch ns) | `helao/deploy/hte/servers/pal/pal_driver.py:591` |
+| `epoch_continue` | str | list[str] | none | `str()` of the `continue` trigger time; used as the sampling timestamp | `helao/deploy/hte/servers/pal/pal_driver.py:592` |
+| `epoch_done` | str | list[str] | none | `str()` of the `done` trigger time | `helao/deploy/hte/servers/pal/pal_driver.py:593` |
+| `tool` | str | list[str] | none | PAL tool string, for example `LS 3`; a tool that does not resolve rejects the job before any row (`helao/deploy/hte/servers/pal/pal_driver.py:411-414`) | `helao/deploy/hte/servers/pal/pal_driver.py:594` |
+| `source` | str \| null | list[str \| null] | none | source position: `tray` or a custom position name | `helao/deploy/hte/servers/pal/pal_driver.py:595` |
+| `volume_ul` | str | list[str] | uL | `str()` of the transfer volume | `helao/deploy/hte/servers/pal/pal_driver.py:596` |
+| `source_tray` | str | list[str] | none | `str()` of the source tray (`"None"` for custom positions) | `helao/deploy/hte/servers/pal/pal_driver.py:597` |
+| `source_slot` | str | list[str] | none | `str()` of the source slot | `helao/deploy/hte/servers/pal/pal_driver.py:598` |
+| `source_vial` | str | list[str] | none | `str()` of the source vial | `helao/deploy/hte/servers/pal/pal_driver.py:599` |
+| `dest` | str \| null | list[str \| null] | none | destination position: `tray` or a custom position name | `helao/deploy/hte/servers/pal/pal_driver.py:600` |
+| `dest_tray` | str | list[str] | none | `str()` of the destination tray | `helao/deploy/hte/servers/pal/pal_driver.py:601` |
+| `dest_slot` | str | list[str] | none | `str()` of the destination slot | `helao/deploy/hte/servers/pal/pal_driver.py:602` |
+| `dest_vial` | str | list[str] | none | `str()` of the destination vial | `helao/deploy/hte/servers/pal/pal_driver.py:603` |
+| `logfile` | str | list[str] | none | path of the PAL auxiliary log file | `helao/deploy/hte/servers/pal/pal_driver.py:604` |
+| `method` | str | list[str] | none | path of the `.cam` method file | `helao/deploy/hte/servers/pal/pal_driver.py:605` |
+
+Other files and records:
+
+| file | format | name pattern | meaning | written at |
+|---|---|---|---|---|
+| PAL auxiliary log | tab-separated text, header line then `%%` then rows | `AUX__PAL__log.txt` in the action directory, file type `pal_auxlog_file`, tracked on the action | created with the header `Date`, `Method`, `Tool`, `Source`, `DestinationTray`, `DestinationSlot`, `DestinationVial`, `Volume` (`helao/deploy/hte/servers/pal/pal_driver.py:671-677`, header list `palauxheader` at `:312`); the external PAL program then appends one line per run to the path passed to it (`:708`, `:726`). Row contents and types come from the PAL software and are `unknown (dynamic)`. With a remote PAL PC the header is also written there and the PAL program appends on that machine (`helao/deploy/hte/servers/pal/pal_transport.py:94-97`, `:119-120`; the HELAO-side file then stays header-only) | `helao/deploy/hte/servers/pal/pal_driver.py:671` |
+
+Sample records (in `-act.json`; fields of the action, not `action_params`): after each run the driver appends the reconciled samples (`helao/deploy/hte/servers/pal/pal_driver.py:629-631`). Each run starts by clearing the action's `samples_in`/`samples_out` (`:538-542`), so after a split action each file's record holds only that run's samples.
+
+| key | in | type | structure | meaning | set at |
+|---|---|---|---|---|---|
+| `samples_in` | action | dict | list[dict] | snapshot (before the volume update) of the input samples of the run: source samples and any dest samples, refreshed from the SAMPLE server | `helao/deploy/hte/servers/pal/pal_driver.py:629` (snapshot at `helao/deploy/hte/servers/pal/pal_reconciliation.py:1308`) |
+| `samples_out` | action | dict | list[dict] | the new samples the run created (reference samples turned into real samples by the SAMPLE server) | `helao/deploy/hte/servers/pal/pal_driver.py:631` (snapshot at `helao/deploy/hte/servers/pal/pal_reconciliation.py:1309`) |
+
+Each sample dict is a `SampleUnion` model dump (`helao/core/models/sample.py`).
+
+Sample-state writes to the SAMPLE server (private endpoints, called through `helao/deploy/hte/servers/pal/sample_shim.py` with `timeout=5, retries=1`; each raises on a non-`none` error code):
+
+| endpoint | payload field | type | structure | meaning | sent at |
+|---|---|---|---|---|---|
+| `new_samples` | `samples` | dict | list[dict] | the run's `samples_out` (and unassigned assembly parts) persisted as new samples | `helao/deploy/hte/servers/pal/pal_reconciliation.py:1286`, `:1300` (dispatch `helao/deploy/hte/servers/pal/sample_shim.py:151`) |
+| `update_samples` | `samples` | dict | list[dict] | the run's `samples_in` after the dilution/volume update, then each `samples_out` item (action UUID stamped) | `helao/deploy/hte/servers/pal/pal_reconciliation.py:1320`, `:1331` (dispatch `helao/deploy/hte/servers/pal/sample_shim.py:164`) |
+| `tray_new_position` | `req_vol` | float | scalar | required volume in mL; the SAMPLE server marks the chosen empty vial as blocked (archive destinations only) | `helao/deploy/hte/servers/pal/pal_reconciliation.py:767` (dispatch `helao/deploy/hte/servers/pal/sample_shim.py:265`) |
+| `tray_update_position` | `tray`, `slot`, `vial` | int \| null | scalar | vial whose stored sample is overwritten (source and dest of tray positions) | `helao/deploy/hte/servers/pal/pal_reconciliation.py:1108`, `:1125` (dispatch `helao/deploy/hte/servers/pal/sample_shim.py:282`) |
+| `tray_update_position` | `sample` | dict | dict | the final sample to store at that vial | `helao/deploy/hte/servers/pal/pal_reconciliation.py:1108`, `:1125` |
+| `custom_update_position` | `custom` | str | scalar | custom position name whose stored sample is replaced | `helao/deploy/hte/servers/pal/pal_reconciliation.py:1115`, `:1132` (dispatch `helao/deploy/hte/servers/pal/sample_shim.py:319`) |
+| `custom_update_position` | `sample` | dict | dict | the final sample to store at that position | `helao/deploy/hte/servers/pal/pal_reconciliation.py:1115`, `:1132` |
+
+The other SAMPLE calls the job makes (`get_samples`, `tray_query_sample`, `tray_get_next_full`, `custom_query_sample`, `custom_dest_allowed`, `custom_assembly_allowed`, `custom_is_destroyed`, `new_ref_samples`) only read or build in-memory reference samples. `tray_update_position` and `custom_update_position` receive `dilute=false` (the shim default; the PAL code never passes it).
+
+### `stop` (action)
+
+`action_abbr` `stop` (`helao/deploy/hte/servers/pal/pal_server.py:170`). Data file `stop-*.jsonl` (+ `.meta.json`), one row. No action results.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `stop` | bool | scalar per row | none | whether the driver's stop request succeeded | `helao/deploy/hte/servers/pal/pal_server.py:172-174` |
+
+### `kill_PAL` (action)
+
+No `action_abbr` is passed, so the file is `kill_PAL-*.jsonl` (+ `.meta.json`), one row. No action results; the same code is also set as the action's `error_code` (`helao/deploy/hte/servers/pal/pal_server.py:191`).
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `error_code` | str | scalar per row | none | `ErrorCodes` value returned by killing the PAL process (`none` on success) | `helao/deploy/hte/servers/pal/pal_server.py:192` |

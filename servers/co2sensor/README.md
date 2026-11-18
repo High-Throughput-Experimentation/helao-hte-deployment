@@ -25,3 +25,34 @@ params:
   port: COM12
   start_margin: 0
 ```
+
+## Outputs
+
+### `acquire_co2` (action)
+
+`CO2MonExec` (`helao/deploy/hte/servers/co2sensor/co2sensor_server.py:68-73`; `action_abbr` is `CO2`, `:67`) runs a non-one-off executor. Each `_poll` returns one row, which the executor runner queues through the framework default data connection (`helao/hexagon/app/executor_runner.py:129-136`): file `CO2-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Columns are the keys of the first row (`helao/hexagon/adapters/native/data_stream.py:338-349`). Rows come from the live buffer filled by the poller below; the final poll (after `duration` elapses) is still written. If the buffer has never received a `co2_ppm` value, `get_lbuf` raises `KeyError` (`helao/hexagon/app/action_host.py:415`), the runner catches it (`helao/hexagon/app/executor_runner.py:122-126`), treats the poll as finished and writes no row.
+
+Data file `CO2-*.jsonl` (+ `.meta.json`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `co2_ppm` | int | scalar per row | ppm | latest live-buffer reading | `helao/deploy/hte/servers/co2sensor/sprintir_driver.py:285` |
+| `epoch_s` | float | scalar per row | s | epoch stamp of that live-buffer value | `helao/deploy/hte/servers/co2sensor/sprintir_driver.py:286` |
+
+Action results (in `-act.json`):
+
+| key | in | type | structure | meaning | set at |
+|---|---|---|---|---|---|
+| `mean_co2_ppm` | `action_params` | float | scalar | mean of the `co2_ppm` values of all polls; set at the end of the run and only when at least one poll succeeded | `helao/deploy/hte/servers/co2sensor/sprintir_driver.py:305` |
+
+### `cancel_acquire_co2` (action)
+
+No data files or action results.
+
+### Live data (status/ws stream)
+
+`SprintIRPoller.get_data` (`helao/deploy/hte/servers/co2sensor/sprintir_driver.py:213-253`) publishes one reading per poll; it is never written to a file by the poller itself. Nothing is published for a blank read, a parse error or a value outside `0 <= ppm < 1e6`. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `co2_ppm` | int | scalar per poll | ppm | `int(Z reading) * scaling_factor`, where `scaling_factor` is the int read from the sensor at connect | `helao/deploy/hte/servers/co2sensor/sprintir_driver.py:250` |

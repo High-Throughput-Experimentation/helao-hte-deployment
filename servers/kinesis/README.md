@@ -39,3 +39,44 @@ params:
 Notes:
 - A failed `connect()` for one axis aborts the loop, so later axes are not opened (`kinesis_driver.py:83`).
 - The limit check compares only against the upper bound; negative targets are not checked (`kinesis_server.py:119`).
+
+## Outputs
+
+The `kmove`, `cancel_kmove` and `set_velocity` endpoints exist only when the server has at least one Kinesis axis configured (`helao/deploy/hte/servers/kinesis/kinesis_server.py:177`).
+
+### `kmove` (action)
+
+`KinesisMotorExec` (`helao/deploy/hte/servers/kinesis/kinesis_server.py:215-220`; `action_abbr` is set to `kmove` at `:214`) is a non-one-off executor. Each `_poll` returns one row, which the executor runner queues through the framework default data connection (`helao/hexagon/app/executor_runner.py:129-136`): file `kmove-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). The row is read from the poller's live buffer; the poll that sees the axis no longer moving is still written. If the buffer has no entry for the axis, `get_lbuf` raises `KeyError` (`helao/hexagon/app/action_host.py:415`), the runner catches it (`helao/hexagon/app/executor_runner.py:122-126`), treats the poll as finished and writes no row. A call made while E-STOP is latched returns before a session exists and writes no artifact (`helao/deploy/hte/servers/kinesis/kinesis_server.py:209-212`). No action results (`_pre_exec`, `_exec` and `_manual_stop` return no `data`, and the executor has no `_post_exec`).
+
+Data file `kmove-*.jsonl` (+ `.meta.json`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `position_mm` | float | scalar per row | mm | axis position from the live buffer, rounded to 3 decimals | `helao/deploy/hte/servers/kinesis/kinesis_server.py:151` (value from `helao/deploy/hte/servers/kinesis/kinesis_driver.py:117`) |
+
+### `cancel_kmove` (action)
+
+No data files or action results.
+
+### `set_velocity` (action)
+
+Applies the velocity and acceleration to the axis. No data files or action results.
+
+### Private endpoints
+
+`/start_polling` and `/stop_polling` return a status string; `/move_axis`, `/stop_motion` and `/get_axis_positions` return `(error_code, payload)` to the caller (`helao/deploy/hte/servers/kinesis/kinesis_server.py:291-480`). No data files or action results.
+
+### Live data (status/ws stream)
+
+`KinesisPoller.get_data` (`helao/deploy/hte/servers/kinesis/kinesis_driver.py:325-328`) publishes `KinesisMotor.get_status()` each poll, never written to a file by the poller itself. One key per configured axis, `<axis>` being a key of the server's `axes` config; an axis for which the device returned nothing is left out, and if the whole status call raises nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`) with `value` a dict:
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `<axis>` | dict | dict | none | status dict of that axis (fields below) | `helao/deploy/hte/servers/kinesis/kinesis_driver.py:116` |
+
+| key | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `position_mm` | float | scalar per poll | mm | position, rounded to 3 decimals | `helao/deploy/hte/servers/kinesis/kinesis_driver.py:117` |
+| `velocity_mmpersec` | float | scalar per poll | mm/s | max velocity, rounded to 3 decimals | `helao/deploy/hte/servers/kinesis/kinesis_driver.py:118` |
+| `acceleration_mmpersec2` | float | scalar per poll | mm/s^2 | acceleration, rounded to 3 decimals | `helao/deploy/hte/servers/kinesis/kinesis_driver.py:119` |
+| `status` | str | list[str] | none | status flags reported by the device; any of `moving_fw`, `moving_bk`, `jogging_fw`, `jogging_bk`, `homing`, `active` marks motion (`MOTION_STATES`, `:45-52`) | `helao/deploy/hte/servers/kinesis/kinesis_driver.py:120` |
