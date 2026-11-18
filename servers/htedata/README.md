@@ -39,7 +39,7 @@ Data file `get_platemap_plateid-*.jsonl` (+ `.meta.json`), one row. No action re
 |---|---|---|---|---|---|
 | `platemap` | dict \| null | list[dict] | none | one dict per sample of the plate's screening platemap (`null` when none is found; for legacy plate ids without a live record it can also be `[]`, `helao/helpers/legacy_api.py:350-351`) | `helao/deploy/hte/servers/htedata/HTEdata_server.py:67-69` (driver `helao/deploy/hte/servers/htedata/HTEdata_legacy.py:193`; built at `helao/helpers/plate_api.py:216`) |
 
-For live plates each `platemap` dict is one row of the platemap text file read from S3, with column names cleaned of `(...)` suffixes and `%` (`helao/helpers/plate_api.py:187-193`). For legacy plate ids the dicts come from the legacy parser (`helao/helpers/legacy_api.py:350-353`) and their keys are not covered by the table below, which describes the live-plate dicts only. The column set and the types of columns other than those below come from that file and are `unknown (dynamic)`:
+For live plates each `platemap` dict is one row of the S3 platemap text file (read by `helao/helpers/plate_api.py:get_platemap`), with column names cleaned of `(...)` suffixes and `%` (`helao/helpers/plate_api.py:187-193`). For legacy plate ids the dicts come from the legacy parser (`helao/helpers/legacy_api.py:350-353`) and their keys are not covered by the table below, which describes the live-plate dicts only. The column set and the types of columns other than those below come from that file and are `unknown (dynamic)`:
 
 | key | type | meaning | set at |
 |---|---|---|---|

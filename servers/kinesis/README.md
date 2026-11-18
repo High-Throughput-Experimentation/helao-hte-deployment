@@ -64,7 +64,7 @@ Applies the velocity and acceleration to the axis. No data files or action resul
 
 ### Private endpoints
 
-`/start_polling` and `/stop_polling` return a status string; `/move_axis`, `/stop_motion` and `/get_axis_positions` return `(error_code, payload)` to the caller (`helao/deploy/hte/servers/kinesis/kinesis_server.py:291-480`). No data files or action results.
+`/start_polling` and `/stop_polling` return a status string; `/move_axis`, `/stop_motion` and `/get_axis_positions` return `(error_code, payload)` to the caller (`helao/deploy/hte/servers/kinesis/kinesis_server.py:291-453`). No data files or action results.
 
 ### Live data (status/ws stream)
 

@@ -136,7 +136,7 @@ Action results (in `-act.json`):
 | `unloaded` | bool | scalar per row | none | whether a slot was found (always `true` for unload-all) | `helao/deploy/hte/servers/sample/sample_server.py:228`, `helao/deploy/hte/servers/sample/sample_server.py:149` |
 | `tray_dict` | dict | dict | none | `{tray: {slot: vial tray dict}}` as it was before unloading (vial tray dict as above) | `helao/deploy/hte/servers/sample/sample_server.py:228`, `helao/deploy/hte/servers/sample/sample_server.py:149` |
 
-**`archive_tray_new_position`** (action name as abbreviation). Searches for the smallest empty vial that fits `req_vol`; `blocked` is set on every candidate vial the search passes (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`, inside the loop), so earlier, larger candidates stay blocked as well as the returned one (see Notes). The state file is not written. Row (`helao/deploy/hte/servers/sample/sample_server.py:260-262`); data file `<action name>-*.jsonl`. No action results.
+**`archive_tray_new_position`** (action name as abbreviation). Searches for the smallest empty vial that fits `req_vol`; `blocked` is set on each new best-fit candidate the search finds (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`, inside the loop), so earlier, larger best-fit candidates stay blocked as well as the returned one (see Notes). The state file is not written. Row (`helao/deploy/hte/servers/sample/sample_server.py:260-262`); data file `<action name>-*.jsonl`. No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
@@ -214,7 +214,7 @@ Action results (in `-act.json`), `archive_custom_unloadall` only:
 |---|---|---|---|---|---|
 | `samples` | dict | list[dict] | none | resolved sample dicts | `helao/deploy/hte/servers/sample/sample_server.py:770` |
 
-**`db_new_samples`** (action name as abbreviation). Persists the reference samples as new DB rows (`helao/deploy/hte/servers/sample/archive_driver.py:2023`). Row (`helao/deploy/hte/servers/sample/sample_server.py:825-828`):
+**`db_new_samples`** (action name as abbreviation). Persists the reference samples as new DB rows and clears the action's `samples_in` and `samples_out` first (`helao/deploy/hte/servers/sample/sample_server.py:822-823`) (`helao/deploy/hte/servers/sample/archive_driver.py:2023`). Row (`helao/deploy/hte/servers/sample/sample_server.py:825-828`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
@@ -248,5 +248,5 @@ Action results (in `-act.json`):
 
 - `get_loaded_positions` builds `_tray_pos` with `(tray, slot, vial)` tuple keys (`helao/deploy/hte/servers/sample/sample_server.py:906-914`). Writing the action record goes through `clean_dict()` (`helao/hexagon/adapters/native/meta_writer.py:111`) and `HelaoDict._serialize_dict` calls `k.startswith("__")` on every key whose value is a string (`helao/core/helaodict.py:42-43`), which raises `AttributeError` for a tuple key. With at least one loaded tray vial the `-act.json` cannot be written and `finished_action.as_dict()` (`helao/deploy/hte/servers/sample/sample_server.py:927`) raises as well; the action does not complete normally.
 - `tray_load` changes the in-memory position table but never calls `write_config` (`helao/deploy/hte/servers/sample/archive_driver.py:409-475`), so a loaded vial is absent from `<host>_archive.json` until a later operation rewrites it; the same holds for the vial `tray_new_position` blocks (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`).
-- `archive_tray_new_position` sets `blocked[position] = True` inside the search loop for every better candidate (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`), not only for the returned vial. Example: a VT15 in tray 1 and a VT54 in tray 2 with `req_vol` 1: the VT15 vial is blocked first, then the VT54 vial replaces it as best fit, and both stay blocked. Blocked vials then count as occupied for later calls and show in the archive `blocked` field; the PAL server calls this endpoint for archive destinations. The row reports only the last candidate.
+- `archive_tray_new_position` sets `blocked[position] = True` inside the search loop for each new best-fit candidate (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`), not only for the returned vial. Example: a VT15 in tray 1 and a VT54 in tray 2 with `req_vol` 1: the VT15 vial is blocked first, then the VT54 vial replaces it as best fit, and both stay blocked. Blocked vials then count as occupied for later calls and show in the archive `blocked` field; the PAL server calls this endpoint for archive destinations. The row reports only the last candidate.
 - `archive_tray_export_json` with an undefined slot raises `pydantic.ValidationError` when it builds the `DataModel` (`helao/deploy/hte/servers/sample/sample_server.py:331`; `helao/core/models/data.py:26`), after `ctx.begin`, so the action never finishes normally.
