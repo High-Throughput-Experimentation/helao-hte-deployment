@@ -94,8 +94,8 @@ Action results (in `-act.json`), set before the driver call from the endpoint's 
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `<ai_name>` | float \| null | scalar per row | as scaled by `monitor_ai` | one column per `monitor_ai` key; latest live-buffer value, `null` before the poller has published one | `helao/deploy/hte/servers/galil_io/galil_io_driver.py:721` |
-| `epoch_s` | float \| null | scalar per row | s | newest epoch stamp among the monitored values | `helao/deploy/hte/servers/galil_io/galil_io_driver.py:723` |
+| `<ai_name>` | float | scalar per row | as scaled by `monitor_ai` | one column per `monitor_ai` key; latest live-buffer value. A key the poller has never published (including one whose read always errors) raises `KeyError` in `get_lbuf` (`helao/hexagon/app/action_host.py:415`) out of `_poll`; the runner receives `{}` and the action finishes with no row. An empty `monitor_ai` raises `ValueError` from `max([])` the same way | `helao/deploy/hte/servers/galil_io/galil_io_driver.py:721` |
+| `epoch_s` | float | scalar per row | s | newest epoch stamp among the monitored values (`max(times)`) | `helao/deploy/hte/servers/galil_io/galil_io_driver.py:723` |
 
 No action results.
 
@@ -140,3 +140,4 @@ Queues one row (`helao/deploy/hte/servers/galil_io/galil_io.py:388-393`); data f
 
 - `visualizer/pressure_vis.py` also reads the `dev_ai` keys from this server's `params` to build its pressure display.
 - The `.dmc` files in this folder are the DMC programs the digital-cycle actions upload.
+- A `monitor_ai` channel whose read always returns an error is never published by `GalilPoller` (`helao/deploy/hte/servers/galil_io/galil_io_driver.py:684-685`), so every `acquire_analog_in` then fails in `get_lbuf` with `KeyError` and writes no data (`helao/hexagon/app/action_host.py:415`).

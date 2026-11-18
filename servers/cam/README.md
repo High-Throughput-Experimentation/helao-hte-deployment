@@ -26,7 +26,7 @@ params:
 
 ### `acquire_image` (action)
 
-Writes one JPEG per acquisition and queues one row per image; `action_abbr` is `acq_webcam` (`helao/deploy/hte/servers/cam/cam_server.py:62`). `_exec` writes the first image (`helao/deploy/hte/servers/cam/axiscam_driver.py:124`), and `_poll` writes one more per `acquisition_rate` seconds until `duration` has elapsed (`:145`); `duration: 0` runs `_exec` only. A failed fetch in `_poll` ends the action with an error and queues no row. Rows are queued by `helao/hexagon/app/executor_runner.py:110-117` and `:129-136`.
+Writes one JPEG per acquisition and queues one row per image; `action_abbr` is `acq_webcam` (`helao/deploy/hte/servers/cam/cam_server.py:62`). `_exec` writes the first image (`helao/deploy/hte/servers/cam/axiscam_driver.py:124`), and `_poll` writes one more per `acquisition_rate` seconds until `duration` has elapsed (`:145`); `duration: 0` runs `_exec` only. The default `duration=-1` (`helao/deploy/hte/servers/cam/cam_server.py:51`) polls until `cancel_acquire_image` stops it (`helao/deploy/hte/servers/cam/axiscam_driver.py:147-150`). A failed fetch in `_poll` ends the action with an error and queues no row. Rows are queued by `helao/hexagon/app/executor_runner.py:110-117` and `:129-136`.
 
 Data file `acq_webcam-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` (+ `.meta.json`), one row per image (`helao/hexagon/adapters/native/data_file.py:172`):
 

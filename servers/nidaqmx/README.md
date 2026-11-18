@@ -87,7 +87,7 @@ Each drives one named line through `_set_do` (`helao/deploy/hte/servers/nidaqmx/
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `error_code` | str | scalar per row | none | `ErrorCodes` value: `none`, or `not_available` when the port is `None` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:801` |
-| `port` | str \| null | scalar per row | none | NI-DAQ channel string written | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:802` |
+| `port` | str | scalar per row | none | NI-DAQ channel string written (looked up from the `dev_*` group by `_set_do`, which raises `KeyError` for an unknown name, `nidaqmx_server.py:146`) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:802` |
 | `name` | str | scalar per row | none | friendly line name | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:803` |
 | `type` | str | scalar per row | none | always `digital_out` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:804` |
 | `value` | bool | scalar per row | none | requested logical state (`on`); on `do_active_low` lines the wire level is the inverse | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:805` |
@@ -137,7 +137,7 @@ Data file `multiCV-*.jsonl` (+ `.meta.json`), one row per NI buffer callback, pe
 | `t_s` | float | list[float] | s | `IVtimeoffset + i / samplingrate` for each sample of the callback | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:562-565`, `:572` |
 | `Icell_A` | float | list[float] | A | current of that cell, from the `dev_cellcurrent` task (scaled by the `NEGATE3` custom scale) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:573` |
 | `Ecell_V` | float | list[float] | V | potential of that cell, from the `dev_cellvoltage` task | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:574` |
-| `<monitor>` | float \| null | scalar per row | degC | one column per `dev_monitor` name (for example `Ktc_in_cell`); the monitor's latest live-buffer value at the callback, `null` while it has none | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:577` |
+| `<monitor>` | float | scalar per row | degC | one column per `dev_monitor` name (for example `Ktc_in_cell`); the monitor's latest live-buffer value at the callback. A name the poller has not yet published raises `KeyError` in `ActionHost.get_lbuf` (`helao/hexagon/app/action_host.py:415`, buffer starts `{}` at `:190`); the callback catches it (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:584-586`) and drops that callback's batch for all nine cells | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:577` |
 
 `<monitor>` columns come from the config key `dev_monitor` (`nidaqmx_driver.py:490`); a server with no `dev_monitor` has none. The `Ttemp_*` strings in `FIFO_column_headings` (`:260-265`) are not used as columns. Rows are not written when the action is E-stopped or after the measurement has been turned off (`:588-612`). No action results.
 
@@ -147,8 +147,8 @@ Data file `multiCV-*.jsonl` (+ `.meta.json`), one row per NI buffer callback, pe
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `<monitor>` | float \| null | scalar per row | degC | one column per `dev_monitor` name; the latest live-buffer value, `null` before the poller has published one | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1137` |
-| `epoch_s` | float \| null | scalar per row | s | the newest epoch stamp among the monitor values | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1139` |
+| `<monitor>` | float | scalar per row | degC | one column per `dev_monitor` name; the latest live-buffer value. A name the poller has not yet published raises `KeyError` (`helao/hexagon/app/action_host.py:415`) out of `_poll`, the runner receives `{}` and the action finishes with no row | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1137` |
+| `epoch_s` | float | scalar per row | s | the newest epoch stamp among the monitor values (`max(times)`) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1139` |
 
 No action results.
 
@@ -185,3 +185,7 @@ Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-77`):
 ### Private endpoints
 
 `/readtemp`, `/monloop`, `/stopmonloop`, `/stopheatloop`, `/get_digital_outs`, `/set_digital_out`: return values to the caller only (`nidaqmx_server.py:583-594`, `:685-694`, `:769-780`, `:796-851`); no data files or action results.
+
+## Notes
+
+- `acquire_monitors` and `cellIV` read monitor values with `ActionHost.get_lbuf`, which raises `KeyError` for a name never published (`helao/hexagon/app/action_host.py:415`); a monitor whose first poller read has not happened yet makes `acquire_monitors` finish with no row and drops cellIV batches silently (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:584-586`).

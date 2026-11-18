@@ -40,7 +40,7 @@ Reads no params of its own. The Reflex panel looks up the server's `host` and `p
 
 ## Outputs
 
-Actions here write through the framework default data connection: one JSON object per line, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`), so a file whose first message is an error row (below) holds only `error_code`. `action_abbr` is `OPT` for every acquisition endpoint (`helao/deploy/hte/servers/spec/spec_server.py:226`, `:282`, `:340`, `:428`). The `.meta.json` header carries `optional.wl`, the detector wavelength axis in nm (`list[float]`, read from the SM303 wavelength table: `helao/deploy/hte/servers/spec/spectral_products_driver.py:259-261`; attached at `spec_server.py:224-227`, `:281-283`, `:339-341`, `:466-473`). The spectrum has 1024 channels (`ch_0000`..`ch_1023`), the fixed slice `list(buf)[10:1034]` (`spectral_products_driver.py:411`) whatever `n_pixels` is.
+Actions here write through the framework default data connection: one JSON object per line, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`): a file whose first message is an error row (below) gets only `error_code` in its header `column_headings`, but later rows are dumped whole (`helao/hexagon/adapters/native/data_stream.py:361`), so its data lines still carry `ch_<n>` and `peak_intensity`. `action_abbr` is `OPT` for every acquisition endpoint (`helao/deploy/hte/servers/spec/spec_server.py:226`, `:282`, `:340`, `:428`). The `.meta.json` header carries `optional.wl`, the detector wavelength axis in nm (`list[float]`, read from the SM303 wavelength table: `helao/deploy/hte/servers/spec/spectral_products_driver.py:259-261`; attached at `spec_server.py:224-227`, `:281-283`, `:339-341`, `:466-473`). The spectrum has 1024 channels (`ch_0000`..`ch_1023`), the fixed slice `list(buf)[10:1034]` (`spectral_products_driver.py:411`) whatever `n_pixels` is.
 
 ### Spectrum row from `acquire_spec_adv` (software trigger)
 
@@ -100,7 +100,15 @@ Queues one row `{"stop": <DriverResponse>}` after waiting `delay` seconds (`hela
 |---|---|---|---|---|---|
 | `stop` | dict | dict | none | the driver's `DriverResponse` dataclass, serialised by field | `helao/deploy/hte/servers/spec/spectral_products_driver.py:442-444` |
 
-Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-80`): `response` (str, `success`), `message` (str, empty), `data` (dict, `{}`), `status` (str, `ok`), `timestamp` (str, ISO 8601 time the response was built); all set at `helao/deploy/hte/servers/spec/spectral_products_driver.py:442-444` and `helao/core/drivers/helao_driver.py:80`.
+Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-80`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `response` | str | scalar | none | `DriverResponseType`; `success` | `helao/deploy/hte/servers/spec/spectral_products_driver.py:443` |
+| `message` | str | scalar | none | empty | `helao/core/drivers/helao_driver.py:74` |
+| `data` | dict | dict | none | `{}` | `helao/core/drivers/helao_driver.py:75` |
+| `status` | str | scalar | none | `DriverStatus`; `ok` | `helao/deploy/hte/servers/spec/spectral_products_driver.py:443` |
+| `timestamp` | str | scalar | none | ISO 8601 time the response was built | `helao/core/drivers/helao_driver.py:80` |
 
 ### `/get_wl` (private endpoint)
 

@@ -70,9 +70,9 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `t_s__mean_final` | `action_params` | float | scalar | `nanmean` of the last 5 `t_s` samples; present only when the run produced `t_s` | `helao/deploy/hte/servers/gamry/gamry_server2.py:367` |
-| `Ewe_V__mean_final` | `action_params` | float | scalar | same for `Ewe_V` | `helao/deploy/hte/servers/gamry/gamry_server2.py:367` |
-| `I_A__mean_final` | `action_params` | float | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `helao/deploy/hte/servers/gamry/gamry_server2.py:367` |
+| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the run produced `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `helao/deploy/hte/servers/gamry/gamry_server2.py:367` |
+| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `helao/deploy/hte/servers/gamry/gamry_server2.py:367` |
+| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `helao/deploy/hte/servers/gamry/gamry_server2.py:367` |
 | `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: `bubble_detection` result using the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `helao/deploy/hte/servers/gamry/gamry_server2.py:382` |
 | `AcqPointsPerCycle` | `action_params` | int | scalar | `run_RCA` only: `round((Tinit__s + Tstep__s) / AcqInterval__s)` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1115` |
 | `SignalArray__V` | `action_params` | float | list[float] | `run_RCA` only: `Vinit__V` while `i * AcqInterval__s <= Tinit__s`, else `Vstep__V`, one entry per point of a cycle | `helao/deploy/hte/servers/gamry/gamry_server2.py:1116` |
@@ -84,7 +84,7 @@ Before the cell is energised, `GamryExec._pre_exec` (`gamry_server2.py:217-219`)
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `t_s` | float | list[float] | s | time since the OCV measurement started | `helao/deploy/hte/servers/gamry/readz.py:49` |
-| `Ewe_V` | unknown (dynamic) | list[unknown (dynamic)] | V | `pstat.MeasureV()` reading; the COM return type is not defined in the repo | `helao/deploy/hte/servers/gamry/readz.py:49` |
+| `Ewe_V` | unknown (dynamic) | list[unknown (dynamic)] | V | `pstat.MeasureV()` reading; the COM return type is not defined in the repo. This file is written with stdlib `json.dumps` (`helao/deploy/hte/servers/gamry/gamry_server2.py:82`), so a NaN would appear as a bare `NaN` token, not `null` | `helao/deploy/hte/servers/gamry/readz.py:49` |
 
 `init_ocv.meta.json` header (`gamry_server2.py:86`): `mean_ocv` (float, V), the mean of the last 5 `Ewe_V` samples. The signal potentials of the technique are then shifted by `mean_ocv` (`gamry_server2.py:224`) and the shifted values are what the driver sets up; the `mean_ocv` value is not copied into `action_params`.
 
@@ -112,7 +112,7 @@ Queues one row from the adapter's sink (`helao/deploy/hte/servers/gamry/gamry_se
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `status` | str | scalar per row | none | dtaq sink state: `idle`, `measuring` or `done` (also `retry`, `error` for a ReadZ sink) | `helao/deploy/hte/servers/gamry/gamry_server2.py:1235` |
+| `status` | str | scalar per row | none | state of `driver.dtaqsink` (`gamry_com.py:265`): `idle`, `measuring` or `done`. During an EIS run the underlying driver's `dtaqsink` is the dummy sink (`helao/deploy/hte/servers/gamry/driver.py:757-760`, `:811`), so it reports `idle` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1235` |
 
 ### `stop` (action) and private endpoints
 

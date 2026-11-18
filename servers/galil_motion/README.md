@@ -94,10 +94,10 @@ Each calls `NativeGalilMotion.motor_move`, which reads `d_mm`, `axis`, `speed`, 
 | `accepted_rel_dist` | null | list[null] | none | always `null` | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:733`, `:675` |
 | `supplied_rel_dist` | float | list[float] | mm (counts under a counts move) | the requested distance of that axis | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:734`, `:676` |
 | `err_dist` | float \| null | list[float \| null] | mm | rounding remainder of the mm to counts conversion (`0.0` for counts moves) | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:735`, `:677` |
-| `err_code` | str | list[str] | none | `ErrorCodes` value per axis: `none`, `setup`, `numerical`, `motor`, or `estop` for every axis if E-stopped (`:725`) | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:736`, `:678` |
+| `err_code` | str | list[str] | none | `ErrorCodes` value per axis: `none`, `setup`, `numerical`, `motor`, `timeout` (any axis whose settle poll returned a non-`none` code is rewritten to `timeout`, `galil_motion_native.py:716-720`), or `estop` for every axis if E-stopped (`:725`) | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:736`, `:678` |
 | `counts` | int \| null | list[int \| null] | counts | counts commanded to `PR`/`PA` | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:737`, `:679` |
 
-A move refused before any axis runs (`in_progress` at `:492-499` and `:816-823`, `not_available` at `:560-567`, `estop` at `:588-595`) returns the same keys with every value `null` except `err_code`, which is then a scalar `str` instead of a list.
+A move refused before any axis runs (`in_progress` at `:492-499` and `:816-823`, `estop` at `:588-595`; the `not_available` branch at `:560-567` is the counts-mode refusal and cannot be reached through `motor_move`, which always passes `units="mm"`, `:792-815`) returns the same keys with every value `null` except `err_code`, which is then a scalar `str` instead of a list. The per-axis `null` entries come from the `numerical` (`helao/deploy/hte/servers/galil_motion/galil_motion_native.py:641-649`) and `motor` (`:686-692`) failure branches.
 
 Action results (in `-act.json`): `easymove_to_solid` and `z_move` rewrite the inputs before moving:
 
@@ -108,7 +108,7 @@ Action results (in `-act.json`): `easymove_to_solid` and `z_move` rewrite the in
 | `mode` | `action_params` | str | scalar | `absolute` | `helao/deploy/hte/servers/galil_motion/galil_motion.py:345-350`, `:613-619` |
 | `transformation` | `action_params` | str | scalar | `platexy` for `easymove_to_solid` only; `z_move` leaves the caller's value | `helao/deploy/hte/servers/galil_motion/galil_motion.py:345-350` |
 
-`easymove_to_solid` queues no row and sets `error_code` `not_available` when the sample has no platemap XY (`:341-343`); `z_move` with `z_position` `NA` or an unknown key writes no row (`:611`, `:626-627`).
+`easymove_to_solid` queues no row and sets `error_code` `not_available` when the sample has no platemap XY (`:341-343`); `z_move` with `z_position` `NA` writes no row (`:611`, `:626-627`); any other key is looked up in `z_height_mm`, and one that is missing yields `d_mm=["NA"]` and a move attempt (`:610-625`), which the `Zpos` enum validation normally prevents.
 
 ### Axis state rows: `query_positions`, `query_position`, `query_moving`, `axis_off`, `axis_on`, `stop`
 
@@ -125,7 +125,11 @@ No action results.
 
 ### `setmotionref` (action)
 
-Homes the axes and queues one row `{"setref": <final move dict | "error">}` (`helao/deploy/hte/servers/galil_motion/galil_motion.py:139-141`; `galil_motion_native.py:740-790`); `action_abbr` `setmotionref`. `setref` is `str` (`"error"`, `:748`) when the controller is disabled, else the move result dict of the last move (fields as in the move table above). No action results.
+Homes the axes and queues one row `{"setref": <final move dict | "error">}` (`helao/deploy/hte/servers/galil_motion/galil_motion.py:139-141`; `galil_motion_native.py:740-790`); `action_abbr` `setmotionref`. `setref` is `str` (`"error"`, `:748`) when the controller is disabled, else the move result dict of the last move; the `else` branch at `:789` also returns `"error"`. No action results.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `setref` | dict \| str | dict | none | the final move dict, with the fields `moved_axis`, `speed`, `accepted_rel_dist`, `supplied_rel_dist`, `err_dist`, `err_code`, `counts` described in the move table above, or the string `error` | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:787`, `:748`, `:789` |
 
 ### `reset` (action)
 
@@ -139,11 +143,11 @@ Queues `{"connection": <str>}` (`helao/deploy/hte/servers/galil_motion/galil_mot
 
 | action | abbr | row (data file `<abbr>-*.jsonl`) | row field type | action results | written at |
 |---|---|---|---|---|---|
-| `load_plate_alignment` | default | `{"matrix": <3x3>}` | `matrix`: float, `list[list[float]]`, the matrix now in force (the identity when the supplied shape differs) | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:163` |
+| `load_plate_alignment` | default | `{"matrix": <3x3>}` | `matrix`: `int | float`, `list[list[int | float]]` (the default and identity matrices are integer, `galil_motion_native.py:107`, `galil_motion.py:155`), the matrix now in force (the identity when the supplied shape differs) | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:163` |
 | `reset_plate_alignment` | default | none | none | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:148-151` |
-| `toMotorXY` | `tomotorxy` | `{"motorxy": ...}` | float, `list[list[float]]` from `.tolist()` of the transformed points | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:227-233` |
-| `toPlateXY` | `toplatexy` | `{"platexy": ...}` | float, `list[list[float]]` | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:245-251` |
-| `MxytoMPlate` | `mxytomplate` | `{"mplate": ...}` | unknown (dynamic): the return of `get_Mplate_Msystem` (`helao/hexagon/domain/motion_transform.py:357`) depends on its arguments | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:262-268` |
+| `toMotorXY` | `tomotorxy` | `{"motorxy": ...}` | `float`, `list[float]` of length 3 `[x, y, 1.0]` (homogeneous coordinate; `helao/hexagon/domain/motion_transform.py:81-93`); the `platexy` param is one `"x,y"` string | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:227-233` |
+| `toPlateXY` | `toplatexy` | `{"platexy": ...}` | `float`, `list[float]` of length 3 `[x, y, 1.0]` (`motion_transform.py:99-109`); the `motorxy` param is one `"x,y"` string | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:245-251` |
+| `MxytoMPlate` | `mxytomplate` | `{"mplate": ...}` | none in practice: the `Mxy` param is `Optional[str]`, `np.asarray(str)` is 0-d and `Mxy[0:2,0:2]` raises `IndexError` (`helao/hexagon/domain/motion_transform.py:363-365`), so the endpoint raises and writes no row; with a real matrix the `np.matrix` return is not orjson-serializable and the row would be `{"error": "data was not serializable"}` (`helao/hexagon/adapters/native/data_stream.py:362-374`) | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:262-268` |
 
 `load_plate_alignment`, `reset_plate_alignment` and the aligner also persist the plate matrix, see Files below.
 
@@ -156,7 +160,7 @@ Each queues one row; data file `<action_abbr>-*.jsonl` (+ `.meta.json`). Values 
 | `solid_get_platemap` | `platemap`: unknown (dynamic), `list` of platemap rows for `plate_id` | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:466`; value `galil_motion_native.py:861-864` |
 | `solid_get_samples_xy` | `platexy`: unknown (dynamic), `list` of `[x, y]` pairs | `_platexy` (`list`, first `[x, y]` pair, entries may be `null`) | `helao/deploy/hte/servers/galil_motion/galil_motion.py:490`; `_platexy` `:489`; value `galil_motion_native.py:866-873` |
 | `solid_get_builtin_specref` | `_refxy`: unknown (dynamic), the config `world_cfg[ref_position_name]` entry | `_refxy`, same value | `helao/deploy/hte/servers/galil_motion/galil_motion.py:508`; `_refxy` `:507` |
-| `solid_get_nearest_specref` | `_refno`: unknown (dynamic), `_refxy`: `list[float]` | `_refno` (unknown (dynamic)), `_refxy` (`list[float]`), same values | `helao/deploy/hte/servers/galil_motion/galil_motion.py:555`; keys `:554` |
+| `solid_get_nearest_specref` | `_refno`: `float`, `_refxy`: `list[float]` | `_refno` (`float`, a numpy float64 element of `refnos`), `_refxy` (`list[float]`), same values | `helao/deploy/hte/servers/galil_motion/galil_motion.py:555`; keys `:554` |
 
 ### `run_aligner` (action) and `stop_aligner`
 
@@ -166,9 +170,9 @@ Data file `<action_abbr>-*.jsonl` (+ `.meta.json`), one row (`helao/deploy/hte/l
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `Transfermatrix` | float | list[list[float]] | none | the new 3x3 plate-to-motor matrix | `helao/deploy/hte/layouts/aligner.py:1264` |
-| `oldTransfermatrix` | float | list[list[float]] | none | the matrix in force when the aligner started | `helao/deploy/hte/layouts/aligner.py:1265` |
-| `err_code` | str | scalar per row | none | `f"{errorcode}"` of the alignment outcome (`none` on submit, `stop` on stop) | `helao/deploy/hte/layouts/aligner.py:1266` |
+| `Transfermatrix` | int \| float | list[list[int \| float]] | none | the new 3x3 plate-to-motor matrix | `helao/deploy/hte/layouts/aligner.py:1264` |
+| `oldTransfermatrix` | int \| float | list[list[int \| float]] | none | the matrix in force when the aligner started | `helao/deploy/hte/layouts/aligner.py:1265` |
+| `err_code` | str | scalar per row | none | `f"{errorcode}"` with `ErrorCodes(str, Enum)` (`helao/core/error.py:8`) renders as `ErrorCodes.none` (submit, and "skip step", which writes the initial matrix, `helao/deploy/hte/layouts/aligner.py:1105`) or `ErrorCodes.stop` (stop), not the bare value used by every other `err_code` | `helao/deploy/hte/layouts/aligner.py:1266` |
 
 The row is queued only while the aligner holds an active action (`helao/deploy/hte/layouts/aligner.py:1238`).
 
@@ -185,3 +189,5 @@ The row is queued only while the aligner holds an active action (`helao/deploy/h
 ## Notes
 
 - `GalilCommandChannel` tests use `tests/fake_gclib.py`, so no gclib install is needed to run them.
+- The aligner row's `err_code` is written with `f"{errorcode}"` (`helao/deploy/hte/layouts/aligner.py:1266`), which renders `ErrorCodes.none` / `ErrorCodes.stop` for `ErrorCodes(str, Enum)`, unlike every other `err_code` in this server; the "skip step" button (`aligner.py:1105`) also records `ErrorCodes.none` with the initial matrix.
+- `MxytoMPlate` cannot work as registered: its `Mxy` param is `Optional[str]`, so `get_Mplate_Msystem` raises `IndexError` on the 0-d array (`helao/hexagon/domain/motion_transform.py:363-365`); a real matrix would return an `np.matrix`, which the data logger cannot serialise (`helao/hexagon/adapters/native/data_stream.py:362-374`).

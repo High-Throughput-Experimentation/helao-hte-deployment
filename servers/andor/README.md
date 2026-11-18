@@ -45,8 +45,8 @@ Data file `ANDORSPEC-*.jsonl` (+ `.meta.json`), one row per poll:
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `tick_time` | list[float] | list[float] | s | camera hardware timestamp of each frame (`timestamp / clock_hz`) | `helao/deploy/hte/servers/andor/driver.py:1000-1001` |
-| `ch_<n>` (`ch_0000`..) | list[int] | list[int] | detector counts | intensity of detector column `<n>` per frame; `<n>` runs over `range(wl_arr.size)`, zero-padded to 4 digits, `wl_arr` being the driver's live wavelength axis (width of the sensor) | `helao/deploy/hte/servers/andor/driver.py:1003-1004` |
+| `tick_time` | float | list[float] | s | camera hardware timestamp of each frame (`timestamp / clock_hz`) | `helao/deploy/hte/servers/andor/driver.py:1000-1001` |
+| `ch_<n>` (`ch_0000`..) | int | list[int] | detector counts | intensity of detector column `<n>` per frame; `<n>` runs over `range(wl_arr.size)`, zero-padded to 4 digits, `wl_arr` being the driver's live wavelength axis (width of the sensor) | `helao/deploy/hte/servers/andor/driver.py:1003-1004` |
 
 `.meta.json` header, set at `andor_server.py:379-387`: `column_headings` is `["elapsed_time_s", "ch_0000", ...]` and `optional.wl` is `list[float]`, the wavelength axis in nm (the channel index `0..n-1` when `calibrated` is `False`). `elapsed_time_s` is declared in the header but no row carries it: rows carry `tick_time` (see Notes).
 
@@ -67,7 +67,7 @@ No data files or action results.
 
 ### `cooling` (action)
 
-Runs `AndorCooling` (`helao/deploy/hte/servers/andor/andor_server.py:449`). Each `_poll` queues one row (`andor_server.py:104-108`); the data file is `<action_abbr>-*.jsonl` (+ `.meta.json`). A poll that fails (no temperature, or `Fault`) queues no row.
+Runs `AndorCooling` (`helao/deploy/hte/servers/andor/andor_server.py:449`). Each `_poll` queues one row (`andor_server.py:104-108`); the data file is `<action_abbr>-*.jsonl` (+ `.meta.json`). A poll with no temperature reading or a `Fault` status returns `errored` and ends the action with `critical_error` (`andor_server.py:87-96`), queueing no row.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
@@ -83,7 +83,7 @@ Refused with no data when the driver is not the spectrograph variant (`wl_source
 |---|---|---|---|---|---|
 | `max_array` | float | array[float, 6] | detector counts | maximum pixel value measured with ND filter 1..6 | `helao/deploy/hte/servers/andor/spectrograph.py:287` |
 | `optimality_array` | float | array[float, 6] | none | `1 + abs(63000 - max) / 63000` per filter; the chosen filter is the argmin, with over-range (max above 54000) entries replaced by `999` | `helao/deploy/hte/servers/andor/spectrograph.py:288` |
-| `ND_filter_num` | int | scalar | none | 0-based index of the chosen filter (the wheel is set to this + 1); `null` when no filter wheel is present | `helao/deploy/hte/servers/andor/spectrograph.py:289` |
+| `ND_filter_num` | int \| null | scalar | none | 0-based index of the chosen filter (the wheel is set to this + 1); `null` when no filter wheel is present | `helao/deploy/hte/servers/andor/spectrograph.py:289` |
 
 No action results.
 
@@ -98,7 +98,7 @@ Runs `AndorCalibrateWavelength` (`helao/deploy/hte/servers/andor/andor_server.py
 | `n_lines` | int | scalar | none | lines used in the fit; success and the same refusals | `helao/deploy/hte/servers/andor/driver.py:425` |
 | `lamp` | str | scalar | none | calibration lamp name; success only | `helao/deploy/hte/servers/andor/driver.py:426` |
 | `path` | str | scalar | none | calibration file written; success only | `helao/deploy/hte/servers/andor/driver.py:427` |
-| `applied` | bool | scalar | none | `True` when the fit became the live axis (`wl_source: calibration`), `False` on the spectrograph variant and on every refusal | `helao/deploy/hte/servers/andor/driver.py:428`, `:292` |
+| `applied` | bool | scalar | none | `self.uses_lamp_calibration`: `True` on the `calibration` variant, `False` on the spectrograph variant and on every refusal. It is `True` even if the live axis was not refreshed because `_wavelengths()` returned `None` (`helao/deploy/hte/servers/andor/driver.py:410-416`) | `helao/deploy/hte/servers/andor/driver.py:428`, `:292` |
 | `max_fit_rms_nm` | float | scalar | nm | the gate that was exceeded; "residual too large" refusal only | `helao/deploy/hte/servers/andor/driver.py:380` |
 | `degree` | int | scalar | none | fit degree; "axis not monotonic" refusal only | `helao/deploy/hte/servers/andor/driver.py:394` |
 

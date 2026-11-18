@@ -57,7 +57,7 @@ Rows and action results are produced by the Python 3.9 sidecar and the vendor `e
 
 ### `normal_scan` (action)
 
-`XafsScanExec` (`helao/deploy/hte/servers/xafs/xafs_server.py:73`, started at `:489-497`); `action_abbr` is `xafs_normal` and file type `xafsscan__helao_file` (`:466-467`). During the run `_poll` and `_post_exec` call `_drain`, which queues every new sidecar row as one data row, one per scan point (`xafs_server.py:211-217`). The `.meta.json` header carries `optional.scan_def` (dict, the caller's `scan_def` param; `:468`). A scan stopped by the operator before the first point queues no rows and no `exd_path`.
+`XafsScanExec` (`helao/deploy/hte/servers/xafs/xafs_server.py:73`, started at `:489-497`); `action_abbr` is `xafs_normal` and file type `xafsscan__helao_file` (`:466-467`). During the run `_poll` and `_post_exec` call `_drain`, which queues every new sidecar row as one data row, one per scan point (`xafs_server.py:211-217`). The `.meta.json` header carries `optional.scan_def` (dict, the caller's `scan_def` param; `:468`). A scan stopped by the operator before the first point queues no rows and records `exd_path` as `null`.
 
 Data file `xafs_normal-*.jsonl` (+ `.meta.json`), one row per scan point:
 
@@ -71,6 +71,7 @@ Files:
 
 | file | format | name pattern | meaning | written at |
 |---|---|---|---|---|
+| (excluded) PID lock | text, the sidecar's process id | the lock file named by the sidecar's `--lock-file` | operational single-instance lock, not an output | `helao/deploy/hte/servers/xafs/sidecar/hardware.py:31` |
 | exd archive | vendor zip of csv files, plus `metadata.json` | `<savename>_<counter:03d>_exd.csv.zip` in the `save_dir` param | the vendor's own scan record; saved by `easyxafs` after the scan completes (the path is returned as `exd_path`) | `helao/deploy/hte/servers/xafs/sidecar/runner.py:227` (the `savename` it is built from) |
 | recorded marker | empty file | `.helao_recorded` in `save_dir` | created before the scan starts | `helao/deploy/hte/servers/xafs/xafs_server.py:228` |
 | MCA arrays | numpy `.npz` bytes, copied from the `*_mcas.npz` member of the exd archive, tracked as `xafsmca__npz_file`; array names and shapes are set by the vendor | `xafs_mca-<savename>.npz` in the action output directory | per-point MCA spectra | `helao/deploy/hte/servers/xafs/xafs_server.py:378-382` |
