@@ -77,7 +77,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `int_time_ms` | `action_params` | int | scalar | the caller's input is overwritten with each adjusted integration time (`spec_params` is `action_params` itself, not a copy), so the recorded value is the last one tried | `helao/deploy/hte/servers/spec/spec_server.py:371` |
+| `int_time_ms` | `action_params` | int | scalar | the caller's input is overwritten with each adjusted integration time (`spec_params` is `action_params` itself, not a copy), so the recorded value is the last one tried | `helao/deploy/hte/servers/spec/spec_server.py:372` |
 | `peak_intensity` | `action_params` | int | scalar | peak intensity of the last spectrum | `helao/deploy/hte/servers/spec/spec_server.py:379` |
 | `calibrated_int_time_ms` | `action_params` | int | scalar | final integration time, capped at `max_integration_time` | `helao/deploy/hte/servers/spec/spec_server.py:380` |
 
@@ -100,7 +100,7 @@ Queues one row `{"stop": <DriverResponse>}` after waiting `delay` seconds (`hela
 |---|---|---|---|---|---|
 | `stop` | dict | dict | none | the driver's `DriverResponse` dataclass, serialised by field | `helao/deploy/hte/servers/spec/spectral_products_driver.py:442-444` |
 
-Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-80`):
+Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-81`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
@@ -108,7 +108,7 @@ Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-80`):
 | `message` | str | scalar | none | empty | `helao/core/drivers/helao_driver.py:74` |
 | `data` | dict | dict | none | `{}` | `helao/core/drivers/helao_driver.py:75` |
 | `status` | str | scalar | none | `DriverStatus`; `ok` | `helao/deploy/hte/servers/spec/spectral_products_driver.py:443` |
-| `timestamp` | str | scalar | none | ISO 8601 time the response was built | `helao/core/drivers/helao_driver.py:80` |
+| `timestamp` | str | scalar | none | ISO 8601 time the response was built | `helao/core/drivers/helao_driver.py:81` |
 
 ### `/get_wl` (private endpoint)
 

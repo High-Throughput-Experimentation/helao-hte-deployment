@@ -87,7 +87,7 @@ Each drives one named line through `_set_do` (`helao/deploy/hte/servers/nidaqmx/
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `error_code` | str | scalar per row | none | `ErrorCodes` value: `none`, or `not_available` when the port is `None` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:801` |
-| `port` | str | scalar per row | none | NI-DAQ channel string written (looked up from the `dev_*` group by `_set_do`, which raises `KeyError` for an unknown name, `nidaqmx_server.py:146`) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:802` |
+| `port` | str \| null | scalar per row | none | NI-DAQ channel string written; `null` when no port was resolved, which yields `not_available` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:774`, `:788`) (looked up from the `dev_*` group by `_set_do`, which raises `KeyError` for an unknown name, `nidaqmx_server.py:146`) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:802` |
 | `name` | str | scalar per row | none | friendly line name | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:803` |
 | `type` | str | scalar per row | none | always `digital_out` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:804` |
 | `value` | bool | scalar per row | none | requested logical state (`on`); on `do_active_low` lines the wire level is the inverse | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:805` |
@@ -188,4 +188,4 @@ Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-77`):
 
 ## Notes
 
-- `acquire_monitors` and `cellIV` read monitor values with `ActionHost.get_lbuf`, which raises `KeyError` for a name never published (`helao/hexagon/app/action_host.py:415`); a monitor whose first poller read has not happened yet makes `acquire_monitors` finish with no row and drops cellIV batches silently (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:584-586`).
+- `acquire_monitors` and `cellIV` read monitor values with `ActionHost.get_lbuf`, which raises `KeyError` for a name never published (`helao/hexagon/app/action_host.py:415`); a monitor whose first poller read has not happened yet makes `acquire_monitors` finish with no row and drops cellIV batches (the `KeyError` is caught and logs an ERROR at `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:586`, then the batch is dropped).
