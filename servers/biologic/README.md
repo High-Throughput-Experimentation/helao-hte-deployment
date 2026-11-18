@@ -99,8 +99,150 @@ params:
 
 - `allow_no_sample` and `grounded` (set in `hte` configs for this server): no code in this folder reads them.
 
+## Outputs
+
+Every technique action runs `BiologicExec` (`helao/deploy/hte/servers/biologic/biologic_server.py:67`) through the framework default data connection: one JSON object per queued message, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Each `_poll` queues the backend's `get_data` result as one row, so every value in a row is a list with one entry per sample read in that poll (`biologic_server.py:299`; queued at `helao/hexagon/app/executor_runner.py:129-136`). Columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`). Non-finite floats are written as `null` (`helao/helpers/to_json.py:30`), so a column that can hold NaN is typed `float | null`.
+
+`action_abbr` per endpoint: `run_CA` `CA` (`biologic_server.py:422`), `run_CP` `CP` (`:459`), `run_CV` `CV` (`:510`), `run_OCV` `OCV` (`:542`), `run_PEIS` `PEIS` (`:582`), `run_GEIS` `GEIS` (`:621`), `run_CAOCV` `CAOCV` (`:659`), `run_CALIMIT` `CALIM` (`:709`), `run_CPLIMIT` `CPLIM` (`:767`), `run_SPEIS` `SPEIS` (`:813`), `run_SGEIS` `SGEIS` (`:864`), `run_plan` `PLAN` (`:931`), `run_protocol` `PROT` (`:963`).
+
+Which techniques a backend serves: `eclib` serves all of `OCV`, `CA`, `CP`, `CV`, `PEIS`, `GEIS`, `CAOCV`, `CALIMIT`, `CPLIMIT`, `SPEIS`, `SGEIS` (`helao/deploy/hte/servers/biologic/biologic/data.py:186-198`); `olecom` has the seven names in `OLE_TECHS` that `test_biologic_column_contract.py` lists (not `CALIMIT`, `CPLIMIT`, `SPEIS`, `SGEIS`); `eclib2` serves `OCV`, `CA`, `CP`, `CV`, `PEIS`, `GEIS`, `CAOCV` (`helao/deploy/hte/servers/biologic/biologic_eclib2/technique.py:60-67`). An endpoint whose technique the active backend lacks fails at technique resolution and writes no data.
+
+### Data columns shared by all technique actions
+
+Added by the executor to every non-empty poll, on all three backends:
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `channel` | int | list[int] | none | channel index of the action, repeated once per sample | `helao/deploy/hte/servers/biologic/biologic_server.py:286` |
+
+### `run_OCV` (action)
+
+Data file `OCV-*.jsonl` (+ `.meta.json`). Columns (all backends; `eclib2` `OCV_COLUMNS`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `t_s` | float | list[float] | s | time since technique start (eclib: `StartTime` + decoded timestamp) | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:222`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:127-129`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:119` |
+| `Ewe_V` | float | list[float] | V | working-electrode potential | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:225`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:127-129`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:120` |
+
+The action also writes `Ewe_V__mean_final`, `t_s__mean_final`, `has_bubble` and `AcqInterval__V` (below).
+
+### `run_CA`, `run_CP`, `run_CV`, `run_CAOCV`, `run_CALIMIT`, `run_CPLIMIT` (actions)
+
+Data file `<action_abbr>-*.jsonl` (+ `.meta.json`). DC column set (`eclib` `COLUMNS` `_DC`, `helao/deploy/hte/servers/biologic/biologic/data.py:166`; olecom `DC_COLUMNS`, `helao/deploy/hte/servers/biologic/biologic_ole/technique.py:142`; eclib2 `STEP_COLUMNS`, `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:29`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `t_s` | float | list[float] | s | time since technique start | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:210`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:127-129`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:127` |
+| `Ewe_V` | float | list[float] | V | working-electrode potential (eclib2: `ewe_average`) | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:215`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:127-129`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:128` |
+| `I_A` | float | list[float] | A | current (eclib2: `i_average`) | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:216`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:127-129`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:129` |
+| `P_W` | float | list[float] | W | power; eclib and eclib2 `Ewe*I` (signed), olecom `abs(Ewe*I)` | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:217`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:131`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:130` |
+| `cycle` | int \| float | list[int \| float] | none | cycle number (`int` on eclib and eclib2, `float` on olecom); on olecom the status-register cycle at poll time (`helao/deploy/hte/servers/biologic/biologic_ole/status.py:131`) stamped on every point read in that poll | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:218`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:133`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:131` |
+
+`eclib` also adds the `_`-prefixed live-state columns below to every technique.
+
+Action results (in `-act.json`), set at run time by the endpoint after `ctx.begin()`:
+
+| key | in | type | structure | meaning | set at |
+|---|---|---|---|---|---|
+| `AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CA` and `run_CALIMIT` | `helao/deploy/hte/servers/biologic/biologic_server.py:423`, `:710` |
+| `AcqInterval__V` | `action_params` | float | scalar | fixed `10.0` for `run_CP`, `run_OCV`, `run_CPLIMIT`; for `run_CV` `AcqInterval__s * ScanRate__V_s` | `biologic_server.py:460`, `:543`, `:768`, `:506-509` |
+| `CA_AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:660` |
+| `OCV_AcqInterval__V` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:661` |
+| `Cycles` | `action_params` | int | scalar | `run_CV` only: the requested value minus 1 ("additional cycles") | `biologic_server.py:505` |
+| `t_s__mean_final` | `action_params` | float | scalar | `nanmean` of the last 5 `t_s` samples; present only when the data buffer holds `t_s`; can be NaN | `biologic_server.py:318` |
+| `Ewe_V__mean_final` | `action_params` | float | scalar | same for `Ewe_V` | `biologic_server.py:318` |
+| `I_A__mean_final` | `action_params` | float | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `biologic_server.py:318` |
+| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: result of `bubble_detection` on the buffered data, with the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `biologic_server.py:333` |
+
+(`*__mean_final` is written for every technique action, `run_plan` and `run_protocol` included, for whichever of `t_s`, `Ewe_V`, `I_A` the run produced; the table lists the three keys once.)
+
+### `run_PEIS`, `run_GEIS`, `run_SPEIS`, `run_SGEIS` (actions)
+
+Data file `<action_abbr>-*.jsonl` (+ `.meta.json`). EIS column set (`eclib` `_EIS`, `helao/deploy/hte/servers/biologic/biologic/data.py:167-184`; `SPEIS`/`SGEIS` add `step`; olecom `EIS_COLUMNS`, `helao/deploy/hte/servers/biologic/biologic_ole/technique.py:146`; eclib2 `EIS_COLUMNS`, `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:34`). Columns are `float | null` where a row of another process type carries NaN.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `process` | int \| float | list[int \| float] | none | process index (`int` on eclib and eclib2, `float` on olecom): `0` time-domain leg, `1` frequency-domain leg (olecom: `1.0` when `f_Hz` is non-zero, else `0.0`) | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:230`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:145-146`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:144` |
+| `t_s` | float | list[float] | s | time of the sample | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:231`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:142-144`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:145` |
+| `Ewe_V` | float | list[float] | V | DC working-electrode potential | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:257`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:149-150`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:146` |
+| `I_A` | float | list[float] | A | DC current | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:258`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:149-150`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:147` |
+| `AbsEwe_V` | float \| null | list[float] | V | potential amplitude of the perturbation; NaN on eclib process 0 | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:259`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:148` |
+| `AbsI_A` | float \| null | list[float] | A | current amplitude; NaN on eclib process 0 | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:260`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:149` |
+| `phase` | float \| null | list[float] | rad (as used in `-modulus*sin(phase)`) | working-electrode impedance phase | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:261`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:150` |
+| `modulus` | float \| null | list[float] | ohm | `AbsEwe_V / AbsI_A`; NaN when the divisor is 0 or either is NaN | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:262`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:151` |
+| `Ece_V` | float \| null | list[float] | V | counter-electrode potential | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:263`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:152` |
+| `AbsEce_V` | float \| null | list[float] | V | counter-electrode potential amplitude | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:264`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:153` |
+| `AbsIce_A` | float \| null | list[float] | A | counter-electrode current amplitude | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:265`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:154` |
+| `phase_ce` | float \| null | list[float] | rad | counter-electrode phase | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:266`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:155` |
+| `modulus_ce` | float \| null | list[float] | ohm | `AbsEce_V / AbsIce_A` | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:267`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:156` |
+| `f_Hz` | float \| null | list[float] | Hz | frequency; NaN on eclib process 0 | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:268`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:142-144`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:157` |
+| `X_ohm` | float \| null | list[float] | ohm | `-modulus * sin(phase)` (olecom: `-Im(Z)` as returned by EC-Lab) | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:269`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:142-144`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:159` |
+| `R_ohm` | float \| null | list[float] | ohm | `modulus * cos(phase)` (olecom: `Re(Z)`) | eclib `helao/deploy/hte/servers/biologic/biologic/data.py:270`; olecom `helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:142-144`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:160` |
+| `step` | int | list[int] | none | step index; `SPEIS` and `SGEIS` only (eclib only) | `helao/deploy/hte/servers/biologic/biologic/data.py:273` |
+
+On olecom the columns `AbsEwe_V`, `AbsI_A`, `phase`, `modulus`, `Ece_V`, `AbsEce_V`, `AbsIce_A`, `phase_ce`, `modulus_ce` come one value per call from `MeasureValueByCode`, NaN when the technique does not record the variable (`helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:147-156`); the OLE values are floats from the EC-Lab COM server. `eclib2` types follow the simulator dataclasses (`helao/deploy/hte/servers/biologic/biologic_eclib2/sim.py:248-279`) because the vendor SDK is not in the repo. No action results besides the `*__mean_final` keys listed above (`t_s`, `Ewe_V`, `I_A`).
+
+### `run_plan` (action, `eclib` and `eclib2` only)
+
+Data file `PLAN-*.jsonl` (+ `.meta.json`). Columns are the union of the entries' techniques: eclib `PlanTechnique.column_plan` (`helao/deploy/hte/servers/biologic/biologic/technique.py:843-849`), eclib2 `union(*columns)` (`helao/deploy/hte/servers/biologic/biologic_eclib2/technique.py:827`) in `ALL_COLUMNS` order. Column definitions as in the DC and EIS tables above; a column a segment does not report is `NaN` (`null`) for that segment's rows (eclib `helao/deploy/hte/servers/biologic/biologic/driver.py:690-691`; eclib2 `helao/deploy/hte/servers/biologic/biologic_eclib2/data.py:184-195`), except eclib2 `process`, which is `0` for a segment without one. Plus `channel`, and on eclib the `_`-prefixed columns below. Action results: `t_s__mean_final`, `Ewe_V__mean_final`, `I_A__mean_final` as above; no other keys.
+
+### `run_protocol` (action, `olecom` only)
+
+`BiologicProtocolExec` (`biologic_server.py:347`); data file `PROT-*.jsonl` (+ `.meta.json`). The columns are chosen from the loaded technique code (`helao/deploy/hte/servers/biologic/biologic_ole/technique.py:515-540`): the DC set above, the EIS set above, or `t_s`, `Ewe_V`, `I_A` only for an unrecognized code, plus `channel`. Types as for olecom above. Action results: `t_s__mean_final`, `Ewe_V__mean_final`, `I_A__mean_final` as above.
+
+### `eclib`-only live-state columns
+
+`BiologicDriver.get_data` appends one `_<field>` column per `CurrentValues` field to every poll row, the value repeated once per row read (`helao/deploy/hte/servers/biologic/biologic/driver.py:692-696`; fields at `helao/deploy/hte/servers/biologic/biologic/vendor.py:131-152`). Types follow the ctypes fields. The `olecom` and `eclib2` backends emit none of these.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `_State` | int | list[int] | none | channel state code | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_MemFilled` | int | list[int] | none | instrument memory fill | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_TimeBase` | float | list[float] | s | firmware time base | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Ewe` | float | list[float] | V | instantaneous Ewe | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_EweRangeMin` | float | list[float] | V | Ewe range minimum | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_EweRangeMax` | float | list[float] | V | Ewe range maximum | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Ece` | float | list[float] | V | instantaneous Ece | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_EceRangeMin` | float | list[float] | V | Ece range minimum | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_EceRangeMax` | float | list[float] | V | Ece range maximum | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Eoverflow` | int | list[int] | none | Ewe overflow flag | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_I` | float | list[float] | A | instantaneous current | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_IRange` | int | list[int] | none | current range code | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Ioverflow` | int | list[int] | none | current overflow flag | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_ElapsedTime` | float | list[float] | s | elapsed time | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Freq` | float | list[float] | Hz | instantaneous frequency | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Rcomp` | float | list[float] | ohm | compensated resistance | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_Saturation` | int | list[int] | none | saturation flag | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_OptErr` | int | list[int] | none | option error code | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+| `_OptPos` | int | list[int] | none | option position | `helao/deploy/hte/servers/biologic/biologic/driver.py:694` |
+
+### Files shipped with the action (`olecom` only)
+
+At `cleanup` the driver moves the run's `.mps`, `.mpr`, `.mpt` files into the action output directory (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:685-702`, called from `cleanup` at `:718`); `run_protocol` also copies the unpatched protocol file into the run directory first (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:499`), so it ships too. The `eclib` and `eclib2` backends ship no such files (their `setup` takes `output_dir` and never uses it: `helao/deploy/hte/servers/biologic/biologic/driver.py:436`, `helao/deploy/hte/servers/biologic/biologic_eclib2/driver.py:295`).
+
+| file | format | name pattern | meaning | written at |
+|---|---|---|---|---|
+| patched settings | EC-Lab `.mps` text, CRLF line ends | `<technique_name>.mps` (e.g. `CA.mps`) | the template with the action's parameters patched in | `helao/deploy/hte/servers/biologic/biologic_ole/mps_template.py:302-303`, call `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:402` |
+| protocol copy | EC-Lab `.mps` | `<name of the file named by mps_path>` | the station-authored protocol, unpatched (`run_protocol`) | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:499` |
+| raw measurement | EC-Lab `.mpr` binary | EC-Lab-chosen | raw record EC-Lab appends to during the run | EC-Lab itself, moved at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:702` |
+| text export | EC-Lab `.mpt` text | EC-Lab-chosen | shipped if EC-Lab produced one in the run directory | EC-Lab itself, moved at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:702` |
+
+### `get_meas_status` (action)
+
+Intended to queue one row `{"status": <str>}` from `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1079`; `enqueue_data_dflt`, `helao/hexagon/adapters/native/data_stream.py:112`), but no backend defines `dtaqsink`, so the call raises `AttributeError` before the row is queued (see Notes). No action results.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `status` | unknown (dynamic) | scalar per row | none | dtaq sink status; the attribute does not exist, so the type is unknowable and the row is never written | `helao/deploy/hte/servers/biologic/biologic_server.py:1079` |
+
+### `stop` (action) and `/stop_private`
+
+No data files or action results.
+
 ## Notes
 
 - `num_channels` defaults differ: the `eclib` and `olecom` drivers default to 12, the `eclib2` driver to 1, and the visualizer to 1. A station driving more than one channel on `eclib` or `olecom` without setting the key gets 12 driver channels but a one-channel visualizer.
 - The `biologic_ole/driver.py` module docstring says "all optional except `address`", but the code gives `address` a default (`192.168.200.240`) on `eclib` and `olecom`.
 - `biologic_server.py:382` writes `server_params["allow_concurrent_actions"] = False` at startup; a config value for it is overwritten.
+- `get_meas_status` reads `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1079`), but no backend defines `dtaqsink`, so the action raises `AttributeError` and queues no row.
+- `P_W` is signed `Ewe*I` on `eclib` and `eclib2` but `abs(Ewe*I)` on `olecom` (`helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:131`), and `cycle` and `process` are `int` on the SDK backends but `float` on `olecom`; the column names match across backends, the values do not.

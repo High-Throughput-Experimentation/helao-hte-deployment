@@ -75,3 +75,113 @@ params:
 Notes:
 - A name used in more than one digital-output group is logged as an error and refused by the private `set_digital_out` endpoint (`nidaqmx_server.py:121`).
 - `dev_pump`, `dev_gasvalve`, `dev_liquidvalve`, `dev_led`, `dev_heat` and `dev_ttl` are read in two places (server and driver) with the same default `{}`.
+
+## Outputs
+
+Actions here write through the framework default data connection: one JSON object per queued message, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Without declared `json_data_keys` the columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`). Which actions exist depends on the `dev_*` groups present in the server params; each group below says which one gates it.
+
+### Digital-output actions: `mastercell`, `activecell`, `pump`, `gasvalve`, `liquidvalve`, `multivalve`, `led`, `fswbcd`, `heater` (actions)
+
+Each drives one named line through `_set_do` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:138-151`) and queues one row, `action_abbr` `mcell` (`:259`), `acell` (`:280`), `pump` (`:301`), `gfv` (`:322`), `lfv` for `liquidvalve` (`:343`) and for `multivalve` (`:364`), `led` (`:385`), `fswbcd` (`:406`), `heat` (`:614`). Each exists only when its `dev_*` group is configured. The data file is `<action_abbr>-*.jsonl` (+ `.meta.json`), one row:
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `error_code` | str | scalar per row | none | `ErrorCodes` value: `none`, or `not_available` when the port is `None` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:801` |
+| `port` | str \| null | scalar per row | none | NI-DAQ channel string written | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:802` |
+| `name` | str | scalar per row | none | friendly line name | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:803` |
+| `type` | str | scalar per row | none | always `digital_out` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:804` |
+| `value` | bool | scalar per row | none | requested logical state (`on`); on `do_active_low` lines the wire level is the inverse | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:805` |
+
+Action results (in `-act.json`), set before the write:
+
+| key | in | type | structure | meaning | set at |
+|---|---|---|---|---|---|
+| `do_port` | `action_params` | str | scalar | channel string looked up from the `dev_*` group by the selected name | `helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:146` |
+| `do_name` | `action_params` | str | scalar | the selected line name, copied from the endpoint's own param (`cell`, `pump`, `gasvalve`, `liquidvalve`, `multivalve`, `led`, `fswbcd`, `heater`) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:147` |
+
+### `fsw` (action, needs `dev_fsw`)
+
+Reads one foot-switch digital input and queues one row, `action_abbr` `fsw` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:425`, `:432-436`); data file `fsw-*.jsonl` (+ `.meta.json`).
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `error_code` | str | scalar per row | none | `none`, or `not_available` when the port is `None` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:900` |
+| `port` | str | scalar per row | none | NI-DAQ channel string read | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:901` |
+| `name` | str | scalar per row | none | foot-switch name | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:902` |
+| `type` | str | scalar per row | none | always `digital_in` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:903` |
+| `value` | unknown (dynamic) | scalar per row | none | `Task.read` result of the one-sample read; `null` when the port is `None` | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:904` |
+
+Action results (in `-act.json`):
+
+| key | in | type | structure | meaning | set at |
+|---|---|---|---|---|---|
+| `di_port` | `action_params` | str | scalar | channel string of the selected foot switch | `helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:428` |
+| `di_name` | `action_params` | str | scalar | the selected foot-switch name | `helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:431` |
+
+### `toggle_ttl` (action, needs `dev_ttl`)
+
+`TTLExec` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:660-661`); `action_abbr` is `ttl`. Two rows are queued: the line going high from `_exec` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1194`) and going low from `_post_exec` (`:1210`). Data file `ttl-*.jsonl` (+ `.meta.json`). Each row has the same fields as a digital-output row above (`error_code`, `port`, `name`, `type`, `value`), with `name` the TTL name and `value` `true` on the first row and `false` on the second. An exception setting the line high ends the action with no row. No action results.
+
+### `cancel_toggle_ttl` (action)
+
+No data files or action results.
+
+### `cellIV` (action, needs `dev_cellcurrent` and `dev_cellvoltage`)
+
+`CellIVExec` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:479`, `:514-527`; `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1000`); `action_abbr` is `multiCV`. The NI-DAQ buffer callback pushes one message per callback straight to the data queue (`nidaqmx_driver.py:569-582`), holding one entry per cell in `FIFO_cell_keys` (`cell1`..`cell9`, `:245-255`), each routed to that cell's own file: `_pre_exec` splits the action into nine file connections (`nidaqmx_driver.py:1049-1062`), so one action writes nine data files, each with a `.meta.json` header carrying `optional.cell` set to `cell<k>` (`nidaqmx_server.py:518`, `nidaqmx_driver.py:1061`) and its own sample labels. File type is `ni_helao__file`. `CellIVExec._poll` returns no data (`nidaqmx_driver.py:1091`, `:1099`).
+
+Data file `multiCV-*.jsonl` (+ `.meta.json`), one row per NI buffer callback, per cell:
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `t_s` | float | list[float] | s | `IVtimeoffset + i / samplingrate` for each sample of the callback | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:562-565`, `:572` |
+| `Icell_A` | float | list[float] | A | current of that cell, from the `dev_cellcurrent` task (scaled by the `NEGATE3` custom scale) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:573` |
+| `Ecell_V` | float | list[float] | V | potential of that cell, from the `dev_cellvoltage` task | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:574` |
+| `<monitor>` | float \| null | scalar per row | degC | one column per `dev_monitor` name (for example `Ktc_in_cell`); the monitor's latest live-buffer value at the callback, `null` while it has none | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:577` |
+
+`<monitor>` columns come from the config key `dev_monitor` (`nidaqmx_driver.py:490`); a server with no `dev_monitor` has none. The `Ttemp_*` strings in `FIFO_column_headings` (`:260-265`) are not used as columns. Rows are not written when the action is E-stopped or after the measurement has been turned off (`:588-612`). No action results.
+
+### `acquire_monitors` (action, needs `dev_monitor`)
+
+`DevMonExec` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:555-561`); `action_abbr` is `ni_monitor`. Each `_poll` queues one row (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1147-1151`); data file `ni_monitor-*.jsonl` (+ `.meta.json`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `<monitor>` | float \| null | scalar per row | degC | one column per `dev_monitor` name; the latest live-buffer value, `null` before the poller has published one | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1137` |
+| `epoch_s` | float \| null | scalar per row | s | the newest epoch stamp among the monitor values | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:1139` |
+
+No action results.
+
+### `cancel_acquire_monitors`, `heatloop` (actions)
+
+No data files or action results (`heatloop` drives the heaters through the driver directly and never calls `ctx.begin()`, `nidaqmx_server.py:697-760`).
+
+### `stop` (action)
+
+Queues one row `{"stop": <DriverResponse>}` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_server.py:865`); data file `stop-*.jsonl` (+ `.meta.json`). No action results.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `stop` | dict | dict | none | the driver's `DriverResponse` dataclass, serialised by field | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:319-331` |
+
+Nested `stop` fields (`helao/core/drivers/helao_driver.py:73-77`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `response` | str | scalar | none | `DriverResponseType`; always `success` here | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:330` |
+| `message` | str | scalar | none | always empty here | `helao/core/drivers/helao_driver.py:74` |
+| `data` | dict | dict | none | always `{}` here | `helao/core/drivers/helao_driver.py:75` |
+| `status` | str | scalar | none | `DriverStatus`; always `ok` here | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:330` |
+| `timestamp` | str | scalar | none | ISO 8601 time the response was built | `helao/core/drivers/helao_driver.py:80` |
+
+### Live data (status/ws stream)
+
+`cNIMAXPoller.get_data` (`helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:970-995`), wired as the server's `poller_class` (`nidaqmx_server.py:190`), publishes one value per thermocouple channel at each poll, never written to a file by the poller itself; it is empty when no `dev_monitor` is configured. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`):
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `<monitor>` | float | scalar per poll | degC | latest reading of the `dev_monitor` channel of that name (K-type, or T-type when the name contains `Ttc_`) | `helao/deploy/hte/servers/nidaqmx/nidaqmx_driver.py:989-992` |
+
+### Private endpoints
+
+`/readtemp`, `/monloop`, `/stopmonloop`, `/stopheatloop`, `/get_digital_outs`, `/set_digital_out`: return values to the caller only (`nidaqmx_server.py:583-594`, `:685-694`, `:769-780`, `:796-851`); no data files or action results.
