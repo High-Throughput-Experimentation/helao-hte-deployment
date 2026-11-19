@@ -2,7 +2,7 @@
 
 The SDK ships no installable distribution -- no ``pyproject.toml``, no
 ``setup.py`` -- and its package directory is named, unhelpfully, ``Python``, so
-there is nothing to pin in ``helao_dev_win-64.yml``. A station unpacks the SDK
+there is nothing to pin in the base ``pixi.toml``. A station unpacks the SDK
 somewhere and names it in the server's config (``sdk_path``); off-station,
 :mod:`sim` stands in.
 

@@ -3,7 +3,7 @@
 Meerstetter TEC temperature controller action server (`tec_server`, driver `MeerstetterTEC` in `mecom_driver.py`): reads TEC telemetry, enables or disables the control loop and sets the target temperature. `bokeh/tec_vis.py` plots it.
 
 ## Vendor software
-- `pyMeCom` (Python module `mecom`): listed in this folder's `requirements.txt` and the root `requirements.txt`, installed from `https://github.com/meerstetter/pyMeCom/archive/master.zip`. It is not on conda; pip/uv installs it.
+- `pyMeCom` (Python module `mecom`): listed in this folder's `requirements.txt` (the base `pixi.toml` does not carry it), installed from `https://github.com/meerstetter/pyMeCom/archive/master.zip`. It is not on conda; the composer installs it as a pip dependency.
 - No Meerstetter PC software or serial driver is required by the code; the TEC is reached over a serial port.
 
 ## Params

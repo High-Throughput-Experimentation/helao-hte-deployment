@@ -10,7 +10,7 @@
 # `simulate: true` selects `biologic_eclib2/sim.py` in place of the vendor SDK,
 # so `sdk_path` is not needed here. A real station sets `simulate: false` and
 # points `sdk_path` at its unpacked `biologic_ec_sdk` root -- the SDK ships no
-# installable distribution, so there is nothing to pin in `helao_dev_win-64.yml`
+# installable distribution, so there is nothing to pin in the base `pixi.toml`
 # and the path is the only way to find it. The license file
 # (`license_biologic_<hexblob>.lic`) belongs at that root; without it every call
 # fails with EC_SDK_ERROR_LICENSE_NOT_VALID (-99900).

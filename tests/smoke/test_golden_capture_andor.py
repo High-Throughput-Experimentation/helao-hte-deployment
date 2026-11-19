@@ -12,7 +12,7 @@ golden_capture_andor.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_andor.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_andor.py -q
 """
 
 from __future__ import annotations

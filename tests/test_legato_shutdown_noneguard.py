@@ -16,7 +16,7 @@ return ``[]`` (no WARNING), the poller's ``get_data`` skips quietly (no WARNING,
 empty result), ``safe_state`` no-ops (one WARNING at shutdown is fine), and
 ``async_shutdown`` completes so the server shuts down cleanly.
 
-Run:  conda run -n helao python helao/deploy/hte/tests/test_legato_shutdown_noneguard.py
+Run:  python helao/deploy/hte/tests/test_legato_shutdown_noneguard.py
 """
 
 import asyncio

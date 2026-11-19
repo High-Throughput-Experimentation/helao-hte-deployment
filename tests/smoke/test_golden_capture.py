@@ -9,7 +9,7 @@ only runs at-station (see golden_capture.py docstrings).
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture.py -q
 """
 
 from __future__ import annotations

@@ -13,7 +13,7 @@ only runs at-station with the camera reachable (see golden_capture_cam.py docstr
 
 Runnable two ways (no ``import pytest`` -- mirrors the other capture tests):
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_cam.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_cam.py -q
 """
 
 from __future__ import annotations

@@ -54,12 +54,13 @@ hardware-agnostic settle/anti-vacuous-guard logic (``settle``,
 scenario-specific assumptions. Only the scenario-specific pieces (endpoint,
 masking=NONE, manifest notes) are new here. ``golden_capture.py`` is NOT modified.
 
-Usage (conda env ``helao``) -- the Legato pump need NOT be attached for a valid
+Usage (helao env) -- the Legato pump need NOT be attached for a valid
 capture, and THE PLUNGER DOES NOT MOVE for this scenario:
 
     rmdir /s /q C:\\INST_hlo_golden               (or pick a fresh --root)
-    conda run -n helao python launch.py syringegold --no-hot-reload
-    conda run -n helao python -m helao.deploy.hte.tests.smoke.golden_capture_syringe ^
+    helao.bat syringegold --no-hot-reload
+    call activate_helao.bat     (second terminal)
+    python -m helao.deploy.hte.tests.smoke.golden_capture_syringe ^
         --config-prefix syringegold --root C:\\INST_hlo_golden ^
         --out C:\\golden\\syringe
 
@@ -244,7 +245,7 @@ def snapshot(
         config_prefix=config_prefix,
         config_path=str(config_path),
         legacy_git_sha=sha,
-        launch_cmd=f'conda run -n helao python launch.py "{config_path}" --no-hot-reload',
+        launch_cmd=f'python launch.py "{config_path}" --no-hot-reload',
         sequence_name="manual_get_present_volume",
         sequence_params={
             "manual": True,
