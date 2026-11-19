@@ -4,11 +4,10 @@ Defines sub-experiments that build action lists for an orchestrator. Each
 function takes an ``Experiment`` and returns the list of actions to enqueue.
 Action targets are referenced by ``server_key`` strings (e.g. ``PSTAT``,
 ``MOTOR``, ``KMOTOR``, ``IO``, ``SPEC_T``, ``SPEC_R``, ``PAL``, ``CAM``,
-``ANA``, ``ORCH``).
+``ORCH``).
 """
 
 EXPERIMENTS = [
-    "ECHEUVIS_analysis_stability",
     "ECHEUVIS_sub_CA_led",
     "ECHEUVIS_sub_CP_led",
     "ECHEUVIS_sub_CV_led",
@@ -56,7 +55,6 @@ PAL_server = MM(server_name="PAL", machine_name=gethostname().lower()).as_dict()
 SAMPLE_server = MM(server_name="SAMPLE", machine_name=gethostname().lower()).as_dict()
 CAM_server = MM(server_name="CAM", machine_name=gethostname().lower()).as_dict()
 KMOTOR_server = MM(server_name="KMOTOR", machine_name=gethostname().lower()).as_dict()
-ANA_server = MM(server_name="ANA", machine_name=gethostname().lower()).as_dict()
 
 TOGGLE_TRIGGERTYPE = TriggerType.risingedge
 
@@ -802,35 +800,3 @@ def ECHEUVIS_sub_engage(
             },
         )
     return apm.planned_actions  # returns complete action list to orch
-
-
-@experiment(version=2)
-def ECHEUVIS_analysis_stability(
-    sequence_uuid: str = "",
-    plate_id: int = 0,
-    recent: bool = True,
-    params: dict = {},
-) -> list:
-    """Dispatch an ECHE+UVIS stability analysis action to the analysis server.
-
-    Args:
-        sequence_uuid: UUID of the sequence to analyze.
-        plate_id: Plate identifier.
-        recent: Operate on the most recent sequence when True.
-        params: Additional parameters forwarded to ``analyze_echeuvis``.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-    apm.add(
-        ANA_server,
-        "analyze_echeuvis",
-        {
-            "sequence_uuid": sequence_uuid,
-            "plate_id": plate_id,
-            "recent": recent,
-            "params": params,
-        },
-    )
-    return apm.planned_actions

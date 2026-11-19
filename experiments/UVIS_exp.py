@@ -3,11 +3,10 @@
 Each `UVIS_sub_*` helper returns a list of planned actions assembled by an
 `ActionPlanMaker` that the orchestrator can dispatch. The action graph drives
 the SPEC_T/SPEC_R spectrometer servers, the motion and IO servers, the PAL
-sample archive, and the CAM/PDU/CALC/ANA helpers.
+sample archive, and the CAM/PDU/CALC helpers.
 """
 
 EXPERIMENTS = [
-    "UVIS_analysis_dry",
     "UVIS_calc_abs",
     "UVIS_measure_references",
     "UVIS_sub_load_solid",
@@ -43,7 +42,6 @@ ORCH_server = MM(server_name="ORCH", machine_name=gethostname().lower()).as_dict
 PAL_server = MM(server_name="PAL", machine_name=gethostname().lower()).as_dict()
 SAMPLE_server = MM(server_name="SAMPLE", machine_name=gethostname().lower()).as_dict()
 CALC_server = MM(server_name="CALC", machine_name=gethostname().lower()).as_dict()
-ANA_server = MM(server_name="ANA", machine_name=gethostname().lower()).as_dict()
 CAM_server = MM(server_name="CAM", machine_name=gethostname().lower()).as_dict()
 PDU_server = MM(server_name="PDU", machine_name=gethostname().lower()).as_dict()
 
@@ -554,38 +552,6 @@ def UVIS_calc_abs(
         },
     )
     return apm.planned_actions  # returns complete action list to orch
-
-
-@experiment(version=2)
-def UVIS_analysis_dry(
-    sequence_uuid: str = "",
-    plate_id: int = 0,
-    recent: bool = True,
-    params: dict = {},
-) -> list:
-    """Run the ANA server's dry UV-Vis analysis for a sequence/plate.
-
-    Args:
-        sequence_uuid: Sequence UUID to analyse.
-        plate_id: Plate id to filter on.
-        recent: If True, restrict the analysis to recent runs.
-        params: Free-form parameter dict forwarded to the analyzer.
-
-    Returns:
-        List with a single ANA ``analyze_dryuvis`` action.
-    """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-    apm.add(
-        ANA_server,
-        "analyze_dryuvis",
-        {
-            "sequence_uuid": sequence_uuid,
-            "plate_id": plate_id,
-            "recent": recent,
-            "params": params,
-        },
-    )
-    return apm.planned_actions
 
 
 @experiment(version=2)

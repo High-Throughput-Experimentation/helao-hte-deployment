@@ -1,6 +1,6 @@
-"""Sequence library exposing UV-Vis transmission programs and a post-analysis."""
+"""Sequence library exposing UV-Vis transmission programs."""
 
-SEQUENCES = ["UVIS_T", "UVIS_T_postseq"]
+SEQUENCES = ["UVIS_T"]
 
 from helao.helpers.lib_decorators import sequence
 from helao.helpers.premodels import ExperimentPlanMaker
@@ -131,32 +131,3 @@ def UVIS_T(
     refs(plate_sample_no_list[-1], first=False)
     epm.add("UVIS_sub_shutdown", {})
     return epm.planned_experiments
-
-
-@sequence(version=1)
-def UVIS_T_postseq(
-    analysis_seq_uuid: str = "",
-    plate_id: int = 0,
-    recent: bool = False,
-) -> list:
-    """Build a post-sequence that runs the dry UVIS analysis.
-
-    Args:
-        analysis_seq_uuid: UUID of the source sequence to analyze.
-        plate_id: Plate identifier scoping the analysis.
-        recent: Restrict to the most recent matching run when True.
-
-    Returns:
-        list: Ordered list of planned ``Experiment`` objects.
-    """
-    epm = ExperimentPlanMaker()
-    epm.add(
-        "UVIS_analysis_dry",
-        {
-            "sequence_uuid": analysis_seq_uuid,
-            "plate_id": plate_id,
-            "recent": recent,
-        },
-    )
-
-    return epm.planned_experiments  # returns complete experiment list

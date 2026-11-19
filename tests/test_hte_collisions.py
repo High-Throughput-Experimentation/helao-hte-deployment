@@ -7,11 +7,21 @@ EXP = HTE / "experiments"
 SEQ = HTE / "sequences"
 
 
-def test_known_seq_collision_detected():
-    cols = scan_collisions(SEQ)
-    # ECHEUVIS_postseq defined in both ECHEUVIS_seq.py and HISPEC_seq.py
-    assert "ECHEUVIS_postseq" in cols
-    assert {"ECHEUVIS_seq.py", "HISPEC_seq.py"} <= set(cols["ECHEUVIS_postseq"])
+def test_hte_seq_libraries_have_no_collisions():
+    # the one known collision, ECHEUVIS_postseq in ECHEUVIS_seq.py and
+    # HISPEC_seq.py, was deleted with the in-sequence analysis path
+    assert scan_collisions(SEQ) == {}
+
+
+def test_seq_collision_detected_in_real_dir_copy(tmp_path):
+    # non-vacuity: a copy of the real library plus one duplicate def must be caught
+    import shutil
+
+    shutil.copytree(SEQ, tmp_path / "s")
+    (tmp_path / "s" / "zz_seq.py").write_text(
+        "def UVIS_T():\n    return []\n", encoding="utf-8"
+    )
+    assert scan_collisions(tmp_path / "s") == {"UVIS_T": ["UVIS_T_seq.py", "zz_seq.py"]}
 
 
 def test_exp_collision_detected_in_synthetic_pair(tmp_path):

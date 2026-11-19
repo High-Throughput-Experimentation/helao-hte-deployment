@@ -2,7 +2,6 @@ SEQUENCES = [
     # "ECHEUVIS_CA_led",
     # "ECHEUVIS_CP_led",
     # "ECHEUVIS_CV_led",
-    "ECHEUVIS_postseq",
     "HISPEC_CV",
     "HISPEC_EIS_only",
 ]
@@ -473,34 +472,5 @@ def HISPEC_EIS_only(
         )
 
     epm.add("HISPEC_sub_shutdown", {})
-
-    return epm.planned_experiments  # returns complete experiment list
-
-
-@sequence(version=1)
-def ECHEUVIS_postseq(
-    analysis_seq_uuid: str = "",
-    plate_id: int = 0,
-    recent: bool = False,
-) -> list:
-    """Build a post-sequence that runs the ECHEUVIS stability analysis.
-
-    Args:
-        analysis_seq_uuid: UUID of the source sequence to analyze.
-        plate_id: Plate identifier scoping the analysis.
-        recent: Restrict to the most recent matching run when True.
-
-    Returns:
-        list: Ordered list of planned ``Experiment`` objects.
-    """
-    epm = ExperimentPlanMaker()
-    epm.add(
-        "ECHEUVIS_analysis_stability",
-        {
-            "sequence_uuid": analysis_seq_uuid,
-            "plate_id": plate_id,
-            "recent": recent,
-        },
-    )
 
     return epm.planned_experiments  # returns complete experiment list

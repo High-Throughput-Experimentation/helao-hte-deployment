@@ -172,14 +172,24 @@ servers:
     params:
       aws_profile: default
       testing: false
-  # ANA:
-  #   host: hte-eche-10.htejcap.caltech.edu
-  #   port: 8014
-  #   group: action
-  #   fast: analysis_server
-  #   params:
-  #     local_only: false
-  #     analyses: [icpms_local, xrfs_local]
+    # A present postfinish_hooks owns the whole chain: s3_upload is restated
+    # at every level. dispatch_analysis resolves ANA from this config.
+    postfinish_hooks:
+      action: {s3_upload: ["*"]}
+      experiment: {s3_upload: ["*"]}
+      sequence:
+        s3_upload: ["*"]
+        dispatch_analysis:
+          UVIS_T: {server_key: ANA, endpoint: analyze_uvis_bkgsubnorm}
+          ECHEUVIS_multiCA_led: {server_key: ANA, endpoint: analyze_echeuvis_stability}
+  ANA:
+    host: hte-eche-10.htejcap.caltech.edu
+    port: 8014
+    group: action
+    fast: analysis_server
+    params:
+      local_only: true  # first station check: no S3/API publish
+      analyses: [uvis_bkgsubnorm, echeuvis_stability]
   CAM:
     host: hte-eche-10.htejcap.caltech.edu
     port: 8013

@@ -71,7 +71,7 @@ def test_tec_disabled_has_no_stale_entries():
 
 # Known config gaps: published sequences that queue a server the config does not
 # launch. anec: heat experiments, not runnable until the TEC server returns.
-# eche10/hispec: CALC/ANA analysis steps whose servers those configs don't define.
+# eche10: CALC analysis steps whose server the config does not define.
 # Shrink-only: stale entries fail test_config_gap_allowlist_has_no_stale_entries.
 KNOWN_CONFIG_GAPS = {
     "anec": {
@@ -86,10 +86,7 @@ KNOWN_CONFIG_GAPS = {
         "ECHEUVIS_CA_led",
         "ECHEUVIS_CP_led",
         "ECHEUVIS_CV_led",
-        "ECHEUVIS_postseq",
-        "UVIS_T_postseq",
     },
-    "hispec": {"ECHEUVIS_postseq"},
 }
 CONFIGS = sorted(
     p.stem

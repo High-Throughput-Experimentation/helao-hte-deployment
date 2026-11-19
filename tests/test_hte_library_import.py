@@ -11,13 +11,12 @@ the action-server ports):
    ``galil_motion_driver``/``pal_driver``). If a driver regresses to a
    module-top vendor import, the dependent libraries break here loudly.
 
-2. **Flat-namespace collision guard** (spec §4.3.12 Library port) — the known
-   known ``ECHEUVIS_seq``/``HISPEC_seq`` (``ECHEUVIS_postseq``) shadowing
-   hazard is asserted to still be detectable, and the detector itself is
+2. **Flat-namespace collision guard** (spec §4.3.12 Library port) — both
+   library directories are pinned collision-free, and the detector itself is
    exercised on a synthetic pair, so the eventual Library-port load-time
-   collision check has a frozen expected set. The collision is currently
-   **latent** — no hte config lists a colliding pair in one ``*_libraries:``
-   list — but the guard keeps it from silently going live.
+   collision check has a frozen expected set. The one former collision,
+   ``ECHEUVIS_postseq`` in ``ECHEUVIS_seq`` and ``HISPEC_seq``, was deleted
+   with the in-sequence analysis path.
 """
 
 from __future__ import annotations
@@ -74,7 +73,5 @@ def test_hte_exp_libraries_have_no_collisions():
     assert scan_collisions(EXP_DIR) == {}
 
 
-def test_known_seq_collision_still_detected():
-    cols = scan_collisions(SEQ_DIR)
-    assert "ECHEUVIS_postseq" in cols
-    assert {"ECHEUVIS_seq.py", "HISPEC_seq.py"} <= set(cols["ECHEUVIS_postseq"])
+def test_hte_seq_libraries_have_no_collisions():
+    assert scan_collisions(SEQ_DIR) == {}

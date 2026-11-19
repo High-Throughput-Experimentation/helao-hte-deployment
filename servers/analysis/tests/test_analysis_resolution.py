@@ -211,3 +211,46 @@ def test_app_build_fails_when_a_configured_analysis_is_missing(tmp_path, monkeyp
     world["servers"]["ANA"]["params"]["analyses"] = HTE_ANALYSES + ["no_such_analysis"]
     with pytest.raises(m.AnalysisLoadError):
         _analyze_routes(world, "ANA", monkeypatch)
+
+
+# ---------------------------------------------------------------------------
+# Station wiring: eche10's SYNC dispatches both analyses to its ANA server
+# ---------------------------------------------------------------------------
+
+
+def test_eche10_sync_dispatches_both_uvis_analyses_to_ana():
+    """The SYNC post-finish chain picks the right ANA route per sequence name.
+
+    A present ``postfinish_hooks`` owns the whole chain, so ``s3_upload`` must
+    still run at every level and for every other sequence.
+    """
+    from helao.core.hooks.config import postfinish_config
+    from helao.core.hooks.loader import load_hook_set
+    from helao.helpers.config_loader import read_config
+
+    cfg = read_config("eche10")
+    sync = cfg["servers"]["SYNC"]
+    chain = postfinish_config(
+        sync.get("postfinish_hooks"), "SYNC", params=sync.get("params")
+    )
+    seq_hooks = load_hook_set(chain["sequence"], phase="postfinish", level="sequence")
+    picked = {
+        name: {hook: args for hook, _, args in seq_hooks.select(name)}
+        for name in ("UVIS_T", "ECHEUVIS_multiCA_led", "SOME_OTHER_SEQUENCE")
+    }
+    assert picked["UVIS_T"]["dispatch_analysis"] == {
+        "server_key": "ANA",
+        "endpoint": "analyze_uvis_bkgsubnorm",
+    }
+    assert picked["ECHEUVIS_multiCA_led"]["dispatch_analysis"] == {
+        "server_key": "ANA",
+        "endpoint": "analyze_echeuvis_stability",
+    }
+    assert set(picked["SOME_OTHER_SEQUENCE"]) == {"s3_upload"}
+    for level in ("action", "experiment"):
+        assert set(chain[level]) == {"s3_upload"}
+    ana = cfg["servers"]["ANA"]
+    assert (ana["fast"], ana["params"]["local_only"]) == ("analysis_server", True)
+    assert (
+        set(m.load_analysis_classes(ana["params"]["analyses"], "hte")) == HTE_ENDPOINTS
+    )

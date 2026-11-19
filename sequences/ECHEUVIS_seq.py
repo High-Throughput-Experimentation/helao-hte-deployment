@@ -2,8 +2,7 @@
 
 Each public ``ECHEUVIS_*`` function builds an experiment list via
 ``ExperimentPlanMaker``. Sequences chain sample loading, reference
-measurements, LED-triggered electrochemistry (CV/CA/CP/multiCA), and a
-post-sequence analysis hook.
+measurements, LED-triggered electrochemistry (CV/CA/CP/multiCA).
 """
 
 SEQUENCES = [
@@ -12,7 +11,6 @@ SEQUENCES = [
     "ECHEUVIS_CV_led",
     "ECHEUVIS_diagnostic_CV",
     "ECHEUVIS_multiCA_led",
-    "ECHEUVIS_postseq",
 ]
 
 import random
@@ -1030,36 +1028,5 @@ def ECHEUVIS_multiCA_led(
     #     },
     # )
     epm.add("ECHEUVIS_sub_shutdown", {})
-
-    return epm.planned_experiments  # returns complete experiment list
-
-
-@sequence(version=1)
-def ECHEUVIS_postseq(
-    analysis_seq_uuid: str = "",
-    plate_id: int = 0,
-    recent: bool = False,
-) -> list:
-    """Post-sequence analysis hook for ECHEUVIS runs.
-
-    Forwards the sequence UUID and parameters to the ECHEUVIS analyzer.
-
-    Args:
-        analysis_seq_uuid: UUID of the sequence to analyze.
-        plate_id: Plate ID of the solid sample library.
-        recent: Whether to reuse the most recent calibration/state.
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    epm = ExperimentPlanMaker()
-    epm.add(
-        "ECHEUVIS_analysis_stability",
-        {
-            "sequence_uuid": analysis_seq_uuid,
-            "plate_id": plate_id,
-            "recent": recent,
-        },
-    )
 
     return epm.planned_experiments  # returns complete experiment list
