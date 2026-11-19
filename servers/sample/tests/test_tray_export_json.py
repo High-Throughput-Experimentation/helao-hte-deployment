@@ -12,8 +12,9 @@ import types
 import uuid
 
 from helao.core.error import ErrorCodes
+from helao.core.models.data import DataModel
 from helao.helpers.premodels import Action
-from helao.helpers.sample_positions import Positions
+from helao.helpers.sample_positions import VT15, Positions
 from helao.deploy.hte.servers.sample import sample_server
 from helao.deploy.hte.servers.sample.archive_driver import Archive
 
@@ -82,3 +83,13 @@ def test_undefined_slot_writes_no_row_and_finishes_none(monkeypatch):
     assert active.enqueued == []
     assert active.action.error_code is ErrorCodes.none
     assert result["error_code"] == "none"
+
+
+def test_defined_slot_enqueues_one_datamodel(monkeypatch):
+    app = _app(monkeypatch, {1: {1: VT15()}})
+    active = _Active({"tray": 1, "slot": 1})
+    asyncio.run(
+        app.routes["archive_tray_export_json"](ctx=_Ctx(active), tray=1, slot=1)
+    )
+    assert len(active.enqueued) == 1
+    assert isinstance(active.enqueued[0], DataModel)

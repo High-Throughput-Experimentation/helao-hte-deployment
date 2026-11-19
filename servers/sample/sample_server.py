@@ -902,7 +902,7 @@ def makeApp(server_key) -> ActionHost:
         """Snapshot the archive's loaded positions into ``action_params``.
 
         Populates ``_positions`` (full archive dict), ``_tray_pos`` (loaded
-        tray vials keyed by ``(tray, slot, vial)``), and ``_custom_pos``
+        tray vials keyed by ``"tray,slot,vial"``), and ``_custom_pos``
         (loaded custom positions keyed by name) on the action.
 
         Args:
@@ -915,7 +915,7 @@ def makeApp(server_key) -> ActionHost:
         active = await ctx.begin()
         positions = app.driver.positions
         tray_positions = {
-            (traynum, slotnum, vialidx + 1): sample.global_label
+            f"{traynum},{slotnum},{vialidx + 1}": sample.global_label
             for traynum, slotdict in positions.trays_dict.items()
             for slotnum, vialtray in slotdict.items()
             for vialidx, (vialbool, sample) in enumerate(
