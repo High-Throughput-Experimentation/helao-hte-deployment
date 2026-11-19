@@ -1248,6 +1248,10 @@ async def _run_and_check() -> list:
     return failures
 
 
+def test_golden_master():
+    assert asyncio.run(_run_and_check()) == []
+
+
 def main():
     failures = asyncio.run(_run_and_check())
     if failures:

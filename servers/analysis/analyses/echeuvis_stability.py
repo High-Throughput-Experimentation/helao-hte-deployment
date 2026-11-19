@@ -2,7 +2,7 @@
 
 Reads an ``ECHEUVIS_multiCA_led`` sequence through a ``LocalLoader``
 (:func:`local_frame`), aligns baseline-OCV, in-situ-CA, and
-post-CA OCV spectra for one in-situ CA process, performs
+pre-CA OCV spectra for one in-situ CA process, performs
 background-style normalisation, binning, Savitzky-Golay smoothing and
 reference clipping, and emits per-sample stability figures of merit via
 :class:`EcheUvisAnalysis`.
@@ -170,9 +170,9 @@ class EcheUvisInputs(AnalysisInput):
         insitu: In-situ CA process under analysis.
         insitu_spec_act: Spectrometer action during the CA hold.
         insitu_ca_act: ``run_CA`` action for the in-situ process.
-        presitu: Post-CA OCV process used as the recovery reference.
-        presitu_spec_act: Spectrometer action during the post-CA OCV.
-        presitu_ocv_act: ``run_OCV`` action for the post-CA OCV.
+        presitu: Pre-CA OCV process (the OCV just before this CA: the previous CA's recovery OCV, or the baseline OCV for the first CA) used as the recovery reference.
+        presitu_spec_act: Spectrometer action during the pre-CA OCV.
+        presitu_ocv_act: ``run_OCV`` action for the pre-CA OCV.
         process_params: ``process_params`` dict from the in-situ row.
     """
 
@@ -266,12 +266,12 @@ class EcheUvisInputs(AnalysisInput):
 
     @property
     def presitu_spec(self):
-        """Loaded ``.hlo`` payload for the post-CA spectrometer action."""
+        """Loaded ``.hlo`` payload for the pre-CA spectrometer action."""
         return self.presitu_spec_act.hlo
 
     @property
     def presitu_ocv(self):
-        """Loaded ``.hlo`` payload for the post-CA OCV action."""
+        """Loaded ``.hlo`` payload for the pre-CA OCV action."""
         return self.presitu_ocv_act.hlo
 
     def get_datamodels(
@@ -330,34 +330,34 @@ class EcheUvisOutputs(AnalysisOutput):
         agg_method: Aggregation method (``"mean"`` or ``"median"``).
         agg_baseline: Aggregated baseline OCV spectrum.
         agg_insitu: Aggregated in-situ CA spectrum.
-        agg_presitu: Aggregated post-CA OCV spectrum.
+        agg_presitu: Aggregated pre-CA OCV spectrum.
         bin_wavelength: Binned wavelength axis.
         bin_baseline: Binned baseline spectrum.
         bin_insitu: Binned in-situ spectrum.
-        bin_presitu: Binned post-CA spectrum.
+        bin_presitu: Binned pre-CA spectrum.
         smth_baseline: Smoothed binned baseline.
         smth_insitu: Smoothed binned in-situ.
-        smth_presitu: Smoothed binned post-CA.
+        smth_presitu: Smoothed binned pre-CA.
         rscl_baseline: Rescaled baseline.
         rscl_insitu: Rescaled in-situ.
-        rscl_presitu: Rescaled post-CA.
+        rscl_presitu: Rescaled pre-CA.
         baseline_min_rescaled: Whether the baseline min was rescaled.
         baseline_max_rescaled: Whether the baseline max was rescaled.
         insitu_min_rescaled: Whether the in-situ min was rescaled.
         insitu_max_rescaled: Whether the in-situ max was rescaled.
-        presitu_min_rescaled: Whether the post-CA min was rescaled.
-        presitu_max_rescaled: Whether the post-CA max was rescaled.
+        presitu_min_rescaled: Whether the pre-CA min was rescaled.
+        presitu_max_rescaled: Whether the pre-CA max was rescaled.
         mean_abs_omT_ratio: Mean over wavelengths of
             ``|log10((1-T_insitu)/(1-T_baseline))|``.
         mean_abs_omT_diff: Mean absolute ``(1-T)`` difference.
         noagg_wavelength: Wavelength axis for un-aggregated in-situ.
         noagg_epoch: Epoch axis for un-aggregated in-situ.
         noagg_presitu_wavelength: Wavelength axis for un-aggregated
-            post-CA.
-        noagg_presitu_epoch: Epoch axis for un-aggregated post-CA.
+            pre-CA.
+        noagg_presitu_epoch: Epoch axis for un-aggregated pre-CA.
         noagg_omt_baseline: ``1-T`` reference-adjusted baseline.
         noagg_omt_insitu: Per-frame ``1-T`` for in-situ.
-        noagg_omt_presitu: Per-frame ``1-T`` for post-CA.
+        noagg_omt_presitu: Per-frame ``1-T`` for pre-CA.
         noagg_omt_ratio: Per-frame ratio in-situ/baseline.
     """
 

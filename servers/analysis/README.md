@@ -73,7 +73,7 @@ How the analysis server ships them (`helao/core/drivers/data/analysis_driver.py:
 
 ### `echeuvis_stability` (analysis)
 
-In-situ ECHE UV-Vis optical stability of one sample from its baseline OCV, in-situ CA and post-CA OCV spectra; `EcheUvisAnalysis` (analysis name `ECHEUVIS_InsituOpticalStability`, `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:458`) fills `EcheUvisOutputs` at `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:614`. One output record per analysed CA process. The reference-dark/light correction is commented out, so the spectra are the raw `ch_*` values.
+In-situ ECHE UV-Vis optical stability of one sample from its baseline OCV, in-situ CA and pre-CA OCV spectra (the pre-CA OCV is the OCV just before the analysed CA: the previous CA's recovery OCV, or the baseline OCV for the first CA); `EcheUvisAnalysis` (analysis name `ECHEUVIS_InsituOpticalStability`, `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:458`) fills `EcheUvisOutputs` at `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:614`. One output record per analysed CA process. The reference-dark/light correction is commented out, so the spectra are the raw `ch_*` values.
 
 Outputs model `EcheUvisOutputs` (`helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:321`):
 
@@ -88,32 +88,32 @@ Outputs model `EcheUvisOutputs` (`helao/deploy/hte/servers/analysis/analyses/ech
 | `agg_method` | str | scalar | none | `mean` or `median`, copied from `analysis_params` | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:623` |
 | `agg_baseline` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | per-pixel `agg_method` of the baseline frames past the first `skip_first_n` whose epoch is within `agg_last_secs` of the last frame (`last_secs_start`, `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:106`) | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:624` |
 | `agg_insitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | in-situ CA spectrum, same window rule; when the windowed slice raises for any reason (typically `skip_first_n` leaving no frames), a WARNING is logged and the window is the frames within `agg_last_secs` of the last one, counted over all frames | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:625` |
-| `agg_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | post-CA OCV spectrum, same window rule and fallback | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:626` |
+| `agg_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | pre-CA OCV spectrum, same window rule and fallback | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:626` |
 | `bin_wavelength` | float | list[float] | nm | mean wavelength of each `bin_width`-pixel bin inside the cutoffs | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:627` |
 | `bin_baseline` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | binned baseline | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:628` |
 | `bin_insitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | binned in-situ | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:629` |
-| `bin_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | binned post-CA | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:630` |
+| `bin_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | binned pre-CA | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:630` |
 | `smth_baseline` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | Savitzky-Golay smoothed binned baseline | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:631` |
 | `smth_insitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | smoothed binned in-situ | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:632` |
-| `smth_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | smoothed binned post-CA | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:633` |
+| `smth_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | smoothed binned pre-CA | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:633` |
 | `rscl_baseline` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | `refadjust` rescaled baseline | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:634` |
 | `rscl_insitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | `refadjust` rescaled in-situ | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:635` |
-| `rscl_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | `refadjust` rescaled post-CA | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:636` |
+| `rscl_presitu` | float | list[float] | spectrometer `ch_*` value (as stored in the source file) | `refadjust` rescaled pre-CA | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:636` |
 | `baseline_min_rescaled` | bool | scalar | none | baseline minimum was shifted up | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:637` |
 | `baseline_max_rescaled` | bool | scalar | none | baseline maximum was scaled down | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:638` |
 | `insitu_min_rescaled` | bool | scalar | none | in-situ minimum was shifted up | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:639` |
 | `insitu_max_rescaled` | bool | scalar | none | in-situ maximum was scaled down | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:640` |
-| `presitu_min_rescaled` | bool | scalar | none | post-CA minimum was shifted up | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:641` |
-| `presitu_max_rescaled` | bool | scalar | none | post-CA maximum was scaled down | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:642` |
+| `presitu_min_rescaled` | bool | scalar | none | pre-CA minimum was shifted up | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:641` |
+| `presitu_max_rescaled` | bool | scalar | none | pre-CA maximum was scaled down | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:642` |
 | `mean_abs_omT_ratio` | float | scalar | none | mean over bins of `abs(log10((1 - rscl_insitu) / (1 - rscl_baseline)))`; may be NaN | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:643` |
 | `mean_abs_omT_diff` | float | scalar | none | mean over bins of `abs((1 - rscl_insitu) - (1 - rscl_baseline))` | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:646` |
 | `noagg_wavelength` | float | list[float] | nm | wavelengths inside the cutoffs for the in-situ frames | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:647` |
 | `noagg_epoch` | float | list[float] | s | epoch time of each in-situ frame after the first `skip_first_n` | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:648` |
-| `noagg_presitu_wavelength` | float | list[float] | nm | wavelengths inside the cutoffs for the post-CA frames | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:649` |
-| `noagg_presitu_epoch` | float | list[float] | s | epoch time of each post-CA frame after the first `skip_first_n` | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:650` |
+| `noagg_presitu_wavelength` | float | list[float] | nm | wavelengths inside the cutoffs for the pre-CA frames | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:649` |
+| `noagg_presitu_epoch` | float | list[float] | s | epoch time of each pre-CA frame after the first `skip_first_n` | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:650` |
 | `noagg_omt_baseline` | float | list[float] | none | `1 - baseline` spectrum inside the cutoffs (raw values, one per pixel) | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:651` |
 | `noagg_omt_insitu` | float | array[float, (n_frames, n_pixels)] | none | `1 - spectrum` for every in-situ frame inside the cutoffs | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:652` |
-| `noagg_omt_presitu` | float | array[float, (n_frames, n_pixels)] | none | `1 - spectrum` for every post-CA frame inside the cutoffs | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:653` |
+| `noagg_omt_presitu` | float | array[float, (n_frames, n_pixels)] | none | `1 - spectrum` for every pre-CA frame inside the cutoffs | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:653` |
 | `noagg_omt_ratio` | float | array[float, (n_frames, n_pixels)] | none | `noagg_omt_insitu` divided by `noagg_omt_baseline` per frame | `helao/deploy/hte/servers/analysis/analyses/echeuvis_stability.py:654` |
 
 `noagg_*` arrays have one row per frame kept after skipping the first `skip_first_n` frames and one column per pixel between the two cutoffs.

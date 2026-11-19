@@ -27,7 +27,7 @@ params and is non-perturbing (read-only): it reads ``app.driver.positions``
 (the in-memory ``Positions`` built from the ``positions`` config block plus
 any persisted archive state) and writes three keys into
 ``action.action_params``: ``_positions`` (the full archive dict),
-``_tray_pos`` (loaded tray vials keyed by ``(tray, slot, vial)``), and
+``_tray_pos`` (loaded tray vials keyed by ``"tray,slot,vial"`` strings), and
 ``_custom_pos`` (loaded custom positions keyed by name) -- see
 sample_server.py's ``get_positions`` handler. With the pinned ``positions``
 config (``custom: {cell1_we: cell}``, no tray config, nothing pre-loaded) and

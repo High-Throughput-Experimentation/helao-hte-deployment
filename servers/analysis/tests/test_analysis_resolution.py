@@ -238,6 +238,8 @@ def test_eche10_sync_dispatches_both_uvis_analyses_to_ana():
         name: {hook: args for hook, _, args in seq_hooks.select(name)}
         for name in ("UVIS_T", "ECHEUVIS_multiCA_led", "SOME_OTHER_SEQUENCE")
     }
+    for name in ("UVIS_T", "ECHEUVIS_multiCA_led"):
+        assert list(picked[name]) == ["s3_upload", "dispatch_analysis"]
     assert picked["UVIS_T"]["dispatch_analysis"] == {
         "server_key": "ANA",
         "endpoint": "analyze_uvis_bkgsubnorm",
