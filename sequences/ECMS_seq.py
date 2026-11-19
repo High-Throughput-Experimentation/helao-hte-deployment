@@ -256,7 +256,7 @@ def _ecms_seq_initiation(recirc, cali=False, ecsa=False, **p):
     else:
         _ecms_seq_gas(epm, p)
     if ecsa:
-        if p["versus_OCV"]:
+        if p["versus_OCV"] or resolve_we_versus(p["WE_versus"]) == "ocv":
             epm.add(
                 "ECMS_sub_OCV",
                 {

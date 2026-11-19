@@ -234,3 +234,11 @@ def test_cv_sequences_ref_runs_no_ocv(seq_fn):
     for e in planned:
         if e.experiment_name == "ECMS_sub_CV":
             assert not e.from_global_exp_params
+
+
+def test_ecsa_ocv_mode_measures_ocv_even_if_versus_ocv_false():
+    """WE_versus="ocv" must never run CVs on a stale global OCV."""
+    planned = list(ECMS_seq.ECMS_initiation_ECSA(WE_versus="ocv", versus_OCV=False))
+    names = [e.experiment_name for e in planned]
+    assert names.count("ECMS_sub_OCV") == 1
+    assert names.index("ECMS_sub_OCV") < names.index("ECMS_sub_CV")
