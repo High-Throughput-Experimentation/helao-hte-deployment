@@ -2,7 +2,7 @@
 
 Reads an ``ECHEUVIS_multiCA_led`` sequence through a ``LocalLoader``
 (:func:`local_frame`), aligns baseline-OCV, in-situ-CA, and
-post-CA OCV spectra for a single ``(plate_id, sample_no)``, performs
+post-CA OCV spectra for one in-situ CA process, performs
 background-style normalisation, binning, Savitzky-Golay smoothing and
 reference clipping, and emits per-sample stability figures of merit via
 :class:`EcheUvisAnalysis`.
@@ -121,6 +121,12 @@ def local_frame(local_loader: LocalLoader) -> pd.DataFrame:
     for idx, prow in local_loader.processes.iterrows():
         prc = local_loader.get_prc(idx)
         sample = (prc.json.get("samples_in") or [{}])[0]
+        if sample.get("sample_type") == "assembly":
+            # a cell assembly carries the solid as one of its parts
+            solids = [
+                p for p in sample.get("parts", []) if p.get("sample_type") == "solid"
+            ]
+            sample = solids[0] if solids else sample
         for abbr in prc.json.get("dispatched_actions_abbr", []):
             act = local_loader.resolve_action(
                 abbr["action_uuid"], abbr["action_output_dir"]
@@ -202,7 +208,8 @@ class EcheUvisInputs(AnalysisInput):
         self.insitu_spec_act = ins[ins.action_name == "acquire_spec_extrig"].iloc[0].act
         self.insitu_ca_act = ins[ins.action_name == "run_CA"].iloc[0].act
 
-        # the OCV run immediately before this CA is the post-CA (presitu) reference
+        # the data OCV/CA action just before this CA is its presitu reference:
+        # the OCV after the previous CA, or the baseline OCV for the first CA
         eche_acts = data[data.action_name.isin(["run_OCV", "run_CA"])]
         presitu_ocv_idx = (
             list(eche_acts.action_uuid).index(str(self.insitu_ca_act.action_uuid)) - 1
@@ -430,8 +437,9 @@ class EcheUvisAnalysis(BaseAnalysis):
     @classmethod
     def select_process_uuids(cls, local_loader) -> list:
         """The sequence's ``run_use == data`` CA processes (the in-situ targets)."""
-        f = local_frame(local_loader)
-        return list(f[(f.run_use == "data") & (f.action_name == "run_CA")].process_uuid)
+        f = local_loader._local_frame = local_frame(local_loader)
+        sel = f[(f.run_use == "data") & (f.action_name == "run_CA")]
+        return list(dict.fromkeys(sel.process_uuid))
 
     def __init__(
         self,
@@ -451,8 +459,11 @@ class EcheUvisAnalysis(BaseAnalysis):
         self.analysis_timestamp = datetime.now()
         self.analysis_params = copy(ANALYSIS_DEFAULTS)
         self.analysis_params.update(analysis_params)
-        # ponytail: frame rebuilt per process; loader caches the ymls
-        self.inputs = EcheUvisInputs(process_uuid, local_frame(local_loader))
+        # select_process_uuids stores the frame on the loader (one build per sequence)
+        frame = getattr(local_loader, "_local_frame", None)
+        if frame is None:
+            frame = local_frame(local_loader)
+        self.inputs = EcheUvisInputs(process_uuid, frame)
         prc = self.inputs.insitu
         self.process_uuid = process_uuid
         self.process_timestamp = prc.process_timestamp
@@ -495,32 +506,6 @@ class EcheUvisAnalysis(BaseAnalysis):
         wl = btup[0]
         wlindlo = np.where(wl > ap["lower_wl"])[0].min()
         wlindhi = np.where(wl < ap["upper_wl"])[0].max()
-
-        # # mean aggregate initial and final reference dark spectra
-        # mean_ref_dark = np.vstack(
-        #     [
-        #         arr[
-        #             np.where(
-        #                 (ep[ap["skip_first_n"] :] - ep.max()) >= -ap["agg_last_secs"]
-        #             )[0].min() :
-        #         ]
-        #         for wl, ep, arr in rdtups
-        #     ]
-        # ).mean(axis=0)
-
-        # # mean aggregate initial and final reference light spectra
-        # mean_ref_light = np.vstack(
-        #     [
-        #         arr[
-        #             np.where(
-        #                 (ep[ap["skip_first_n"] :] - ep.max()) >= -ap["agg_last_secs"]
-        #             )[
-        #                 0
-        #             ].min() :  # this gets the minimum index of the last t seconds
-        #         ]
-        #         for wl, ep, arr in rltups
-        #     ]
-        # ).mean(axis=0)
 
         skip, secs = ap["skip_first_n"], ap["agg_last_secs"]
         # aggregate baseline insitu OCV spectra over final t seconds, omitting first n

@@ -80,7 +80,8 @@ def test_eche_short_insitu_falls_back_to_whole_epoch_vector():
     ana.inputs = SimpleNamespace(
         baseline_spec=_ramp(), insitu_spec=_ramp(n=3), presitu_spec=_ramp()
     )
-    assert ana.calc_output() is True
+    with np.errstate(invalid="ignore"):  # constant spectra give log10(0/0)
+        assert ana.calc_output() is True
     assert ana.outputs.agg_insitu[0] == 1.0
 
 
@@ -166,7 +167,7 @@ def _sequence(tmp_path: Path, seq_name: str, experiments: list) -> tuple:
                 "run_use": proc["run_use"],
                 "run_type": "test",
                 "process_params": proc.get("params", {}),
-                "samples_in": [{"global_label": proc["label"]}],
+                "samples_in": [proc.get("sample", {"global_label": proc["label"]})],
                 "dispatched_actions_abbr": abbr,
                 "files": files,
             }
@@ -265,3 +266,113 @@ def test_eche_runs_and_exports_through_local_loader(tmp_path):
         "spectrum.echeuvis_stability"
     }
     assert ana.ca_potential_vrhe == 1.23
+
+
+def test_loader_frame_built_once_for_n_analyses(tmp_path, monkeypatch):
+    seq_dir, _ = _dry_tree(tmp_path)
+    calls = []
+    real = dry.local_frame
+
+    def counting(loader):
+        calls.append(1)
+        return real(loader)
+
+    monkeypatch.setattr(dry, "local_frame", counting)
+    loader = LocalLoader(str(seq_dir))
+    puuids = dry.DryUvisAnalysis.select_process_uuids(loader)
+    assert len(puuids) == 2
+    for puuid in puuids:
+        dry.DryUvisAnalysis(puuid, loader, PARAMS)
+    assert len(calls) == 1
+
+
+def test_eche_label_is_the_solid_part_of_an_assembly(tmp_path):
+    spec = "acquire_spec_extrig"
+    cell = {
+        "global_label": "cell1_we__abc",
+        "sample_type": "assembly",
+        "parts": [
+            {"global_label": "liq__1", "sample_type": "liquid"},
+            {"global_label": "plate__1", "sample_type": "solid"},
+        ],
+    }
+    proc = lambda params, last: {
+        "run_use": "data",
+        "label": "x",
+        "sample": cell,
+        "params": params,
+        "actions": [(spec, _ramp()), (last, None)],
+    }
+    seq_dir, _ = _sequence(
+        tmp_path,
+        "ECHEUVIS_multiCA_led",
+        [
+            ("ECHEUVIS_sub_OCV_led", [proc({}, "run_OCV")]),
+            ("ECHEUVIS_sub_CA_led", [proc({"CA_potential_vsRHE": 1.0}, "run_CA")]),
+        ],
+    )
+    loader = LocalLoader(str(seq_dir))
+    puuid = eche.EcheUvisAnalysis.select_process_uuids(loader)[0]
+    ana = eche.EcheUvisAnalysis(puuid, loader, ECHE_PARAMS)
+    assert ana.calc_output() is True
+    model, _ = ana.export_analysis("b", "r")
+    assert model["global_sample_label"] == "plate__1"
+
+
+def _first_act(prc):
+    return prc.json["dispatched_actions_abbr"][0]["action_uuid"]
+
+
+def test_eche_two_samples_two_potentials_pick_own_baseline_and_presitu(tmp_path):
+    spec = "acquire_spec_extrig"
+
+    def ocv(lab):
+        return (
+            "ECHEUVIS_sub_OCV_led",
+            [
+                {
+                    "run_use": "data",
+                    "label": lab,
+                    "actions": [(spec, _ramp()), ("run_OCV", None)],
+                }
+            ],
+        )
+
+    def ca(lab, v):
+        return (
+            "ECHEUVIS_sub_CA_led",
+            [
+                {
+                    "run_use": "data",
+                    "label": lab,
+                    "params": {"CA_potential_vsRHE": v},
+                    "actions": [(spec, _ramp()), ("run_CA", None)],
+                }
+            ],
+        )
+
+    seq_dir, pu = _sequence(
+        tmp_path,
+        "ECHEUVIS_multiCA_led",
+        [ocv("A"), ca("A", 1.0), ocv("A"), ca("A", 2.0), ocv("B"), ca("B", 1.0)],
+    )
+    loader = LocalLoader(str(seq_dir))
+    got = eche.EcheUvisAnalysis.select_process_uuids(loader)
+    assert [str(u) for u in got] == [pu[1], pu[3], pu[5]]
+    ins = {
+        k: eche.EcheUvisAnalysis(u, loader, ECHE_PARAMS).inputs
+        for k, u in zip("a1 a2 b1".split(), got)
+    }
+    # baseline: the sample's own first OCV
+    assert [str(ins[k].baseline.process_uuid) for k in ("a1", "a2", "b1")] == [
+        pu[0],
+        pu[0],
+        pu[4],
+    ]
+    # presitu: the OCV just before the CA (the OCV after CA 1 for CA 2)
+    assert [str(ins[k].presitu.process_uuid) for k in ("a1", "a2", "b1")] == [
+        pu[0],
+        pu[2],
+        pu[4],
+    ]
+    assert str(ins["a2"].presitu_spec_act.action_uuid) == _first_act(ins["a2"].presitu)

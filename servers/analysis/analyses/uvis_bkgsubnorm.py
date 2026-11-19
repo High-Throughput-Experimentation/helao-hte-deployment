@@ -218,9 +218,9 @@ class DryUvisAnalysis(BaseAnalysis):
     @classmethod
     def select_process_uuids(cls, local_loader) -> list:
         """The sequence's ``run_use == data`` acquisitions (references excluded)."""
-        f = local_frame(local_loader)
+        f = local_loader._local_frame = local_frame(local_loader)
         sel = f[(f.run_use == "data") & (f.action_name == "acquire_spec_adv")]
-        return list(sel.process_uuid)
+        return list(dict.fromkeys(sel.process_uuid))
 
     def __init__(
         self,
@@ -241,8 +241,11 @@ class DryUvisAnalysis(BaseAnalysis):
         self.analysis_timestamp = datetime.now()
         self.analysis_params = copy(ANALYSIS_DEFAULTS)
         self.analysis_params.update(analysis_params)
-        # ponytail: frame rebuilt per process; loader caches the ymls
-        self.inputs = DryUvisInputs(process_uuid, local_frame(local_loader))
+        # select_process_uuids stores the frame on the loader (one build per sequence)
+        frame = getattr(local_loader, "_local_frame", None)
+        if frame is None:
+            frame = local_frame(local_loader)
+        self.inputs = DryUvisInputs(process_uuid, frame)
         prc = self.inputs.insitu
         self.process_uuid = process_uuid
         self.process_timestamp = prc.process_timestamp
