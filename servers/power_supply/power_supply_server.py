@@ -507,10 +507,6 @@ async def power_supply_dyn_endpoints(app: ActionHost):
 
         # Abbreviate action for clarity
         active.action.action_abbr = "APPLYVOLT"
-        # Save parameters to action_params
-        active.action.action_params["voltage"] = voltage
-        active.action.action_params["sleep_time"] = sleep_time
-
         # Start executor
         executor = ApplyVoltageExecutor(active=active, oneoff=False)
         active_action_dict = active.start_executor(executor)
@@ -549,10 +545,6 @@ async def power_supply_dyn_endpoints(app: ActionHost):
 
         # Abbreviate action for clarity
         active.action.action_abbr = "SQUAREWAVE"
-        # Save parameters to action_params
-        active.action.action_params["voltage"] = voltage
-        active.action.action_params["sleep_time"] = sleep_time
-
         # Start executor
         executor = SquareWaveExecutor(active=active, oneoff=False)
         active_action_dict = active.start_executor(executor)
@@ -599,12 +591,6 @@ async def power_supply_dyn_endpoints(app: ActionHost):
 
         # Abbreviate action for clarity
         active.action.action_abbr = "SQUAREWAVE"
-        # Save parameters to action_params
-        active.action.action_params["current"] = current
-        active.action.action_params["sleep_time"] = sleep_time
-        active.action.action_params["sleep_time1"] = sleep_time1
-        active.action.action_params["sleep_time2"] = sleep_time2
-
         # Start executor
         executor = ConstantCurrentSquareWaveExecutor(active=active, oneoff=False)
         active_action_dict = active.start_executor(executor)

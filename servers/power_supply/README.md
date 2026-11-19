@@ -31,63 +31,45 @@ Notes:
 
 ## Outputs
 
-All three actions open the file with fixed columns (`json_data_keys`), file type `power_supply_helao__file` and a header with `column_headings` set to the same list (`helao/deploy/hte/servers/power_supply/power_supply_server.py:499-506`, `:541-548`, `:591-598`). Rows come from the executors' `_poll` return and are queued by the executor runner (`helao/hexagon/app/executor_runner.py:129-136`) into `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Rows serialize NaN as `null` (`helao/helpers/to_json.py:39`). Every `-act.json` also records the parameters the endpoint re-writes into `action_params`: the caller's value, or the endpoint default when the caller omitted it.
+All three actions open the file with fixed columns (`json_data_keys`), file type `power_supply_helao__file` and a header with `column_headings` set to the same list (`helao/deploy/hte/servers/power_supply/power_supply_server.py:499-506`, `:537-544`, `:583-590`). Rows come from the executors' `_poll` return and are queued by the executor runner (`helao/hexagon/app/executor_runner.py:129-136`) into `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Rows serialize NaN as `null` (`helao/helpers/to_json.py:39`).
 
 ### `apply_voltage` (action)
 
-`ApplyVoltageExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:515`; `action_abbr` `APPLYVOLT`, `:509`) applies the voltage in `_exec` and polls the output current; each cycle normally takes about 10 s (about 5 s when the reply is non-numeric, which returns before the sleep, `helao/deploy/hte/servers/power_supply/power_supply_driver.py:300`, or when the query raises, `helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`): the driver sleeps 5 s after the read (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:305`, `sleep_time=self.poll_rate`, `helao/deploy/hte/servers/power_supply/power_supply_server.py:302`) and the runner sleeps `poll_rate` = 5 s (`helao/deploy/hte/servers/power_supply/power_supply_server.py:249`, `helao/hexagon/app/executor_runner.py:138`) until stopped. `get_current_async` always returns a success response, even from its except branch, so the `errored` branch in `helao/deploy/hte/servers/power_supply/power_supply_server.py:305-307` is never taken (see Notes). Data file `APPLYVOLT-*.jsonl` (+ `.meta.json`), one row per successful poll. A poll whose query raised returns success without data (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`), so it writes no row.
+`ApplyVoltageExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:511`; `action_abbr` `APPLYVOLT`, `:509`) applies the voltage in `_exec` and polls the output current; each cycle normally takes about 10 s (about 5 s when the reply is non-numeric, which returns before the sleep, `helao/deploy/hte/servers/power_supply/power_supply_driver.py:300`, or when the query raises, `helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`): the driver sleeps 5 s after the read (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:305`, `sleep_time=self.poll_rate`, `helao/deploy/hte/servers/power_supply/power_supply_server.py:302`) and the runner sleeps `poll_rate` = 5 s (`helao/deploy/hte/servers/power_supply/power_supply_server.py:249`, `helao/hexagon/app/executor_runner.py:138`) until stopped. `get_current_async` always returns a success response, even from its except branch, so the `errored` branch in `helao/deploy/hte/servers/power_supply/power_supply_server.py:305-307` is never taken (see Notes). Data file `APPLYVOLT-*.jsonl` (+ `.meta.json`), one row per successful poll. A poll whose query raised returns success without data (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`), so it writes no row.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `current_a` | float \| null | scalar per row | A | `IOUT1?` reading; `null` when the reply was not numeric (NaN) | `helao/deploy/hte/servers/power_supply/power_supply_driver.py:303`, `:309` (row returned at `helao/deploy/hte/servers/power_supply/power_supply_server.py:308`) |
 
-Action results (in `-act.json`):
-
-| key | in | type | structure | meaning | set at |
-|---|---|---|---|---|---|
-| `voltage` | `action_params` | float | scalar | endpoint kwarg `voltage` (default 1.0, unless sent as a query param); overwrites the orchestrator-supplied value; the voltage applied (V) | `helao/deploy/hte/servers/power_supply/power_supply_server.py:511` |
-| `sleep_time` | `action_params` | float | scalar | endpoint kwarg `sleep_time` (its default unless sent as a query param); overwrites the orchestrator-supplied value; delay (s) passed to `apply_voltage_async` | `helao/deploy/hte/servers/power_supply/power_supply_server.py:512` |
+No action results (`voltage`, `sleep_time` etc. are inputs; the executor reads them from `action_params` as dispatched).
 
 ### `square_wave` (action)
 
-`SquareWaveExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:557`; `action_abbr` `SQUAREWAVE`, `:551`) runs the whole off-on-off pulse in `_exec` (`:376-429`). Its `_poll` returns no `status`, which the runner reads as finished (`helao/hexagon/app/executor_runner.py:128`), so the loop polls once: at most one row, the output current after the pulse, and none when the read fails (`helao/deploy/hte/servers/power_supply/power_supply_server.py:441-450`). Data file `SQUAREWAVE-*.jsonl` (+ `.meta.json`):
+`SquareWaveExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:549`; `action_abbr` `SQUAREWAVE`, `:547`) runs the whole off-on-off pulse in `_exec` (`:376-429`). Its `_poll` returns no `status`, which the runner reads as finished (`helao/hexagon/app/executor_runner.py:128`), so the loop polls once: at most one row, the output current after the pulse, and none when the read fails (`helao/deploy/hte/servers/power_supply/power_supply_server.py:441-450`). Data file `SQUAREWAVE-*.jsonl` (+ `.meta.json`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `current_a` | float \| null | scalar per row | A | `IOUT1?` reading; `null` when the reply was not numeric | `helao/deploy/hte/servers/power_supply/power_supply_driver.py:303`, `:309` (row returned at `helao/deploy/hte/servers/power_supply/power_supply_server.py:447`) |
 
-Action results (in `-act.json`):
-
-| key | in | type | structure | meaning | set at |
-|---|---|---|---|---|---|
-| `voltage` | `action_params` | float | scalar | endpoint kwarg `voltage` (its default unless sent as a query param); overwrites the orchestrator-supplied value; pulse amplitude (V) | `helao/deploy/hte/servers/power_supply/power_supply_server.py:553` |
-| `sleep_time` | `action_params` | float | scalar | endpoint kwarg `sleep_time` (its default unless sent as a query param); overwrites the orchestrator-supplied value; phase duration (s) | `helao/deploy/hte/servers/power_supply/power_supply_server.py:554` |
+No action results (`voltage`, `sleep_time` etc. are inputs; the executor reads them from `action_params` as dispatched).
 
 ### `constant_current_square_wave` (action)
 
-`ConstantCurrentSquareWaveExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:609`; `action_abbr` `SQUAREWAVE`, `:601`) polls every 0.2 s (`:79`); each poll before `sleep_time2` elapses reads the output voltage and returns one row, and the final poll (after `sleep_time2`) returns only `finished` and no row (`:166-171`). Data file `SQUAREWAVE-*.jsonl` (+ `.meta.json`):
+`ConstantCurrentSquareWaveExecutor` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:595`; `action_abbr` `SQUAREWAVE`, `:593`) polls every 0.2 s (`:79`); each poll before `sleep_time2` elapses reads the output voltage and returns one row, and the final poll (after `sleep_time2`) returns only `finished` and no row (`:166-171`). Data file `SQUAREWAVE-*.jsonl` (+ `.meta.json`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `t_s` | float | scalar per row | s | time since `_exec` started | `helao/deploy/hte/servers/power_supply/power_supply_server.py:211` |
 | `voltage_v` | float \| null | scalar per row | V | `VOUT1?` reading; `null` when the query raised (NaN) | `helao/deploy/hte/servers/power_supply/power_supply_driver.py:250`, `:269` |
 
-Action results (in `-act.json`):
-
-| key | in | type | structure | meaning | set at |
-|---|---|---|---|---|---|
-| `current` | `action_params` | float | scalar | endpoint kwarg `current` (its default unless sent as a query param); overwrites the orchestrator-supplied value; ON-phase current setpoint (A) | `helao/deploy/hte/servers/power_supply/power_supply_server.py:603` |
-| `sleep_time` | `action_params` | float | scalar | endpoint kwarg `sleep_time` (its default unless sent as a query param); overwrites the orchestrator-supplied value; elapsed time (s) at which OFF to ON | `helao/deploy/hte/servers/power_supply/power_supply_server.py:604` |
-| `sleep_time1` | `action_params` | float | scalar | endpoint kwarg `sleep_time1` (its default unless sent as a query param); overwrites the orchestrator-supplied value; elapsed time (s) at which ON to OFF | `helao/deploy/hte/servers/power_supply/power_supply_server.py:605` |
-| `sleep_time2` | `action_params` | float | scalar | endpoint kwarg `sleep_time2` (its default unless sent as a query param); overwrites the orchestrator-supplied value; elapsed time (s) at which polling ends | `helao/deploy/hte/servers/power_supply/power_supply_server.py:606` |
+No action results (`voltage`, `sleep_time` etc. are inputs; the executor reads them from `action_params` as dispatched).
 
 ### Private endpoints
 
-`/stop_private` disconnects the driver and returns nothing (`helao/deploy/hte/servers/power_supply/power_supply_server.py:637-640`); no data files or action results.
+`/stop_private` disconnects the driver and returns nothing (`helao/deploy/hte/servers/power_supply/power_supply_server.py:623-626`); no data files or action results.
 
 ## Notes
 
 - `ConstantCurrentSquareWaveExecutor._poll` reads `resp.data['voltage_v']` (`helao/deploy/hte/servers/power_supply/power_supply_server.py:210`) without checking `resp.response`. When the driver is not connected, `get_voltage_async` returns a failed response with empty `data` (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:237-242`), so the line raises `KeyError`, the runner catches it and ends the polling loop early with no further rows (`helao/hexagon/app/executor_runner.py:122-126`).
 - `SquareWaveExecutor._poll` returns no `status`, so the runner treats the first poll as the last (`helao/hexagon/app/executor_runner.py:128`); `square_wave` therefore writes at most one data row.
 - `ApplyVoltageExecutor._poll` has an `errored` branch for a failed read (`helao/deploy/hte/servers/power_supply/power_supply_server.py:305-307`), but `get_current_async` returns `DriverResponseType.success` in every path after the connected check, including its except branch (`helao/deploy/hte/servers/power_supply/power_supply_driver.py:311-317`), so the branch is dead code; a failed query yields a success reply without data and no row.
-- Defect (latent: no in-tree caller): `build_action` adds an endpoint kwarg to `action_params` only when the key is missing (`helao/hexagon/app/action_context.py:252-256`), and the orchestrator dispatches without query params (`helao/hexagon/app/orch_dispatch.py:297`; `helao/helpers/dispatcher.py:118-125`), so the kwargs hold their defaults (e.g. `voltage=1.0`, `helao/deploy/hte/servers/power_supply/power_supply_server.py:481`). The assignments at `:511-512`, `:553-554` and `:603-606` then overwrite the dispatched values, and the executors read the overwritten `action_params` (`:158-162`, `:284-285`, `:387-388`). A dispatched `voltage` or `sleep_time` is silently replaced by the default. Not fixed here.

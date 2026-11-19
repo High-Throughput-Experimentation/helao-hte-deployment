@@ -337,3 +337,46 @@ async def test_power_supply_hlo_columns_match_polled_keys():
     assert await header_of("constant_current_square_wave") == ["t_s", "voltage_v"]
     assert await header_of("apply_voltage") == ["current_a"]
     assert await header_of("square_wave") == ["current_a"]
+
+
+# power_supply_server: an endpoint must not overwrite the dispatched params
+# with its own signature defaults. The orchestrator dispatches with no query
+# params, so every kwarg holds its default while action_params (filled by
+# build_action) holds the dispatched value.
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "name, dispatched",
+    [
+        ("apply_voltage", {"voltage": 2.5, "sleep_time": 0.2}),
+        ("square_wave", {"voltage": 2.5, "sleep_time": 0.2}),
+        (
+            "constant_current_square_wave",
+            {"current": 0.5, "sleep_time": 3.0, "sleep_time1": 4.0, "sleep_time2": 5.0},
+        ),
+    ],
+)
+async def test_power_supply_keeps_dispatched_params(monkeypatch, name, dispatched):
+    funcs = {}
+    app = types.SimpleNamespace(
+        server=types.SimpleNamespace(server_name="PS"),
+        server_params={},
+        action=lambda: lambda f: funcs.setdefault(f.__name__, f),
+    )
+    await power_supply_server.power_supply_dyn_endpoints(app)
+    for cls in (
+        "ApplyVoltageExecutor",
+        "SquareWaveExecutor",
+        "ConstantCurrentSquareWaveExecutor",
+    ):
+        monkeypatch.setattr(power_supply_server, cls, lambda active, oneoff: None)
+    active = types.SimpleNamespace(
+        action=types.SimpleNamespace(action_params=dict(dispatched), action_abbr=None),
+        start_executor=lambda ex: {},
+    )
+
+    class Ctx:
+        async def begin(self, **kw):
+            return active
+
+    await funcs[name](Ctx())  # kwargs take their defaults, as under the orchestrator
+    assert active.action.action_params == dispatched
