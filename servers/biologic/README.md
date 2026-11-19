@@ -103,7 +103,7 @@ params:
 
 Every technique action runs `BiologicExec` (`helao/deploy/hte/servers/biologic/biologic_server.py:67`) through the framework default data connection: one JSON object per queued message, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). Each `_poll` queues the backend's `get_data` result as one row, so every value in a row is a list with one entry per sample read in that poll (`biologic_server.py:299`; queued at `helao/hexagon/app/executor_runner.py:129-136`). Columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`). Non-finite floats are written as `null` (`helao/helpers/to_json.py:30`), so a column that can hold NaN is typed `float | null`.
 
-`action_abbr` per endpoint: `run_CA` `CA` (`biologic_server.py:422`), `run_CP` `CP` (`:459`), `run_CV` `CV` (`:510`), `run_OCV` `OCV` (`:542`), `run_PEIS` `PEIS` (`:582`), `run_GEIS` `GEIS` (`:621`), `run_CAOCV` `CAOCV` (`:659`), `run_CALIMIT` `CALIM` (`:709`), `run_CPLIMIT` `CPLIM` (`:767`), `run_SPEIS` `SPEIS` (`:813`), `run_SGEIS` `SGEIS` (`:864`), `run_plan` `PLAN` (`:931`), `run_protocol` `PROT` (`:963`).
+`action_abbr` per endpoint: `run_CA` `CA` (`biologic_server.py:429`), `run_CP` `CP` (`:466`), `run_CV` `CV` (`:517`), `run_OCV` `OCV` (`:549`), `run_PEIS` `PEIS` (`:589`), `run_GEIS` `GEIS` (`:628`), `run_CAOCV` `CAOCV` (`:666`), `run_CALIMIT` `CALIM` (`:716`), `run_CPLIMIT` `CPLIM` (`:774`), `run_SPEIS` `SPEIS` (`:820`), `run_SGEIS` `SGEIS` (`:871`), `run_plan` `PLAN` (`:938`), `run_protocol` `PROT` (`:970`).
 
 Which techniques a backend serves: `eclib` serves all of `OCV`, `CA`, `CP`, `CV`, `PEIS`, `GEIS`, `CAOCV`, `CALIMIT`, `CPLIMIT`, `SPEIS`, `SGEIS` (`helao/deploy/hte/servers/biologic/biologic/data.py:186-198`); `olecom` has the techniques in `OLE_TECHS` (`helao/deploy/hte/servers/biologic/biologic_ole/technique.py:352`; not `CALIMIT`, `CPLIMIT`, `SPEIS`, `SGEIS`); `eclib2` serves `OCV`, `CA`, `CP`, `CV`, `PEIS`, `GEIS`, `CAOCV` (`helao/deploy/hte/servers/biologic/biologic_eclib2/technique.py:60-67`). An endpoint whose technique the active backend lacks fails at technique resolution and writes no data.
 
@@ -145,14 +145,14 @@ Action results (in `-act.json`), set at run time by the endpoint after `ctx.begi
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
 | `AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CA` and `run_CALIMIT` | `helao/deploy/hte/servers/biologic/biologic_server.py:430`, `:717` |
-| `AcqInterval__V` | `action_params` | float | scalar | fixed `10.0` for `run_CP`, `run_OCV`, `run_CPLIMIT`; for `run_CV` `AcqInterval__s * ScanRate__V_s` | `biologic_server.py:460`, `:543`, `:768`, `:506-509` |
-| `CA_AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:660` |
-| `OCV_AcqInterval__V` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:661` |
-| `Cycles` | `action_params` | int | scalar | `run_CV` only: the requested value minus 1 ("additional cycles") | `biologic_server.py:505` |
-| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the data buffer holds `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `biologic_server.py:318` |
-| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `biologic_server.py:318` |
-| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `biologic_server.py:318` |
-| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: result of `bubble_detection` on the buffered data, with the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `biologic_server.py:333` |
+| `AcqInterval__V` | `action_params` | float | scalar | fixed `10.0` for `run_CP`, `run_OCV`, `run_CPLIMIT`; for `run_CV` `AcqInterval__s * ScanRate__V_s` | `biologic_server.py:467`, `:550`, `:775`, `:513-516` |
+| `CA_AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:667` |
+| `OCV_AcqInterval__V` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:668` |
+| `Cycles` | `action_params` | int | scalar | `run_CV` only: the requested value minus 1 ("additional cycles") | `biologic_server.py:512` |
+| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the data buffer holds `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `biologic_server.py:325` |
+| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `biologic_server.py:325` |
+| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `biologic_server.py:325` |
+| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: result of `bubble_detection` on the buffered data, with the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `biologic_server.py:340` |
 
 (`*__mean_final` is written for every technique action, `run_plan` and `run_protocol` included, for whichever of `t_s`, `Ewe_V`, `I_A` the run produced; the table lists the three keys once.)
 
@@ -188,7 +188,7 @@ Data file `PLAN-*.jsonl` (+ `.meta.json`). Columns are the union of the entries'
 
 ### `run_protocol` (action, `olecom` only)
 
-`BiologicProtocolExec` (`biologic_server.py:347`); data file `PROT-*.jsonl` (+ `.meta.json`). The columns are chosen from the loaded technique code (`helao/deploy/hte/servers/biologic/biologic_ole/technique.py:515-540`): the DC set above, the EIS set above, or `t_s`, `Ewe_V`, `I_A` only for an unrecognized code, plus `channel`. Types as for olecom above. Action results: `t_s__mean_final`, `Ewe_V__mean_final`, `I_A__mean_final` as above.
+`BiologicProtocolExec` (`biologic_server.py:354`); data file `PROT-*.jsonl` (+ `.meta.json`). The columns are chosen from the loaded technique code (`helao/deploy/hte/servers/biologic/biologic_ole/technique.py:515-540`): the DC set above, the EIS set above, or `t_s`, `Ewe_V`, `I_A` only for an unrecognized code, plus `channel`. Types as for olecom above. Action results: `t_s__mean_final`, `Ewe_V__mean_final`, `I_A__mean_final` as above.
 
 ### `eclib`-only live-state columns
 
@@ -243,6 +243,6 @@ No data files or action results.
 
 - `num_channels` defaults differ: the `eclib` and `olecom` drivers default to 12, the `eclib2` driver to 1, and the visualizer to 1. A station driving more than one channel on `eclib` or `olecom` without setting the key gets 12 driver channels but a one-channel visualizer.
 - The `biologic_ole/driver.py` module docstring says "all optional except `address`", but the code gives `address` a default (`192.168.200.240`) on `eclib` and `olecom`.
-- `biologic_server.py:382` writes `server_params["allow_concurrent_actions"] = False` at startup; a config value for it is overwritten.
+- `biologic_server.py:389` writes `server_params["allow_concurrent_actions"] = False` at startup; a config value for it is overwritten.
 - `get_meas_status` reads `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1086`), but no backend defines `dtaqsink`, so the action raises `AttributeError` and queues no row.
 - `P_W` is signed `Ewe*I` on `eclib` and `eclib2` but `abs(Ewe*I)` on `olecom` (`helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:131`), and `cycle` and `process` are `int` on the SDK backends but `float` on `olecom`; the column names match across backends, the values do not.
