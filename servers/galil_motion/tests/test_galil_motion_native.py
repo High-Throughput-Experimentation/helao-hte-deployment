@@ -556,3 +556,80 @@ def test_connect_gives_up_after_connect_attempts():
     resp = d.connect()
     assert resp.status.value == "error" and d.galil_enabled is False
     assert ch.commands.count("PF 10.4") == 3
+
+
+# --------------------------------------------------------------------------
+# catalog bugfixes H3: joint axis/d_mm filter, real timeout, scalar err_code
+# --------------------------------------------------------------------------
+def test_unconfigured_axis_is_dropped_with_its_distance():
+    # x-only controller; "z" is unconfigured. x must get ITS distance:
+    # 1.0 mm / 0.001 mm per count = 1000 counts (not z's 5.0 mm -> 5000).
+    d, ch = _drv(responses=_move_responses(), config=dict(MOVE_CFG))
+    d.connect()
+    ch.commands.clear()
+    out = asyncio.run(
+        d._motor_move([5.0, 1.0], ["z", "x"], None, "absolute", "motorxy")
+    )
+    assert "PAA=1000" in ch.commands
+    assert "PAA=5000" not in ch.commands
+    assert out["supplied_rel_dist"] == [1.0]
+    assert out["err_code"] == [ErrorCodes.none]
+
+
+def test_only_unconfigured_axes_sends_no_move_and_does_not_raise():
+    # Review Focus RF3: nothing left to move -> no SP/PA/PR/BG command (the
+    # "PA ?" position query has no "="), no timeout raise, busy flag released.
+    d, ch = _drv(responses=_move_responses(), config=dict(MOVE_CFG))
+    d.connect()
+    ch.commands.clear()
+    out = asyncio.run(d._motor_move([5.0], ["z"], None, "absolute", "motorxy"))
+    assert [c for c in ch.commands if "=" in c or c.startswith("BG")] == []
+    assert out["err_code"] == []
+    assert d.motor_busy is False
+
+
+def test_move_still_running_at_deadline_halts_and_raises():
+    # SC "0" == moving on every poll; the 0.01 s deadline passes during the
+    # first 0.5 s poll sleep, so the loop exits without every axis stopped.
+    d, ch = _drv(
+        responses=_move_responses({"SC": "0"}), config=dict(MOVE_CFG, timeout=0.01)
+    )
+    d.connect()
+    ch.commands.clear()
+    params = {
+        "d_mm": [1.0],
+        "axis": ["x"],
+        "mode": "absolute",
+        "transformation": "motorxy",
+    }
+    with pytest.raises(RuntimeError, match="motion timeout"):
+        asyncio.run(d.motor_move(_active(params)))
+    assert "STA" in ch.commands  # halted before raising
+    assert d.motor_busy is False and d.blocked is False  # next move accepted
+
+
+def test_move_stopped_at_deadline_is_not_a_timeout():
+    # SC "1" == stopped on the first poll: finishes none even with a tiny timeout
+    d, ch = _drv(
+        responses=_move_responses({"SC": "1"}), config=dict(MOVE_CFG, timeout=0.01)
+    )
+    d.connect()
+    out = asyncio.run(d._motor_move([1.0], ["x"], None, "absolute", "motorxy"))
+    assert out["err_code"] == [ErrorCodes.none]
+
+
+def test_controller_disabled_mid_move_reports_not_available():
+    # query_axis_moving answers a SCALAR not_available once galil_enabled is
+    # False (galil_motion_native.py:400-401); the settle loop must not
+    # character-index it ('n' != none -> timeout today).
+    d, ch = _drv(responses=_move_responses(), config=dict(MOVE_CFG))
+    d.connect()
+    real_query = d.query_axis_moving
+
+    async def _disabling_query(axis, *a, **k):
+        d.galil_enabled = False
+        return await real_query(axis, *a, **k)
+
+    d.query_axis_moving = _disabling_query
+    out = asyncio.run(d._motor_move([1.0], ["x"], None, "absolute", "motorxy"))
+    assert out["err_code"] == [ErrorCodes.not_available]

@@ -26,7 +26,6 @@ import asyncio
 import json
 import os
 import time
-from copy import deepcopy
 from socket import gethostname
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -595,26 +594,19 @@ class NativeGalilMotion(HelaoDriver):
                 "counts": None,
             }
 
-        # remove not-configured axes
-        for ax in deepcopy(axis):
+        # drop not-configured axes together with their distances
+        for ax in axis:
             if ax not in self.axis_id:
-                axis.pop(axis.index(ax))
+                LOGGER.warning(f"axis '{ax}' is not configured; dropped from the move")
+        pairs = [(d, ax) for d, ax in zip(d_mm, axis) if ax in self.axis_id]
+        d_mm = [d for d, _ in pairs]
+        axis = [ax for _, ax in pairs]
 
         count_to_mm = self.config_dict.get("count_to_mm", {})
         for d, ax in zip(d_mm, axis):
             if len(ret_moved_axis) > 0:
                 stopping = False
-            if ax in self.axis_id:
-                axl = self.axis_id[ax]
-            else:
-                ret_moved_axis.append(None)
-                ret_speed.append(None)
-                ret_accepted_rel_dist.append(None)
-                ret_supplied_rel_dist.append(d)
-                ret_err_dist.append(None)
-                ret_err_code.append(ErrorCodes.setup)
-                ret_counts.append(None)
-                continue
+            axl = self.axis_id[ax]
 
             try:
                 if counts_mode:
@@ -702,23 +694,32 @@ class NativeGalilMotion(HelaoDriver):
         qmove: dict = {"motor_status": [], "err_code": []}
         if not self._is_estopped():
             tstart = time.time()
+            settled = False
             while (
                 time.time() - tstart < self.motor_timeout
             ) and not self._is_estopped():
                 qmove = await self.query_axis_moving(axis=axis)
                 await asyncio.sleep(0.5)
                 if all(status == "stopped" for status in qmove["motor_status"]):
+                    settled = True
                     break
             if not self._is_estopped():
-                if time.time() - tstart > self.motor_timeout:
+                if not settled:
+                    # shared motion-timeout rule: halt, then raise so the
+                    # orchestrator pauses and re-queues instead of E-STOPping;
+                    # _motor_move/motor_move release motor_busy/blocked in finally
                     await self.stop_axis(axis)
-                newret_err_code = []
-                for erridx, err_code in enumerate(ret_err_code):
-                    if qmove["err_code"][erridx] != ErrorCodes.none:
-                        newret_err_code.append(ErrorCodes.timeout)
-                    else:
-                        newret_err_code.append(err_code)
-                ret_err_code = newret_err_code
+                    raise RuntimeError(
+                        f"motion timeout: axes {axis} not stopped after "
+                        f"{self.motor_timeout} s"
+                    )
+                q_codes = qmove["err_code"]
+                if not isinstance(q_codes, list):  # disabled mid-move: scalar
+                    q_codes = [q_codes] * len(ret_err_code)
+                ret_err_code = [
+                    q_codes[i] if code == ErrorCodes.none and i < len(q_codes) else code
+                    for i, code in enumerate(ret_err_code)
+                ]
             else:
                 ret_err_code = [ErrorCodes.estop for _ in ret_err_code]
         else:
