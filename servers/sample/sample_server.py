@@ -41,6 +41,9 @@ from helao.hexagon.app.action_context import ActionContext, action_version
 from helao.hexagon.app.action_host import ActionHost
 from helao.helpers.make_str_enum import make_str_enum
 from helao.helpers.premodels import Action
+from helao.helpers import helao_logging as logging
+
+LOGGER = logging.make_logger(__file__) if logging.LOGGER is None else logging.LOGGER
 
 from helao.deploy.hte.servers.sample.archive_driver import (
     Archive,
@@ -328,8 +331,16 @@ def makeApp(server_key) -> ActionHost:
             file_type="palvialtable_helao__file",
         )
         datadict = await app.driver.tray_export_json(**active.action.action_params)
-        datamodel = DataModel(data={active.base.dflt_file_conn_key(): datadict})
-        active.enqueue_data_nowait(datamodel, action=active.action)
+        if datadict is None:
+            # undefined tray/slot: nothing to export, as archive_tray_export_csv
+            LOGGER.warning(
+                f"archive_tray_export_json: no vial table at tray "
+                f"{active.action.action_params.get('tray')} slot "
+                f"{active.action.action_params.get('slot')}; no row written"
+            )
+        else:
+            datamodel = DataModel(data={active.base.dflt_file_conn_key(): datadict})
+            active.enqueue_data_nowait(datamodel, action=active.action)
         finished_action = await active.finish()
         return finished_action.as_dict()
 

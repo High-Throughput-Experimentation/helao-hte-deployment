@@ -11,10 +11,10 @@ Host-level keys every server accepts: see `docs/config-schema.md` ("Group conven
 ### `sample_server` (`fast:` value)
 | key | req | type | default | meaning / allowed values | read at |
 |---|---|---|---|---|---|
-| `positions` | no | dict | none (no trays, no custom positions) | Sample-archive layout. Keys: `tray<n>` (integer `n`) and `custom`. Any other key is ignored. At most one server per config may declare it. | `helao/deploy/hte/servers/sample/archive_driver.py:123`, `helao/deploy/hte/servers/sample/sample_server.py:76` |
+| `positions` | no | dict | none (no trays, no custom positions) | Sample-archive layout. Keys: `tray<n>` (integer `n`) and `custom`. Any other key is ignored. At most one server per config may declare it. | `helao/deploy/hte/servers/sample/archive_driver.py:123`, `helao/deploy/hte/servers/sample/sample_server.py:79` |
 | `positions.tray<n>` | no | dict or null | n/a | Slots of tray `n`. Keys `slot1`, `slot2`, `slot3`; any other slot key is logged and skipped. A null tray is skipped. | `helao/deploy/hte/servers/sample/archive_driver.py:285` |
 | `positions.tray<n>.slot<m>` | no | string or null | n/a | Vial rack type in the slot: `VT54`, `VT15` or `VT70`. Null leaves the slot empty. Any other string is logged as unsupported and the slot is stored as empty. | `helao/deploy/hte/servers/sample/archive_driver.py:296` |
-| `positions.custom` | no | dict | `{}` | `{custom_name: custom_type}`. `custom_type` must be one of `cell`, `reservoir`, `injector`, `waste` (`CustomTypes`); another value fails pydantic validation. The names also become the `dev_custom` enum of the endpoints that take a `custom` argument. | `helao/deploy/hte/servers/sample/archive_driver.py:260`, `helao/deploy/hte/servers/sample/sample_server.py:77`, `helao/helpers/sample_positions.py:39` |
+| `positions.custom` | no | dict | `{}` | `{custom_name: custom_type}`. `custom_type` must be one of `cell`, `reservoir`, `injector`, `waste` (`CustomTypes`); another value fails pydantic validation. The names also become the `dev_custom` enum of the endpoints that take a `custom` argument. | `helao/deploy/hte/servers/sample/archive_driver.py:260`, `helao/deploy/hte/servers/sample/sample_server.py:80`, `helao/helpers/sample_positions.py:39` |
 
 The persisted `<host>_archive.json` is compared with `positions` at startup. If tray or custom layouts differ, the archive's positions are replaced by the config's.
 
@@ -72,7 +72,7 @@ Custom position dict (`helao/helpers/sample_positions.py:48-65`):
 | `blocked` | bool | scalar | none | administratively blocked | `helao/helpers/sample_positions.py:64` |
 | `max_vol_ml` | float \| null | scalar | mL | optional maximum holdup volume | `helao/helpers/sample_positions.py:65` |
 
-**Sample database** (shared writer `helao/helpers/sample_api.py`; this unit's call sites are `helao/deploy/hte/servers/sample/archive_driver.py:120` (opens it), `helao/deploy/hte/servers/sample/archive_driver.py:1253-1254`, `helao/deploy/hte/servers/sample/archive_driver.py:1658-1910`, `helao/deploy/hte/servers/sample/archive_driver.py:1927`, `helao/deploy/hte/servers/sample/archive_driver.py:1978`, `helao/deploy/hte/servers/sample/archive_driver.py:2015`, `helao/deploy/hte/servers/sample/archive_driver.py:2023` and the private `/new_samples`, `/update_samples` endpoints `helao/deploy/hte/servers/sample/sample_server.py:981-999`). One SQLite file per sample type in `<db_root>`, `<hostname lowercase>__<type>_sample.db` with `<type>` one of `liquid`, `gas`, `assembly`, `solid` (`helao/helpers/sample_api.py:130`), table `<type>_sample` with an autoincrement `idx` primary key. The `solid` table is created but never written: solid `new_samples` logs an error and returns `[]` and solid `update_samples` only re-validates (`helao/helpers/sample_api.py:772-783`, `helao/helpers/sample_api.py:839-850`). `new_samples` inserts a row (`helao/helpers/sample_api.py:262-325`; `sample_no` is the row count plus one, missing machine/server names, creation time and last-update are filled in); `update_samples` updates the row `idx = sample_no` only when `global_label` and `sample_type` match the stored row, and stamps `last_update` (`helao/helpers/sample_api.py:553-642`, UPDATE at `helao/helpers/sample_api.py:523-551`). Columns (`helao/helpers/sample_api.py:87-108`, per-type extras `helao/helpers/sample_api.py:672`, `helao/helpers/sample_api.py:691`, `helao/helpers/sample_api.py:710`, `helao/helpers/sample_api.py:726`):
+**Sample database** (shared writer `helao/helpers/sample_api.py`; this unit's call sites are `helao/deploy/hte/servers/sample/archive_driver.py:120` (opens it), `helao/deploy/hte/servers/sample/archive_driver.py:1253-1254`, `helao/deploy/hte/servers/sample/archive_driver.py:1658-1910`, `helao/deploy/hte/servers/sample/archive_driver.py:1927`, `helao/deploy/hte/servers/sample/archive_driver.py:1978`, `helao/deploy/hte/servers/sample/archive_driver.py:2015`, `helao/deploy/hte/servers/sample/archive_driver.py:2023` and the private `/new_samples`, `/update_samples` endpoints `helao/deploy/hte/servers/sample/sample_server.py:992-1010`). One SQLite file per sample type in `<db_root>`, `<hostname lowercase>__<type>_sample.db` with `<type>` one of `liquid`, `gas`, `assembly`, `solid` (`helao/helpers/sample_api.py:130`), table `<type>_sample` with an autoincrement `idx` primary key. The `solid` table is created but never written: solid `new_samples` logs an error and returns `[]` and solid `update_samples` only re-validates (`helao/helpers/sample_api.py:772-783`, `helao/helpers/sample_api.py:839-850`). `new_samples` inserts a row (`helao/helpers/sample_api.py:262-325`; `sample_no` is the row count plus one, missing machine/server names, creation time and last-update are filled in); `update_samples` updates the row `idx = sample_no` only when `global_label` and `sample_type` match the stored row, and stamps `last_update` (`helao/helpers/sample_api.py:553-642`, UPDATE at `helao/helpers/sample_api.py:523-551`). Columns (`helao/helpers/sample_api.py:87-108`, per-type extras `helao/helpers/sample_api.py:672`, `helao/helpers/sample_api.py:691`, `helao/helpers/sample_api.py:710`, `helao/helpers/sample_api.py:726`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
@@ -104,39 +104,39 @@ Samples recorded on the action (in `-act.json`; fields of the action, not `actio
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `samples_in` | `action` | dict | list[dict] | sample dict(s) the action consumed: tray query, tray load (only if a sample loaded), tray unload/unloadall, custom load/load_solid (only if loaded), custom unload/unloadall, custom query, add_liquid/add_gas, and `db_get_samples` (replacing the input references) | `helao/deploy/hte/servers/sample/sample_server.py:118`, `helao/deploy/hte/servers/sample/sample_server.py:195`, `helao/deploy/hte/servers/sample/sample_server.py:226`, `helao/deploy/hte/servers/sample/sample_server.py:147`, `helao/deploy/hte/servers/sample/sample_server.py:473`, `helao/deploy/hte/servers/sample/sample_server.py:434`, `helao/deploy/hte/servers/sample/sample_server.py:518`, `helao/deploy/hte/servers/sample/sample_server.py:566`, `helao/deploy/hte/servers/sample/sample_server.py:612`, `helao/deploy/hte/servers/sample/sample_server.py:671`, `helao/deploy/hte/servers/sample/sample_server.py:727`, `helao/deploy/hte/servers/sample/sample_server.py:769` |
-| `samples_out` | `action` | dict | list[dict] | sample dict(s) the action produced: unload actions, add actions, `db_new_samples` | `helao/deploy/hte/servers/sample/sample_server.py:227`, `helao/deploy/hte/servers/sample/sample_server.py:148`, `helao/deploy/hte/servers/sample/sample_server.py:519`, `helao/deploy/hte/servers/sample/sample_server.py:567`, `helao/deploy/hte/servers/sample/sample_server.py:672`, `helao/deploy/hte/servers/sample/sample_server.py:728`, `helao/deploy/hte/servers/sample/sample_server.py:824` |
+| `samples_in` | `action` | dict | list[dict] | sample dict(s) the action consumed: tray query, tray load (only if a sample loaded), tray unload/unloadall, custom load/load_solid (only if loaded), custom unload/unloadall, custom query, add_liquid/add_gas, and `db_get_samples` (replacing the input references) | `helao/deploy/hte/servers/sample/sample_server.py:121`, `helao/deploy/hte/servers/sample/sample_server.py:198`, `helao/deploy/hte/servers/sample/sample_server.py:229`, `helao/deploy/hte/servers/sample/sample_server.py:150`, `helao/deploy/hte/servers/sample/sample_server.py:484`, `helao/deploy/hte/servers/sample/sample_server.py:445`, `helao/deploy/hte/servers/sample/sample_server.py:529`, `helao/deploy/hte/servers/sample/sample_server.py:577`, `helao/deploy/hte/servers/sample/sample_server.py:623`, `helao/deploy/hte/servers/sample/sample_server.py:682`, `helao/deploy/hte/servers/sample/sample_server.py:738`, `helao/deploy/hte/servers/sample/sample_server.py:780` |
+| `samples_out` | `action` | dict | list[dict] | sample dict(s) the action produced: unload actions, add actions, `db_new_samples` | `helao/deploy/hte/servers/sample/sample_server.py:230`, `helao/deploy/hte/servers/sample/sample_server.py:151`, `helao/deploy/hte/servers/sample/sample_server.py:530`, `helao/deploy/hte/servers/sample/sample_server.py:578`, `helao/deploy/hte/servers/sample/sample_server.py:683`, `helao/deploy/hte/servers/sample/sample_server.py:739`, `helao/deploy/hte/servers/sample/sample_server.py:835` |
 
 ### Tray actions
 
-**`archive_tray_query_sample`** (`query_sample`, `helao/deploy/hte/servers/sample/sample_server.py:111`). Row (`helao/deploy/hte/servers/sample/sample_server.py:119-122`); samples-in record (`helao/deploy/hte/servers/sample/sample_server.py:118`). Data file `query_sample-*.jsonl` (+ `.meta.json`):
+**`archive_tray_query_sample`** (`query_sample`, `helao/deploy/hte/servers/sample/sample_server.py:114`). Row (`helao/deploy/hte/servers/sample/sample_server.py:122-125`); samples-in record (`helao/deploy/hte/servers/sample/sample_server.py:121`). Data file `query_sample-*.jsonl` (+ `.meta.json`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `sample` | dict | scalar per row | none | sample dict at the vial (the `NoneSample` dict when the vial is empty or undefined) | `helao/deploy/hte/servers/sample/sample_server.py:119` |
-| `error_code` | str | scalar per row | none | `none`, or `not_available` when the tray/slot is undefined | `helao/deploy/hte/servers/sample/sample_server.py:119` |
+| `sample` | dict | scalar per row | none | sample dict at the vial (the `NoneSample` dict when the vial is empty or undefined) | `helao/deploy/hte/servers/sample/sample_server.py:122` |
+| `error_code` | str | scalar per row | none | `none`, or `not_available` when the tray/slot is undefined | `helao/deploy/hte/servers/sample/sample_server.py:122` |
 
 Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_fast_samples_in` | `action_params` | dict | list[dict] | one-element list with the same sample dict | `helao/deploy/hte/servers/sample/sample_server.py:121` |
+| `_fast_samples_in` | `action_params` | dict | list[dict] | one-element list with the same sample dict | `helao/deploy/hte/servers/sample/sample_server.py:124` |
 
-**`archive_tray_load`** (`load_sample`, `helao/deploy/hte/servers/sample/sample_server.py:188`). Row (`helao/deploy/hte/servers/sample/sample_server.py:196-198`); data file `load_sample-*.jsonl` (+ `.meta.json`). The loaded sample is verified in the sample DB first; the in-memory table is updated without a state-file write (see above). No action results.
-
-| field | type | structure | unit | meaning | written at |
-|---|---|---|---|---|---|
-| `error_code` | str | scalar per row | none | `none` on success, else `not_available` | `helao/deploy/hte/servers/sample/sample_server.py:196` |
-| `sample` | dict | scalar per row | none | loaded sample dict, DB-refreshed; the `NoneSample` dict on failure | `helao/deploy/hte/servers/sample/sample_server.py:196` |
-
-**`archive_tray_unload`, `archive_tray_unloadall`** (`unload_sample`, `helao/deploy/hte/servers/sample/sample_server.py:219`, `helao/deploy/hte/servers/sample/sample_server.py:140`). Empty the slot (or every slot), write the state file (`helao/deploy/hte/servers/sample/archive_driver.py:505`, `helao/deploy/hte/servers/sample/archive_driver.py:544`), mark the unloaded samples `unloaded` and update their DB rows (`helao/deploy/hte/servers/sample/archive_driver.py:1253-1254`). Row (`helao/deploy/hte/servers/sample/sample_server.py:228-230`, `helao/deploy/hte/servers/sample/sample_server.py:149-151`); data file `unload_sample-*.jsonl` (+ `.meta.json`). No action results.
+**`archive_tray_load`** (`load_sample`, `helao/deploy/hte/servers/sample/sample_server.py:191`). Row (`helao/deploy/hte/servers/sample/sample_server.py:199-201`); data file `load_sample-*.jsonl` (+ `.meta.json`). The loaded sample is verified in the sample DB first; the in-memory table is updated without a state-file write (see above). No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `unloaded` | bool | scalar per row | none | whether a slot was found (always `true` for unload-all) | `helao/deploy/hte/servers/sample/sample_server.py:228`, `helao/deploy/hte/servers/sample/sample_server.py:149` |
-| `tray_dict` | dict | dict | none | `{tray: {slot: vial tray dict}}` as it was before unloading (vial tray dict as above) | `helao/deploy/hte/servers/sample/sample_server.py:228`, `helao/deploy/hte/servers/sample/sample_server.py:149` |
+| `error_code` | str | scalar per row | none | `none` on success, else `not_available` | `helao/deploy/hte/servers/sample/sample_server.py:199` |
+| `sample` | dict | scalar per row | none | loaded sample dict, DB-refreshed; the `NoneSample` dict on failure | `helao/deploy/hte/servers/sample/sample_server.py:199` |
 
-**`archive_tray_new_position`** (action name as abbreviation). Searches for the smallest empty vial that fits `req_vol`; `blocked` is set on each new best-fit candidate the search finds (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`, inside the loop), so earlier, larger best-fit candidates stay blocked as well as the returned one (see Notes). The state file is not written. Row (`helao/deploy/hte/servers/sample/sample_server.py:260-262`); data file `<action name>-*.jsonl`. No action results.
+**`archive_tray_unload`, `archive_tray_unloadall`** (`unload_sample`, `helao/deploy/hte/servers/sample/sample_server.py:222`, `helao/deploy/hte/servers/sample/sample_server.py:143`). Empty the slot (or every slot), write the state file (`helao/deploy/hte/servers/sample/archive_driver.py:505`, `helao/deploy/hte/servers/sample/archive_driver.py:544`), mark the unloaded samples `unloaded` and update their DB rows (`helao/deploy/hte/servers/sample/archive_driver.py:1253-1254`). Row (`helao/deploy/hte/servers/sample/sample_server.py:231-233`, `helao/deploy/hte/servers/sample/sample_server.py:152-154`); data file `unload_sample-*.jsonl` (+ `.meta.json`). No action results.
+
+| field | type | structure | unit | meaning | written at |
+|---|---|---|---|---|---|
+| `unloaded` | bool | scalar per row | none | whether a slot was found (always `true` for unload-all) | `helao/deploy/hte/servers/sample/sample_server.py:231`, `helao/deploy/hte/servers/sample/sample_server.py:152` |
+| `tray_dict` | dict | dict | none | `{tray: {slot: vial tray dict}}` as it was before unloading (vial tray dict as above) | `helao/deploy/hte/servers/sample/sample_server.py:231`, `helao/deploy/hte/servers/sample/sample_server.py:152` |
+
+**`archive_tray_new_position`** (action name as abbreviation). Searches for the smallest empty vial that fits `req_vol`; `blocked` is set on each new best-fit candidate the search finds (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`, inside the loop), so earlier, larger best-fit candidates stay blocked as well as the returned one (see Notes). The state file is not written. Row (`helao/deploy/hte/servers/sample/sample_server.py:263-265`); data file `<action name>-*.jsonl`. No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
@@ -144,21 +144,21 @@ Action results (in `-act.json`):
 | `slot` | int \| null | scalar per row | none | slot number | `helao/deploy/hte/servers/sample/archive_driver.py:781` |
 | `vial` | int \| null | scalar per row | none | 1-based vial number | `helao/deploy/hte/servers/sample/archive_driver.py:781` |
 
-**`archive_tray_update_position`** (action name as abbreviation). Row (`helao/deploy/hte/servers/sample/sample_server.py:299-305`); writes the state file (`helao/deploy/hte/servers/sample/archive_driver.py:863`). No action results.
+**`archive_tray_update_position`** (action name as abbreviation). Row (`helao/deploy/hte/servers/sample/sample_server.py:302-308`); writes the state file (`helao/deploy/hte/servers/sample/archive_driver.py:863`). No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `update` | bool | scalar per row | none | whether the vial was overwritten (`false` for no sample or an undefined position) | `helao/deploy/hte/servers/sample/sample_server.py:300` |
+| `update` | bool | scalar per row | none | whether the vial was overwritten (`false` for no sample or an undefined position) | `helao/deploy/hte/servers/sample/sample_server.py:303` |
 
-**`archive_tray_export_json`** (`traytojson`, file type `palvialtable_helao__file`, `helao/deploy/hte/servers/sample/sample_server.py:327-328`). Row (`helao/deploy/hte/servers/sample/sample_server.py:330-332`); data file `traytojson-*.jsonl` (+ `.meta.json`). The row is the vial tray dict of the slot (fields in the vial tray table above); when the slot is undefined the driver returns `None`, and `DataModel(data={key: None})` fails validation (`data` is `dict[UUID, dict]`, `helao/core/models/data.py:26`), so `helao/deploy/hte/servers/sample/sample_server.py:331` raises after the action began: no row is written and the action does not finish normally (see Notes). No action results.
+**`archive_tray_export_json`** (`traytojson`, file type `palvialtable_helao__file`, `helao/deploy/hte/servers/sample/sample_server.py:330-331`). Row (`helao/deploy/hte/servers/sample/sample_server.py:343`); data file `traytojson-*.jsonl` (+ `.meta.json`). The row is the vial tray dict of the slot (fields in the vial tray table above). When the tray or slot is undefined or null the driver returns `None` (`helao/deploy/hte/servers/sample/archive_driver.py:549-559`); the endpoint then logs a WARNING, queues no row and finishes with `error_code` `none` (`helao/deploy/hte/servers/sample/sample_server.py:334`). No action results.
 
-**`archive_tray_export_csv`** (`traytocsv`, `helao/deploy/hte/servers/sample/sample_server.py:394`). When the tray exists, writes `VialTable__tray<tray>__slot<slot>__<%y%m%d.%H%M%S%f>.csv`; the write sits outside the slot check (`helao/deploy/hte/servers/sample/archive_driver.py:602`), so a defined tray with an undefined slot gets a header-only file, file type `pal_vialtable_file`, tracked on the action (`helao/deploy/hte/servers/sample/archive_driver.py:602-608`). No data row, no action results.
+**`archive_tray_export_csv`** (`traytocsv`, `helao/deploy/hte/servers/sample/sample_server.py:405`). When the tray exists, writes `VialTable__tray<tray>__slot<slot>__<%y%m%d.%H%M%S%f>.csv`; the write sits outside the slot check (`helao/deploy/hte/servers/sample/archive_driver.py:602`), so a defined tray with an undefined slot gets a header-only file, file type `pal_vialtable_file`, tracked on the action (`helao/deploy/hte/servers/sample/archive_driver.py:602-608`). No data row, no action results.
 
 | file | format | name pattern | meaning | written at |
 |---|---|---|---|---|
 | vial table | CSV; header line `vial_no,global_sample_label,vol_ml`, then `%%`, then one line per vial: 1-based number, label or the text `None`, volume or `None` | `VialTable__tray<tray>__slot<slot>__<timestamp>.csv` | every vial of the slot, empty ones included | `helao/deploy/hte/servers/sample/archive_driver.py:602-608` |
 
-**`archive_tray_export_icpms`** (`traytoicpms`, `helao/deploy/hte/servers/sample/sample_server.py:362`). When the slot exists, writes `VialTable__tray<tray>__slot<slot>__<%y%m%d-%H%M%S%f>_ICPMS.csv`, file type `pal_icpms_file`, tracked on the action with the vials' labels as the file's sample labels (`helao/deploy/hte/servers/sample/archive_driver.py:683-690`). No data row, no action results.
+**`archive_tray_export_icpms`** (`traytoicpms`, `helao/deploy/hte/servers/sample/sample_server.py:373`). When the slot exists, writes `VialTable__tray<tray>__slot<slot>__<%y%m%d-%H%M%S%f>_ICPMS.csv`, file type `pal_icpms_file`, tracked on the action with the vials' labels as the file's sample labels (`helao/deploy/hte/servers/sample/archive_driver.py:683-690`). No data row, no action results.
 
 | file | format | name pattern | meaning | written at |
 |---|---|---|---|---|
@@ -166,65 +166,65 @@ Action results (in `-act.json`):
 
 ### Custom-position actions
 
-**`archive_custom_load`, `archive_custom_load_solid`** (`load_sample`, `helao/deploy/hte/servers/sample/sample_server.py:467`, `helao/deploy/hte/servers/sample/sample_server.py:425`). Load a sample at a custom position; the state file is rewritten (`helao/deploy/hte/servers/sample/archive_driver.py:1226`). Row (`helao/deploy/hte/servers/sample/sample_server.py:474-476`, `helao/deploy/hte/servers/sample/sample_server.py:435-437`); data file `load_sample-*.jsonl` (+ `.meta.json`).
+**`archive_custom_load`, `archive_custom_load_solid`** (`load_sample`, `helao/deploy/hte/servers/sample/sample_server.py:478`, `helao/deploy/hte/servers/sample/sample_server.py:436`). Load a sample at a custom position; the state file is rewritten (`helao/deploy/hte/servers/sample/archive_driver.py:1226`). Row (`helao/deploy/hte/servers/sample/sample_server.py:485-487`, `helao/deploy/hte/servers/sample/sample_server.py:446-448`); data file `load_sample-*.jsonl` (+ `.meta.json`).
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `loaded` | bool | scalar per row | none | whether the sample was loaded | `helao/deploy/hte/servers/sample/sample_server.py:474`, `helao/deploy/hte/servers/sample/sample_server.py:435` |
-| `customs_dict` | dict | dict | none | the custom position dict after loading (`{}` when nothing was loaded) | `helao/deploy/hte/servers/sample/sample_server.py:474`, `helao/deploy/hte/servers/sample/sample_server.py:435` |
+| `loaded` | bool | scalar per row | none | whether the sample was loaded | `helao/deploy/hte/servers/sample/sample_server.py:485`, `helao/deploy/hte/servers/sample/sample_server.py:446` |
+| `customs_dict` | dict | dict | none | the custom position dict after loading (`{}` when nothing was loaded) | `helao/deploy/hte/servers/sample/sample_server.py:485`, `helao/deploy/hte/servers/sample/sample_server.py:446` |
 
 Action results (in `-act.json`), `archive_custom_load_solid` only:
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `load_sample_in` | `action_params` | dict | dict | the `SolidSample` built from the `sample_no` and `plate_id` params | `helao/deploy/hte/servers/sample/sample_server.py:427` |
+| `load_sample_in` | `action_params` | dict | dict | the `SolidSample` built from the `sample_no` and `plate_id` params | `helao/deploy/hte/servers/sample/sample_server.py:438` |
 
-**`archive_custom_unload`, `archive_custom_unloadall`** (`unload_sample`, `helao/deploy/hte/servers/sample/sample_server.py:508`, `helao/deploy/hte/servers/sample/sample_server.py:556`). Unload one or every custom position, optionally destroying phases; state file rewritten (`helao/deploy/hte/servers/sample/archive_driver.py:1082`, `helao/deploy/hte/servers/sample/archive_driver.py:1045`); unloaded samples marked `unloaded` and their DB rows updated (`helao/deploy/hte/servers/sample/archive_driver.py:1253-1254`). Row (`helao/deploy/hte/servers/sample/sample_server.py:520-522`, `helao/deploy/hte/servers/sample/sample_server.py:568-570`); data file `unload_sample-*.jsonl` (+ `.meta.json`).
+**`archive_custom_unload`, `archive_custom_unloadall`** (`unload_sample`, `helao/deploy/hte/servers/sample/sample_server.py:519`, `helao/deploy/hte/servers/sample/sample_server.py:567`). Unload one or every custom position, optionally destroying phases; state file rewritten (`helao/deploy/hte/servers/sample/archive_driver.py:1082`, `helao/deploy/hte/servers/sample/archive_driver.py:1045`); unloaded samples marked `unloaded` and their DB rows updated (`helao/deploy/hte/servers/sample/archive_driver.py:1253-1254`). Row (`helao/deploy/hte/servers/sample/sample_server.py:531-533`, `helao/deploy/hte/servers/sample/sample_server.py:579-581`); data file `unload_sample-*.jsonl` (+ `.meta.json`).
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `unloaded` | bool | scalar per row | none | whether anything was unloaded | `helao/deploy/hte/servers/sample/sample_server.py:520`, `helao/deploy/hte/servers/sample/sample_server.py:569` |
-| `customs_dict` | dict | dict | none | `{name: custom position dict}` as it was before unloading | `helao/deploy/hte/servers/sample/sample_server.py:520`, `helao/deploy/hte/servers/sample/sample_server.py:569` |
+| `unloaded` | bool | scalar per row | none | whether anything was unloaded | `helao/deploy/hte/servers/sample/sample_server.py:531`, `helao/deploy/hte/servers/sample/sample_server.py:580` |
+| `customs_dict` | dict | dict | none | `{name: custom position dict}` as it was before unloading | `helao/deploy/hte/servers/sample/sample_server.py:531`, `helao/deploy/hte/servers/sample/sample_server.py:580` |
 
 Action results (in `-act.json`), `archive_custom_unloadall` only:
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_unloaded_solid` | `action_params` | dict \| null | dict | sample dict of the first unloaded solid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:583` |
-| `_unloaded_liquid` | `action_params` | dict \| null | dict | sample dict of the first unloaded liquid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:584` |
-| `_unloaded_liquid_vol` | `action_params` | float \| int \| null | scalar | `volume_ml` of that liquid, `null` when the liquid's `volume_ml` is unset, or the integer `0` when there is no liquid | `helao/deploy/hte/servers/sample/sample_server.py:585` |
+| `_unloaded_solid` | `action_params` | dict \| null | dict | sample dict of the first unloaded solid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:594` |
+| `_unloaded_liquid` | `action_params` | dict \| null | dict | sample dict of the first unloaded liquid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:595` |
+| `_unloaded_liquid_vol` | `action_params` | float \| int \| null | scalar | `volume_ml` of that liquid, `null` when the liquid's `volume_ml` is unset, or the integer `0` when there is no liquid | `helao/deploy/hte/servers/sample/sample_server.py:596` |
 
-**`archive_custom_query_sample`** (`query_sample`, `helao/deploy/hte/servers/sample/sample_server.py:606`). Row (`helao/deploy/hte/servers/sample/sample_server.py:613-616`); data file `query_sample-*.jsonl`. Same fields as `archive_tray_query_sample` (`sample`, `error_code`, `helao/deploy/hte/servers/sample/sample_server.py:613`), and the same result:
+**`archive_custom_query_sample`** (`query_sample`, `helao/deploy/hte/servers/sample/sample_server.py:617`). Row (`helao/deploy/hte/servers/sample/sample_server.py:624-627`); data file `query_sample-*.jsonl`. Same fields as `archive_tray_query_sample` (`sample`, `error_code`, `helao/deploy/hte/servers/sample/sample_server.py:624`), and the same result:
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_fast_samples_in` | `action_params` | dict | list[dict] | one-element list with the sample dict | `helao/deploy/hte/servers/sample/sample_server.py:614` |
+| `_fast_samples_in` | `action_params` | dict | list[dict] | one-element list with the sample dict | `helao/deploy/hte/servers/sample/sample_server.py:625` |
 
-**`archive_custom_add_liquid`, `archive_custom_add_gas`** (`add_liquid`, `add_gas`, `helao/deploy/hte/servers/sample/sample_server.py:655`, `helao/deploy/hte/servers/sample/sample_server.py:712`). Add volume to a custom position; created and updated samples go to the sample DB (`helao/deploy/hte/servers/sample/archive_driver.py:1658-1910`) and the state file is rewritten through `custom_replace_sample` (`helao/deploy/hte/servers/sample/archive_driver.py:945`). Row (`helao/deploy/hte/servers/sample/sample_server.py:673-675`, `helao/deploy/hte/servers/sample/sample_server.py:729-731`); data file `add_liquid-*.jsonl` or `add_gas-*.jsonl` (+ `.meta.json`). No action results.
+**`archive_custom_add_liquid`, `archive_custom_add_gas`** (`add_liquid`, `add_gas`, `helao/deploy/hte/servers/sample/sample_server.py:666`, `helao/deploy/hte/servers/sample/sample_server.py:723`). Add volume to a custom position; created and updated samples go to the sample DB (`helao/deploy/hte/servers/sample/archive_driver.py:1658-1910`) and the state file is rewritten through `custom_replace_sample` (`helao/deploy/hte/servers/sample/archive_driver.py:945`). Row (`helao/deploy/hte/servers/sample/sample_server.py:684-686`, `helao/deploy/hte/servers/sample/sample_server.py:740-742`); data file `add_liquid-*.jsonl` or `add_gas-*.jsonl` (+ `.meta.json`). No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `error_code` | str | scalar per row | none | `ErrorCodes` value (`none` on success) | `helao/deploy/hte/servers/sample/sample_server.py:673`, `helao/deploy/hte/servers/sample/sample_server.py:729` |
+| `error_code` | str | scalar per row | none | `ErrorCodes` value (`none` on success) | `helao/deploy/hte/servers/sample/sample_server.py:684`, `helao/deploy/hte/servers/sample/sample_server.py:740` |
 
 ### Sample database actions
 
-**`db_get_samples`** (action name as abbreviation). Row (`helao/deploy/hte/servers/sample/sample_server.py:770-772`); replaces the action's samples-in with the resolved samples. No action results.
+**`db_get_samples`** (action name as abbreviation). Row (`helao/deploy/hte/servers/sample/sample_server.py:781-783`); replaces the action's samples-in with the resolved samples. No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `samples` | dict | list[dict] | none | resolved sample dicts | `helao/deploy/hte/servers/sample/sample_server.py:770` |
+| `samples` | dict | list[dict] | none | resolved sample dicts | `helao/deploy/hte/servers/sample/sample_server.py:781` |
 
-**`db_new_samples`** (action name as abbreviation). Persists the reference samples as new DB rows and clears the action's `samples_in` and `samples_out` first (`helao/deploy/hte/servers/sample/sample_server.py:822-823`) (`helao/deploy/hte/servers/sample/archive_driver.py:2023`). Row (`helao/deploy/hte/servers/sample/sample_server.py:825-828`):
+**`db_new_samples`** (action name as abbreviation). Persists the reference samples as new DB rows and clears the action's `samples_in` and `samples_out` first (`helao/deploy/hte/servers/sample/sample_server.py:833-834`) (`helao/deploy/hte/servers/sample/archive_driver.py:2023`). Row (`helao/deploy/hte/servers/sample/sample_server.py:836-839`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `samples` | dict | list[dict] | none | the persisted sample dicts | `helao/deploy/hte/servers/sample/sample_server.py:826` |
+| `samples` | dict | list[dict] | none | the persisted sample dicts | `helao/deploy/hte/servers/sample/sample_server.py:837` |
 
 Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_fast_sample_out` | `action_params` | dict | dict | first created sample dict; present only when at least one sample was created | `helao/deploy/hte/servers/sample/sample_server.py:830` |
+| `_fast_sample_out` | `action_params` | dict | dict | first created sample dict; present only when at least one sample was created | `helao/deploy/hte/servers/sample/sample_server.py:841` |
 
 **`generate_plate_sample_no_list`** (action name as abbreviation). When `plate_id`, `sample_code` and `skip_n_samples` are given and the plate's platemap loads, writes the sample numbers as a text file (`helao/deploy/hte/servers/sample/archive_driver.py:2080-2086`); otherwise nothing. No data row, no action results.
 
@@ -232,21 +232,20 @@ Action results (in `-act.json`):
 |---|---|---|---|---|
 | sample-number list | text; `%%` line, then one sample number per line | `<plate_id>.txt`, file type `plate_sample_no_list_file`, tracked on the action | platemap rows chosen by a stride rule: row `i` is taken when `i - last_taken - 1 == skip_n_samples` and its `code` equals `sample_code`; the first stride row whose code differs stops all later selection, because the gap then never matches again (`helao/deploy/hte/servers/sample/archive_driver.py:2073-2077`) | `helao/deploy/hte/servers/sample/archive_driver.py:2080-2086` |
 
-**`get_loaded_positions`** (route of `get_positions`, action name as abbreviation). No row; writes three results into the action record (`helao/deploy/hte/servers/sample/sample_server.py:919-925`):
+**`get_loaded_positions`** (route of `get_positions`, action name as abbreviation). No row; writes three results into the action record (`helao/deploy/hte/servers/sample/sample_server.py:930-936`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_positions` | `action_params` | dict | dict | whole archive (`trays_dict`, `customs_dict`; same layout as the state file) | `helao/deploy/hte/servers/sample/sample_server.py:921` |
-| `_tray_pos` | `action_params` | str \| null | dict | `{(tray, slot, vial): global label}` for every loaded vial; tuple keys. With at least one loaded vial the action record cannot be written and the action raises, see Notes; with none it is `{}` | `helao/deploy/hte/servers/sample/sample_server.py:922` |
-| `_custom_pos` | `action_params` | str \| null | dict | `{custom_name: global label of the loaded sample}`; `null` for an empty position's label | `helao/deploy/hte/servers/sample/sample_server.py:923` |
+| `_positions` | `action_params` | dict | dict | whole archive (`trays_dict`, `customs_dict`; same layout as the state file) | `helao/deploy/hte/servers/sample/sample_server.py:932` |
+| `_tray_pos` | `action_params` | str \| null | dict | `{(tray, slot, vial): global label}` for every loaded vial; tuple keys. With at least one loaded vial the action record cannot be written and the action raises, see Notes; with none it is `{}` | `helao/deploy/hte/servers/sample/sample_server.py:933` |
+| `_custom_pos` | `action_params` | str \| null | dict | `{custom_name: global label of the loaded sample}`; `null` for an empty position's label | `helao/deploy/hte/servers/sample/sample_server.py:934` |
 
 ### Private endpoints
 
-`/list_new_samples`, `/get_samples`, `/tray_query_sample`, `/tray_get_next_full`, `/custom_query_sample`, `/new_ref_samples`, `/custom_dest_allowed`, `/custom_assembly_allowed` and `/custom_is_destroyed` return values to the caller only. `/new_samples` and `/update_samples` write the sample database; `/tray_new_position` marks vials `blocked` (see `archive_tray_new_position`); `/tray_update_position` and `/custom_update_position` overwrite a position and rewrite the state file (`helao/deploy/hte/servers/sample/sample_server.py:929-1108`). Used by the PAL server (see `../pal/README.md`). No data files or action results.
+`/list_new_samples`, `/get_samples`, `/tray_query_sample`, `/tray_get_next_full`, `/custom_query_sample`, `/new_ref_samples`, `/custom_dest_allowed`, `/custom_assembly_allowed` and `/custom_is_destroyed` return values to the caller only. `/new_samples` and `/update_samples` write the sample database; `/tray_new_position` marks vials `blocked` (see `archive_tray_new_position`); `/tray_update_position` and `/custom_update_position` overwrite a position and rewrite the state file (`helao/deploy/hte/servers/sample/sample_server.py:940-1119`). Used by the PAL server (see `../pal/README.md`). No data files or action results.
 
 ## Notes
 
-- `get_loaded_positions` builds `_tray_pos` with `(tray, slot, vial)` tuple keys (`helao/deploy/hte/servers/sample/sample_server.py:906-914`). Writing the action record goes through `clean_dict()` (`helao/hexagon/adapters/native/meta_writer.py:111`) and `HelaoDict._serialize_dict` calls `k.startswith("__")` on every key whose value is a string (`helao/core/helaodict.py:42-43`), which raises `AttributeError` for a tuple key. With at least one loaded tray vial the `-act.json` cannot be written and `finished_action.as_dict()` (`helao/deploy/hte/servers/sample/sample_server.py:927`) raises as well; the action does not complete normally.
+- `get_loaded_positions` builds `_tray_pos` with `(tray, slot, vial)` tuple keys (`helao/deploy/hte/servers/sample/sample_server.py:917-925`). Writing the action record goes through `clean_dict()` (`helao/hexagon/adapters/native/meta_writer.py:111`) and `HelaoDict._serialize_dict` calls `k.startswith("__")` on every key whose value is a string (`helao/core/helaodict.py:42-43`), which raises `AttributeError` for a tuple key. With at least one loaded tray vial the `-act.json` cannot be written and `finished_action.as_dict()` (`helao/deploy/hte/servers/sample/sample_server.py:938`) raises as well; the action does not complete normally.
 - `tray_load` changes the in-memory position table but never calls `write_config` (`helao/deploy/hte/servers/sample/archive_driver.py:409-475`), so a loaded vial is absent from `<host>_archive.json` until a later operation rewrites it; the same holds for the vial `tray_new_position` blocks (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`).
 - `archive_tray_new_position` sets `blocked[position] = True` inside the search loop for each new best-fit candidate (`helao/deploy/hte/servers/sample/archive_driver.py:774-776`), not only for the returned vial. Example: a VT15 in tray 1 and a VT54 in tray 2 with `req_vol` 1: the VT15 vial is blocked first, then the VT54 vial replaces it as best fit, and both stay blocked. Blocked vials then count as occupied for later calls and show in the archive `blocked` field; the PAL server calls this endpoint for archive destinations. The row reports only the last candidate.
-- `archive_tray_export_json` with an undefined slot raises `pydantic.ValidationError` when it builds the `DataModel` (`helao/deploy/hte/servers/sample/sample_server.py:331`; `helao/core/models/data.py:26`), after `ctx.begin`, so the action never finishes normally.
