@@ -30,6 +30,7 @@ SEQUENCES = [
     "ECMS_final_clean",
 ]
 
+from helao.core.models.echem_params import resolve_we_versus
 from helao.helpers.lib_decorators import sequence
 from helao.helpers.premodels import ExperimentPlanMaker
 
@@ -143,11 +144,23 @@ def _ecms_seq_CA(epm, p, potential, time):
 
 
 def _ecms_seq_CV(epm, p, scanrate):
+    """One CV. With WE_versus "ocv", the sequence's first CV is preceded by one
+    ECMS_sub_OCV and every CV takes previous_ocv__V from its result."""
+    ocv = resolve_we_versus(p["WE_versus"]) == "ocv"
+    if ocv and not any(
+        e.experiment_name == "ECMS_sub_OCV" for e in epm.planned_experiments
+    ):
+        epm.add(
+            "ECMS_sub_OCV",
+            {
+                "OCV_duration__s": p["OCV_duration__s"],
+                "OCV_acquisition_period__s": p["OCV_acquisition_period__s"],
+            },
+        )
     epm.add(
         "ECMS_sub_CV",
         {
             "WE_versus": p["WE_versus"],
-            "OCV_duration__s": p["OCV_duration__s"],
             "ref_type": p["ref_type"],
             "ref_offset__V": p["ref_offset"],
             "pH": p["pH"],
@@ -161,6 +174,9 @@ def _ecms_seq_CV(epm, p, scanrate):
             "IErange": p["IErange"],
             "MS_equilibrium_time": p["MS_equilibrium_time"],
         },
+        from_global_exp_params=(
+            {"Ewe_V__mean_final": "previous_ocv__V"} if ocv else {}
+        ),
     )
 
 
@@ -246,7 +262,7 @@ def _ecms_seq_initiation(recirc, cali=False, ecsa=False, **p):
                 {
                     "OCV_duration__s": p["OCV_duration__s"],
                     "OCV_acquisition_period__s": p["OCV_acquisition_period__s"],
-                }
+                },
             )
         for ScanRate in p["ScanRate_V_s_1"]:
             epm.add(
@@ -264,7 +280,7 @@ def _ecms_seq_initiation(recirc, cali=False, ecsa=False, **p):
                     "MS_equilibrium_time": p["MS_equilibrium_time"],
                     "SamplingMode": p["SamplingMode"],
                 },
-                from_global_exp_params={"Ewe_V__mean_final": "previous_ocv__V"}
+                from_global_exp_params={"Ewe_V__mean_final": "previous_ocv__V"},
             )
     epm.add("ECMS_sub_normal_state", {})
     if recirc:
@@ -567,6 +583,7 @@ def ECMS_repeat_CV(
     # electrolyte_recirculation: str = "on",
     # liquid_cleancell_time: float = 120,
     OCV_duration__s: float = 2.0,
+    OCV_acquisition_period__s: float = 0.1,
 ) -> list:
     """Repeat CV sweeps at two scan rates with CO2 baselines per cycle.
 
@@ -600,6 +617,7 @@ def ECMS_repeat_CV(
         MS_equilibrium_time: Mass-spec equilibration time (s).
         liquid_drain_time: Duration of the liquid drain (s).
         OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
+        OCV_acquisition_period__s: OCV sampling period (s); used only when ``WE_versus="ocv"``.
 
     Returns:
         List of planned experiments to dispatch.
@@ -644,6 +662,7 @@ def ECMS_repeat_CV_recirculation(
     liquid_drain_time: float = 80.0,
     # liquid_cleancell_time: float = 120,
     OCV_duration__s: float = 2.0,
+    OCV_acquisition_period__s: float = 0.1,
 ) -> list:
     """Recirculating-cell variant of :func:`ECMS_repeat_CV` with cleaning cycles.
 
@@ -681,6 +700,7 @@ def ECMS_repeat_CV_recirculation(
         tube_clear_delaytime: Delay before clearing the tube (s).
         liquid_drain_time: Duration of the liquid drain (s).
         OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
+        OCV_acquisition_period__s: OCV sampling period (s); used only when ``WE_versus="ocv"``.
 
     Returns:
         List of planned experiments to dispatch.
@@ -725,6 +745,7 @@ def ECMS_repeat_CV_recirculation_mixedreactant(
     liquid_drain_time: float = 80.0,
     # liquid_cleancell_time: float = 120,
     OCV_duration__s: float = 2.0,
+    OCV_acquisition_period__s: float = 0.1,
 ) -> list:
     """Recirculating CV protocol using a mixed-reactant calibration baseline.
 
@@ -763,6 +784,7 @@ def ECMS_repeat_CV_recirculation_mixedreactant(
         tube_clear_delaytime: Delay before clearing the tube (s).
         liquid_drain_time: Duration of the liquid drain (s).
         OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
+        OCV_acquisition_period__s: OCV sampling period (s); used only when ``WE_versus="ocv"``.
 
     Returns:
         List of planned experiments to dispatch.
@@ -805,6 +827,7 @@ def ECMS_CV_recirculation_mixedreactant(
     liquid_drain_time: float = 170.0,
     # liquid_cleancell_time: float = 120,
     OCV_duration__s: float = 2.0,
+    OCV_acquisition_period__s: float = 0.1,
 ) -> list:
     """Single CV pass with mixed-reactant calibration baseline (recirculating cell).
 
@@ -841,6 +864,7 @@ def ECMS_CV_recirculation_mixedreactant(
         tube_clear_delaytime: Delay before clearing the tube (s).
         liquid_drain_time: Duration of the liquid drain (s).
         OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
+        OCV_acquisition_period__s: OCV sampling period (s); used only when ``WE_versus="ocv"``.
 
     Returns:
         List of planned experiments to dispatch.
@@ -1889,4 +1913,3 @@ def ECMS_final_clean(
             },
         )
     return epm.planned_experiments
-

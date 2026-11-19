@@ -822,12 +822,11 @@ def ECMS_sub_CV(
     """Run a CV experiment then wait for the MS signal to equilibrate.
 
     Args:
-        WE_versus: ``"ref"``, ``"rhe"`` or ``"ocv"``. ``"ocv"`` passes the
-            potentials through and measures OCV first: the effective
-            ``versus_OCV`` is ``versus_OCV or WE_versus == "ocv"``.
+        WE_versus: ``"ref"``, ``"rhe"`` or ``"ocv"``. ``"ocv"`` offsets the
+            potentials by the supplied ``previous_ocv__V``; this experiment
+            does not measure OCV itself.
         ref_type: Reference electrode key into ``REF_TABLE``.
         pH: Solution pH (used in RHE conversion).
-        OCV_duration__s: OCV measurement time (s); used only when versus_OCV.
         WE_potential_init__V: Initial potential (V).
         WE_potential_apex1__V: Apex 1 potential (V).
         WE_potential_apex2__V: Apex 2 potential (V).
@@ -838,6 +837,7 @@ def ECMS_sub_CV(
         IErange: Gamry current-range setting.
         ref_offset__V: Reference offset (V).
         MS_equilibrium_time: Post-CV wait for the MS signal to settle (s).
+        previous_ocv__V: OCV (V) added to the potentials when ``WE_versus="ocv"``.
 
     Raises:
         ValueError: If ``WE_versus`` is not ``"ref"``, ``"rhe"`` or ``"ocv"``.

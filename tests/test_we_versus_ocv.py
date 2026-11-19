@@ -2,7 +2,10 @@
 
 "ocv" leaves potentials untouched and asks the Gamry endpoint to measure OCV
 first (versus_OCV=True + OCV_duration__s). "ref"/"rhe" plans carry neither key.
+Exception: ECMS_sub_CV measures nothing; it offsets by the supplied previous_ocv__V.
 """
+
+import inspect
 
 import pytest
 
@@ -118,26 +121,29 @@ def _expand_pstat(seq_fn, endpoint, **kw):
     return out
 
 
-@pytest.mark.parametrize("versus_ocv,versus", [(False, "ocv"), (True, "ref")])
-def test_ecms_cv_derives_versus_ocv(versus_ocv, versus):
-    _, params = _pstat_params(
-        ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus=versus, versus_OCV=versus_ocv
+def test_ecms_cv_ocv_offsets_by_previous_ocv_and_measures_nothing():
+    """ECMS_sub_CV no longer measures OCV; "ocv" adds the supplied previous_ocv__V."""
+    kw, params = _pstat_params(
+        ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ocv", previous_ocv__V=0.25
     )
-    assert params["versus_OCV"] is True
+    for name, key in VKEY.items():
+        if name in kw and key in params:
+            assert params[key] == pytest.approx(kw[name] + 0.25)
+    assert "versus_OCV" not in params and "OCV_duration__s" not in params
 
 
-def test_ecms_cv_ref_keeps_versus_ocv_false_and_potentials():
-    kw, params = _pstat_params(ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ocv")
-    assert params["Vinit__V"] == kw["WE_potential_init__V"]
-    _, ref = _pstat_params(ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ref")
-    assert ref["versus_OCV"] is False and ref["OCV_duration__s"] == 0.0
+def test_ecms_cv_ref_ignores_previous_ocv():
+    kw, ref = _pstat_params(
+        ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ref", previous_ocv__V=0.25
+    )
+    assert ref["Vinit__V"] == kw["WE_potential_init__V"]
+    assert "versus_OCV" not in ref and "OCV_duration__s" not in ref
 
 
 @pytest.mark.parametrize(
     "seq_fn,endpoint",
     [
         (ECMS_seq.ECMS_series_CA, "run_CA"),
-        (ECMS_seq.ECMS_repeat_CV, "run_CV"),
         (ANEC_seq.ANEC_series_CA, "run_CA"),
         (ANEC_seq.ANEC_repeat_CV, "run_CV"),
     ],
@@ -148,3 +154,38 @@ def test_sequence_forwards_ocv_duration_to_pstat(seq_fn, endpoint):
     assert params
     for p in params:
         assert p["versus_OCV"] is True and p["OCV_duration__s"] == 7.0
+
+
+CV_SEQS = [
+    ECMS_seq.ECMS_repeat_CV,
+    ECMS_seq.ECMS_repeat_CV_recirculation,
+    ECMS_seq.ECMS_repeat_CV_recirculation_mixedreactant,
+    ECMS_seq.ECMS_CV_recirculation_mixedreactant,
+]
+
+
+@pytest.mark.parametrize("seq_fn", CV_SEQS, ids=lambda f: f.__name__)
+def test_cv_sequences_ocv_runs_one_ocv_and_wires_previous_ocv(seq_fn):
+    kw = (
+        {"num_repeats": 2}
+        if "num_repeats" in inspect.signature(seq_fn).parameters
+        else {}
+    )
+    planned = list(seq_fn(WE_versus="ocv", **kw))
+    names = [e.experiment_name for e in planned]
+    assert names.count("ECMS_sub_OCV") == 1
+    first_cv = names.index("ECMS_sub_CV")
+    assert names.index("ECMS_sub_OCV") < first_cv
+    cvs = [e for e in planned if e.experiment_name == "ECMS_sub_CV"]
+    assert len(cvs) >= 2
+    for e in cvs:
+        assert e.from_global_exp_params == {"Ewe_V__mean_final": "previous_ocv__V"}
+
+
+@pytest.mark.parametrize("seq_fn", CV_SEQS, ids=lambda f: f.__name__)
+def test_cv_sequences_ref_runs_no_ocv(seq_fn):
+    planned = list(seq_fn(WE_versus="ref"))
+    assert "ECMS_sub_OCV" not in [e.experiment_name for e in planned]
+    for e in planned:
+        if e.experiment_name == "ECMS_sub_CV":
+            assert not e.from_global_exp_params
