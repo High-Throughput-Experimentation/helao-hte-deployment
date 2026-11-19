@@ -41,6 +41,7 @@ EXPERIMENTS = [
 ]
 
 ###
+import math
 from socket import gethostname
 
 from helao.core.models.action_start_condition import ActionStartCondition as asc
@@ -186,8 +187,8 @@ def _ecms_mfc(
 def _ecms_vs_ref(V, WE_versus, ref_offset__V, pH, ref_type, ocv_value=0.0):
     """Convert a WE potential to volts vs the reference electrode (arithmetic verbatim).
 
-    ``"ocv"`` passes the potential through: the Gamry endpoint applies it relative
-    to a measured OCV (see :func:`_ecms_ocv_params`).
+    ``"ocv"`` shifts the potential by ``ocv_value`` (a previously measured OCV,
+    ``previous_ocv__V`` in :func:`ECMS_sub_CV`) and still subtracts ``ref_offset__V``.
     """
     WE_versus = resolve_we_versus(WE_versus)
     if WE_versus == "ref":
@@ -592,7 +593,8 @@ def ECMS_sub_OCV(
 ) -> list:
     """Run one OCV and publish its final mean potential as ``Ewe_V__mean_final``.
 
-    The ECSA CVs that follow read it as their ``ref_offset__V``.
+    The ``WE_versus="ocv"`` CVs that follow read it as their ``previous_ocv__V``.
+    It first sets the global to ``"unset"`` so a failed OCV cannot leave an earlier value.
 
     Args:
         OCV_duration__s: OCV duration (s).
@@ -603,6 +605,13 @@ def ECMS_sub_OCV(
         List of planned actions for the orchestrator.
     """
     apm = ActionPlanMaker()
+    # Overwrite any stale value from an earlier run: if this OCV publishes nothing,
+    # the CVs read "unset" and ECMS_sub_CV refuses it instead of using the stale one.
+    apm.add(
+        ORCH_server,
+        "add_global_param",
+        {"param_name": "Ewe_V__mean_final", "param_value": "unset"},
+    )
     _ecms_pstat(
         apm,
         "run_OCV",
@@ -817,14 +826,14 @@ def ECMS_sub_CV(
     IErange: str = "auto",
     ref_offset__V: float = 0.0,
     MS_equilibrium_time: float = 90.0,
-    previous_ocv__V: float = 0.0,
+    previous_ocv__V: float | None = None,
 ) -> list:
     """Run a CV experiment then wait for the MS signal to equilibrate.
 
     Args:
         WE_versus: ``"ref"``, ``"rhe"`` or ``"ocv"``. ``"ocv"`` offsets the
-            potentials by the supplied ``previous_ocv__V``; this experiment
-            does not measure OCV itself.
+            potentials by the supplied ``previous_ocv__V`` (and subtracts
+            ``ref_offset__V``); this experiment does not measure OCV itself.
         ref_type: Reference electrode key into ``REF_TABLE``.
         pH: Solution pH (used in RHE conversion).
         WE_potential_init__V: Initial potential (V).
@@ -837,14 +846,26 @@ def ECMS_sub_CV(
         IErange: Gamry current-range setting.
         ref_offset__V: Reference offset (V).
         MS_equilibrium_time: Post-CV wait for the MS signal to settle (s).
-        previous_ocv__V: OCV (V) added to the potentials when ``WE_versus="ocv"``.
+        previous_ocv__V: OCV (V) added to the potentials when ``WE_versus="ocv"``;
+            required and finite then, ignored otherwise.
 
     Raises:
-        ValueError: If ``WE_versus`` is not ``"ref"``, ``"rhe"`` or ``"ocv"``.
+        ValueError: If ``WE_versus`` is not ``"ref"``, ``"rhe"`` or ``"ocv"``, or
+            is ``"ocv"`` with a missing or non-finite ``previous_ocv__V``.
 
     Returns:
         List of planned actions for the orchestrator.
     """
+    if resolve_we_versus(WE_versus) == "ocv" and not (
+        isinstance(previous_ocv__V, (int, float))
+        and not isinstance(previous_ocv__V, bool)
+        and math.isfinite(previous_ocv__V)
+    ):
+        raise ValueError(
+            f'WE_versus="ocv" needs a finite previous_ocv__V; got {previous_ocv__V!r}'
+        )
+    if previous_ocv__V is None:
+        previous_ocv__V = 0.0
     apm = ActionPlanMaker()
     params = {
         "Vinit__V": _ecms_vs_ref(

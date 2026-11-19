@@ -6,6 +6,7 @@ Exception: ECMS_sub_CV measures nothing; it offsets by the supplied previous_ocv
 """
 
 import inspect
+import math
 
 import pytest
 
@@ -89,9 +90,13 @@ def test_unknown_versus_raises_value_error_naming_values():
 def test_ecms_initiation_ecsa_expands_at_defaults():
     for e in ECMS_seq.ECMS_initiation_ECSA():
         fn = getattr(ECMS_exp, e.experiment_name)
+        params = dict(e.experiment_params)
+        # what the orchestrator's from_global_exp_params fold-in supplies
+        for key, dest in (e.from_global_exp_params or {}).items():
+            params[dest] = 0.1
         fn(
             Experiment(experiment_name=e.experiment_name, experiment_params={}),
-            **e.experiment_params,
+            **params,
         )
 
 
@@ -130,6 +135,34 @@ def test_ecms_cv_ocv_offsets_by_previous_ocv_and_measures_nothing():
         if name in kw and key in params:
             assert params[key] == pytest.approx(kw[name] + 0.25)
     assert "versus_OCV" not in params and "OCV_duration__s" not in params
+
+
+def test_ecms_cv_ocv_refuses_without_previous_ocv():
+    """A CV must never run on a default OCV: "ocv" with no previous_ocv__V raises."""
+    with pytest.raises(ValueError, match="previous_ocv__V"):
+        _pstat_params(ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ocv")
+
+
+@pytest.mark.parametrize("bad", [math.nan, math.inf, "unset", True])
+def test_ecms_cv_ocv_refuses_unusable_previous_ocv(bad):
+    """The "unset" sentinel left by ECMS_sub_OCV (OCV never published) must not run."""
+    with pytest.raises(ValueError, match="previous_ocv__V"):
+        _pstat_params(
+            ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ocv", previous_ocv__V=bad
+        )
+    _pstat_params(ECMS_exp.ECMS_sub_CV, "run_CV", WE_versus="ref", previous_ocv__V=bad)
+
+
+def test_ecms_ocv_resets_global_to_unset_before_measuring():
+    """A stale Ewe_V__mean_final from an earlier sequence is overwritten first."""
+    acts = ECMS_exp.ECMS_sub_OCV(Experiment(experiment_name="x", experiment_params={}))
+    names = [a.action_name for a in acts]
+    assert names.index("add_global_param") < names.index("run_OCV")
+    (g,) = [a for a in acts if a.action_name == "add_global_param"]
+    assert g.action_params == {
+        "param_name": "Ewe_V__mean_final",
+        "param_value": "unset",
+    }
 
 
 def test_ecms_cv_ref_ignores_previous_ocv():
@@ -171,7 +204,19 @@ def test_cv_sequences_ocv_runs_one_ocv_and_wires_previous_ocv(seq_fn):
         if "num_repeats" in inspect.signature(seq_fn).parameters
         else {}
     )
-    planned = list(seq_fn(WE_versus="ocv", **kw))
+    planned = list(
+        seq_fn(
+            WE_versus="ocv",
+            OCV_duration__s=7.0,
+            OCV_acquisition_period__s=0.3,
+            **kw,
+        )
+    )
+    (ocv,) = [e for e in planned if e.experiment_name == "ECMS_sub_OCV"]
+    assert ocv.experiment_params == {
+        "OCV_duration__s": 7.0,
+        "OCV_acquisition_period__s": 0.3,
+    }
     names = [e.experiment_name for e in planned]
     assert names.count("ECMS_sub_OCV") == 1
     first_cv = names.index("ECMS_sub_CV")
