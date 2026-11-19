@@ -1114,7 +1114,7 @@ class FlowMeter(object):
         """Probe a port/address and return True if the device matches `cls`.
 
         Useful for auto-discovery. The check distinguishes `FlowMeter` and
-        `FlowController` by whether `setpoint` appears in the status keys.
+        `FlowController` by whether `setpoint` appears in the returned status.
         """
         is_device = False
         try:
@@ -1122,9 +1122,9 @@ class FlowMeter(object):
             try:
                 c = device.get_status()
                 if cls.__name__ == "FlowMeter":
-                    assert c and "setpoint" not in device.status_keys
+                    assert c and "setpoint" not in c
                 elif cls.__name__ == "FlowController":
-                    assert c and "setpoint" in device.status_keys
+                    assert c and "setpoint" in c
                 else:
                     raise NotImplementedError("Must be meter or controller.")
                 is_device = True
@@ -1180,15 +1180,15 @@ class FlowMeter(object):
 
         if address != self.address:
             raise ValueError("Flow controller address mismatch.")
-        if len(values) == 5 and len(self.status_keys) == 6:
-            del self.status_keys[-2]
-        elif len(values) == 7 and len(self.status_keys) == 6:
-            self.status_keys.insert(5, "total flow")
-        elif len(values) == 2 and len(self.status_keys) == 6:
-            self.status_keys.insert(1, "setpoint")
+        keys = list(self.status_keys)  # per reply; never mutate status_keys
+        if len(values) == 5:
+            del keys[-2]
+        elif len(values) == 7:
+            keys.insert(5, "total flow")
+        elif len(values) == 2:
+            keys.insert(1, "setpoint")
         return_dict = {
-            k: (v if k == self.status_keys[-1] else float(v))
-            for k, v in zip(self.status_keys, values)
+            k: (v if k == keys[-1] else float(v)) for k, v in zip(keys, values)
         }
         return_dict.update(holdlockd)
         return_dict["acquire_time"] = time.time()
@@ -1651,15 +1651,21 @@ def command_line(args):
     state = flow_controller.get_status()
     if args.stream:
         try:
-            print("time\t" + "\t".join(flow_controller.status_keys))
+            skip = (
+                "gas",
+                "acquire_time",
+                "hold_valve",
+                "lock_display",
+                "control_point",
+            )
+            print("time\t" + "\t".join(k for k in state if k not in skip) + "\tgas")
             t0 = time.time()
             while True:
                 state = flow_controller.get_status()
                 print(
                     "{:.2f}\t".format(time.time() - t0)
                     + "\t\t".join(
-                        "{:.2f}".format(state[key])
-                        for key in flow_controller.status_keys[:-1]
+                        "{:.2f}".format(v) for k, v in state.items() if k not in skip
                     )
                     + "\t\t"
                     + state["gas"]

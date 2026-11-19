@@ -46,13 +46,13 @@ Executor-based actions run non-one-off executors. A row returned by `_poll` is q
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `pressure` | float | scalar per row | psia | pressure reading | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189` |
-| `temperature` | float | scalar per row | C | temperature reading | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189` |
-| `volumetric_flow` | float | scalar per row | device flow units | volumetric flow | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189` |
-| `mass_flow` | float | scalar per row | device flow units (sccm) | mass flow | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189` |
-| `setpoint` | float \| null | scalar per row | device units | control setpoint; `null` for a flow meter (MFM), which reports no setpoint. A status missing `mass_flow`, `pressure` or `control_point` is dropped | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189`, `helao/deploy/hte/servers/mfc/alicat_driver.py:245` |
-| `total flow` | float | scalar per row | device units | totalizer; only when the device reports 7 fields | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189` |
-| `gas` | str | scalar per row | none | selected gas | `helao/deploy/hte/servers/mfc/alicat_driver.py:1189` |
+| `pressure` | float | scalar per row | psia | pressure reading | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190` |
+| `temperature` | float | scalar per row | C | temperature reading | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190` |
+| `volumetric_flow` | float | scalar per row | device flow units | volumetric flow | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190` |
+| `mass_flow` | float | scalar per row | device flow units (sccm) | mass flow | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190` |
+| `setpoint` | float \| null | scalar per row | device units | control setpoint; `null` for a flow meter (MFM) and for any single 5-field reply, which carries no setpoint (each reply is keyed on its own). A status missing `mass_flow`, `pressure` or `control_point` is dropped | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190`, `helao/deploy/hte/servers/mfc/alicat_driver.py:245` |
+| `total flow` | float | scalar per row | device units | totalizer; only when the device reports 7 fields | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190` |
+| `gas` | str | scalar per row | none | selected gas | `helao/deploy/hte/servers/mfc/alicat_driver.py:1190` |
 | `hold_valve` | bool | scalar per row | none | `HLD` flag present | `helao/deploy/hte/servers/mfc/alicat_driver.py:1193` |
 | `lock_display` | bool | scalar per row | none | `LCK` flag present | `helao/deploy/hte/servers/mfc/alicat_driver.py:1193` |
 | `acquire_time` | float | scalar per row | s | `time.time()` when the status was read | `helao/deploy/hte/servers/mfc/alicat_driver.py:1194` |
@@ -85,8 +85,4 @@ No data files or action results.
 
 ### Live data (status/ws stream)
 
-`AliCatMFCPoller.get_data` (`helao/deploy/hte/servers/mfc/alicat_driver.py:458-487`) publishes one status dict per configured device (`<device_name>` is a key of the server's `devices` config); never written to a file by the poller itself. A device whose read fails is left out; while polling is paused or no device answers nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`). The value has the fields of the data-file table above except `epoch_s`: `MfcExec._poll` adds it by mutating the stored live-buffer dict in place (`helao/deploy/hte/servers/mfc/alicat_driver.py:567-568`), so the stored value, and the `/manual_query_state` reply (`helao/deploy/hte/servers/mfc/mfc_server.py:548`), carry `epoch_s` until the next publish replaces the dict; all have `structure` `scalar per poll`. The dict is the device's `get_status()` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1147-1196`, `control_point` added at `:1466`); a status lacking `mass_flow`, `pressure` or `control_point` is dropped (`helao/deploy/hte/servers/mfc/alicat_driver.py:242-249`). A device that reports 5 fields (a flow meter) has `setpoint` deleted by `get_status` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1183-1184`); it is published with `setpoint` set to `null` (`helao/deploy/hte/servers/mfc/alicat_driver.py:245`).
-
-## Notes
-
-- `FlowMeter.get_status` changes the per-device `status_keys` list permanently (`helao/deploy/hte/servers/mfc/alicat_driver.py:1184`, `helao/deploy/hte/servers/mfc/alicat_driver.py:1186`, `helao/deploy/hte/servers/mfc/alicat_driver.py:1188`). After one 5-field reply deletes `setpoint`, the list has 5 keys and the `len(self.status_keys) == 6` tests no longer match, so `setpoint` never returns even if later replies have 6 fields.
+`AliCatMFCPoller.get_data` (`helao/deploy/hte/servers/mfc/alicat_driver.py:458-487`) publishes one status dict per configured device (`<device_name>` is a key of the server's `devices` config); never written to a file by the poller itself. A device whose read fails is left out; while polling is paused or no device answers nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`). The value has the fields of the data-file table above except `epoch_s`: `MfcExec._poll` adds it by mutating the stored live-buffer dict in place (`helao/deploy/hte/servers/mfc/alicat_driver.py:567-568`), so the stored value, and the `/manual_query_state` reply (`helao/deploy/hte/servers/mfc/mfc_server.py:548`), carry `epoch_s` until the next publish replaces the dict; all have `structure` `scalar per poll`. The dict is the device's `get_status()` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1147-1196`, `control_point` added at `:1466`); a status lacking `mass_flow`, `pressure` or `control_point` is dropped (`helao/deploy/hte/servers/mfc/alicat_driver.py:242-249`). A reply with 5 fields (a flow meter) has no `setpoint` key from `get_status` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1184-1185`); it is published with `setpoint` set to `null` (`helao/deploy/hte/servers/mfc/alicat_driver.py:245`).
