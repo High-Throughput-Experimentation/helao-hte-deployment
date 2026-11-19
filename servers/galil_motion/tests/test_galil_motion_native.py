@@ -657,3 +657,85 @@ def test_controller_disabled_mid_move_reports_not_available():
     d.query_axis_moving = _disabling_query
     out = asyncio.run(d._motor_move([1.0], ["x"], None, "absolute", "motorxy"))
     assert out["err_code"] == [ErrorCodes.not_available]
+
+
+# --------------------------------------------------------------------------
+# per-move deadline = estimated move time + margin, capped at `timeout`
+# --------------------------------------------------------------------------
+from helao.deploy.hte.servers.galil_motion import galil_motion_native as _gmn
+from helao.deploy.hte.servers.galil_motion.galil_motion_native import _move_deadline
+
+
+def test_deadline_defaults_are_margin_30_and_ceiling_1800():
+    d, _ = _drv(config=dict(MOVE_CFG))
+    assert d.motor_timeout_margin == 30
+    assert d.motor_timeout == 1800
+
+
+def test_deadline_relative_is_counts_over_speed_plus_margin():
+    assert _move_deadline([2000 / 1000], 30, 1800) == (2.0, 32.0)
+
+
+def test_deadline_is_capped_by_the_ceiling():
+    assert _move_deadline([100.0], 30, 60) == (100.0, 60)
+
+
+def test_deadline_with_an_unknowable_axis_is_the_ceiling():
+    assert _move_deadline([1.0, None], 30, 600) == (None, 600)
+
+
+def test_axis_time_relative_and_absolute_use_the_distance_not_the_target():
+    d, _ = _drv(config=dict(MOVE_CFG))
+    assert d._axis_time("x", "A", "relative", -2000, 1000, {}) == 2.0
+    # target 3000 counts, start 1.0 mm = 1000 counts -> 2000 counts to go
+    assert d._axis_time("x", "A", "absolute", 3000, 1000, {"x": 1.0}) == 2.0
+    # start unknown and no axis_travel_mm: cannot estimate
+    assert d._axis_time("x", "A", "absolute", 3000, 1000, {}) is None
+
+
+def test_axis_time_homing_needs_axis_travel_mm():
+    d, _ = _drv(config=dict(MOVE_CFG))
+    assert d._axis_time("x", "A", "homing", 0, 1000, {}) is None
+    d, _ = _drv(config=dict(MOVE_CFG, axis_travel_mm={"x": 100.0}))
+    assert d._axis_time("x", "A", "homing", 0, 1000, {}) == 100.0  # 1e5 counts
+
+
+def test_absolute_move_deadline_uses_target_minus_current(monkeypatch):
+    seen = []
+    real = _gmn._move_deadline
+    monkeypatch.setattr(_gmn, "_move_deadline", lambda *a: seen.append(a) or real(*a))
+    # controller reports x at 5000 counts (5 mm); target 6 mm = 6000 counts
+    d, _ = _drv(
+        responses=_move_responses({"TP": "5000", "PA ?": "5000"}),
+        config=dict(MOVE_CFG),
+    )
+    d.connect()
+    asyncio.run(d._motor_move([6.0], ["x"], 1000, "absolute", "motorxy"))
+    assert seen[-1][0] == [1.0] and seen[-1][1:] == (30, 1800)
+
+
+def test_move_that_finishes_inside_estimate_plus_margin_is_not_a_timeout(
+    monkeypatch,
+):
+    # 50 mm / 0.001 = 50000 counts at 1000 counts/s = 50 s, + 30 s margin = 80 s
+    # deadline. The stage stops at 70 s: past the old fixed 60 s, inside 80 s.
+    clock = [0.0]
+    monkeypatch.setattr(_gmn.time, "time", lambda: clock[0])
+
+    async def fake_sleep(dt):
+        clock[0] += 10.0
+
+    monkeypatch.setattr(_gmn.asyncio, "sleep", fake_sleep)
+    d, _ = _drv(responses=_move_responses(), config=dict(MOVE_CFG))
+    d.connect()
+
+    async def q(axis):
+        done = clock[0] >= 70
+        return {
+            "motor_status": ["stopped" if done else "moving"],
+            "err_code": [ErrorCodes.none],
+        }
+
+    d.query_axis_moving = q
+    out = asyncio.run(d._motor_move([50.0], ["x"], 1000, "relative", "motorxy"))
+    assert out["err_code"] == [ErrorCodes.none]

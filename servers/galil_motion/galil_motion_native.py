@@ -64,6 +64,20 @@ _AXIS_LETTERS = "ABCDEFGH"
 _AXIS_INIT = [("MT", 2), ("CE", 4), ("TW", 32000), ("SD", 256000)]
 
 
+def _move_deadline(t_axes: list, margin: float, ceiling: float):
+    """Return ``(estimate, deadline)`` in seconds for one move.
+
+    ``t_axes`` holds each commanded axis's estimated time; ``None`` marks an axis
+    whose time cannot be estimated (homing without ``axis_travel_mm``, or an
+    absolute move with no known start), which sends the deadline to ``ceiling``.
+    Otherwise ``deadline = min(max(t_axes) + margin, ceiling)``.
+    """
+    if any(t is None for t in t_axes):
+        return None, ceiling
+    estimate = max(t_axes, default=0)
+    return estimate, min(estimate + margin, ceiling)
+
+
 class NativeGalilMotion(HelaoDriver):
     """Galil motion driver implemented directly over a GalilCommandChannel.
 
@@ -114,7 +128,10 @@ class NativeGalilMotion(HelaoDriver):
         # current _motor_move guards on motor_busy, not this.
         self.blocked = False
 
-        self.motor_timeout = self.config_dict.get("timeout", 60)
+        # hard ceiling on the settle wait; each move's own deadline is its
+        # estimated time plus the margin, capped at this (see _move_deadline)
+        self.motor_timeout = self.config_dict.get("timeout", 1800)
+        self.motor_timeout_margin = self.config_dict.get("timeout_margin", 30)
         self.motor_max_speed_count_sec = self.config_dict.get(
             "max_speed_count_sec", 25000
         )
@@ -505,6 +522,26 @@ class NativeGalilMotion(HelaoDriver):
         finally:
             self.motor_busy = False
 
+    def _axis_time(self, ax, axl, mode, counts, speed, pre_mm) -> Optional[float]:
+        """Estimated seconds for one commanded axis, ``None`` if unknowable.
+
+        Relative: ``|counts| / speed``. Absolute: ``|counts - start| / speed``
+        with the pre-move mm position converted by ``count_to_mm``. Homing, or an
+        absolute move with no known start: the configured ``axis_travel_mm``
+        worth of counts, else ``None``. No acceleration modelling.
+        """
+        if not speed or speed <= 0:
+            return None
+        scale = self.config_dict.get("count_to_mm", {}).get(axl)
+        if mode == MoveModes.relative:
+            return abs(counts) / speed
+        if mode == MoveModes.absolute and scale and pre_mm.get(ax) is not None:
+            return abs(counts - pre_mm[ax] / scale) / speed
+        travel = self.config_dict.get("axis_travel_mm", {}).get(ax)
+        if travel is not None and scale:
+            return abs(travel / scale) / speed
+        return None
+
     async def _motor_move_unguarded(
         self, d_mm, axis, speed, mode, transformation, units="mm"
     ) -> dict:
@@ -580,7 +617,8 @@ class NativeGalilMotion(HelaoDriver):
         ret_err_dist: list = []
         ret_err_code: list = []
         ret_counts: list = []
-        timeofmove: list = []
+        t_axes: list = []
+        pre_mm = dict(zip(tmpmotorpos["ax"], tmpmotorpos["position"]))
 
         if self._is_estopped():
             self.motor_busy = False
@@ -659,7 +697,7 @@ class NativeGalilMotion(HelaoDriver):
                 else:
                     raise ValueError(f"invalid move mode {mode}")
                 cmd_seq.append(f"BG{axl}")
-                timeofmove.append(abs(counts / speed))
+                t_axes.append(self._axis_time(ax, axl, mode, counts, speed, pre_mm))
                 for cmd in cmd_seq:
                     self._channel.command(cmd)
                 ret_moved_axis.append(axl)
@@ -684,20 +722,16 @@ class NativeGalilMotion(HelaoDriver):
                 ret_counts.append(None)
                 continue
 
-        if len(timeofmove) > 0:
-            tmax = max(timeofmove)
-            if tmax > 30 * 60:
-                tmax = 30 * 60
-        else:
-            tmax = 0
+        estimate, deadline = _move_deadline(
+            t_axes, self.motor_timeout_margin, self.motor_timeout
+        )
+        LOGGER.info(f"move time estimate {estimate} s, deadline {deadline:.1f} s")
 
         qmove: dict = {"motor_status": [], "err_code": []}
         if not self._is_estopped():
             tstart = time.time()
             settled = False
-            while (
-                time.time() - tstart < self.motor_timeout
-            ) and not self._is_estopped():
+            while (time.time() - tstart < deadline) and not self._is_estopped():
                 qmove = await self.query_axis_moving(axis=axis)
                 await asyncio.sleep(0.5)
                 if all(status == "stopped" for status in qmove["motor_status"]):
@@ -711,7 +745,7 @@ class NativeGalilMotion(HelaoDriver):
                     await self.stop_axis(axis)
                     LOGGER.error(
                         f"motion timeout: axes {axis} not stopped after "
-                        f"{self.motor_timeout} s"
+                        f"{deadline:.1f} s"
                     )
                     status = qmove["motor_status"]
                     ret_err_code = [
