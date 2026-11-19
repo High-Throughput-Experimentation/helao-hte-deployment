@@ -455,7 +455,7 @@ def HISPEC_EIS_only(
                 "solution_ph": solution_ph,
                 "ref_vs_nhe": ref_vs_nhe,
             },
-            from_global_exp_params={"Ewe_V__mean_final": "Vinit__V"},
+            from_global_exp_params={"HISPEC_OCV": "Vinit__V"},
         )
 
     if use_z_motor:
