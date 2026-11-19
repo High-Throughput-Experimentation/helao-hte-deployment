@@ -136,9 +136,15 @@ async def galil_dyn_endpoints(app: ActionHost):
                 centre counts and resets absolute zero again.
                 """
                 active = await ctx.begin(action_abbr="setmotionref")
-                await active.enqueue_data_dflt(
-                    datadict={"setref": await app.driver.setaxisref()}
+                setref = await app.driver.setaxisref()
+                # a failed step (timeout, estop, ...) leaves the zero unset:
+                # surface it so the orchestrator E-STOPs
+                active.action.error_code = (
+                    app.get_main_error(setref["err_code"])
+                    if isinstance(setref, dict)
+                    else ErrorCodes.not_available
                 )
+                await active.enqueue_data_dflt(datadict={"setref": setref})
                 finished_action = await active.finish()
                 return finished_action.as_dict()
 

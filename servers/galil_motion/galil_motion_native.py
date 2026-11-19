@@ -696,6 +696,10 @@ class NativeGalilMotion(HelaoDriver):
                     cmd_seq.append(f"PA{axl}={counts}")
                 else:
                     raise ValueError(f"invalid move mode {mode}")
+                if speed <= 0:
+                    # no SP/BG goes out: a zero speed would never move and
+                    # would otherwise wait out the whole ceiling
+                    raise ValueError(f"speed must be positive, got {speed}")
                 cmd_seq.append(f"BG{axl}")
                 t_axes.append(self._axis_time(ax, axl, mode, counts, speed, pre_mm))
                 for cmd in cmd_seq:
@@ -751,7 +755,8 @@ class NativeGalilMotion(HelaoDriver):
                     ret_err_code = [
                         (
                             code
-                            if i < len(status) and status[i] == "stopped"
+                            if code != ErrorCodes.none
+                            or (i < len(status) and status[i] == "stopped")
                             else ErrorCodes.timeout
                         )
                         for i, code in enumerate(ret_err_code)
@@ -802,38 +807,38 @@ class NativeGalilMotion(HelaoDriver):
                 axis.remove(rot)
 
         if axis is not None:
-            _ = await self._motor_move(
-                d_mm=[0 for _ in axis],
-                axis=axis,
-                speed=self.motor_max_speed_count_sec,
-                mode=MoveModes.homing,
-                transformation=TransformationModes.motorxy,
-            )
-            _ = await self._motor_move(
-                d_mm=[2 for _ in axis],
-                axis=axis,
-                speed=self.motor_max_speed_count_sec,
-                mode=MoveModes.relative,
-                transformation=TransformationModes.motorxy,
-            )
-            _ = await self._motor_move(
-                d_mm=[0 for _ in axis],
-                axis=axis,
-                speed=1000,
-                mode=MoveModes.homing,
-                transformation=TransformationModes.motorxy,
-            )
-            retc2 = await self._motor_move(
-                d_mm=[self.config_dict["axis_zero"][self.axis_id[ax]] for ax in axis],
-                axis=axis,
-                speed=None,
-                mode=MoveModes.relative,
-                transformation=TransformationModes.motorxy,
-            )
+            steps = [
+                ([0 for _ in axis], self.motor_max_speed_count_sec, MoveModes.homing),
+                ([2 for _ in axis], self.motor_max_speed_count_sec, MoveModes.relative),
+                ([0 for _ in axis], 1000, MoveModes.homing),
+                (
+                    [self.config_dict["axis_zero"][self.axis_id[ax]] for ax in axis],
+                    None,
+                    MoveModes.relative,
+                ),
+            ]
+            for d_mm, speed, mode in steps:
+                res = await self._motor_move(
+                    d_mm=d_mm,
+                    axis=axis,
+                    speed=speed,
+                    mode=mode,
+                    transformation=TransformationModes.motorxy,
+                )
+                codes = res["err_code"]
+                if any(
+                    c != ErrorCodes.none
+                    for c in (codes if isinstance(codes, list) else [codes])
+                ):
+                    # a failed step (timeout, estop, motor...) must not be
+                    # followed by the DP re-zero: that would fix the zero at an
+                    # arbitrary position. Return it so the action E-STOPs.
+                    LOGGER.error(f"setaxisref aborted before DP: err_code {codes}")
+                    return res
             q = self._channel.command("TP")
             cmd = "DP " + ",".join("0" for _ in range(len(q.split(","))))
             self._channel.command(cmd)
-            return retc2
+            return res
         else:
             return "error"
 

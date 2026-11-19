@@ -1123,3 +1123,31 @@ def test_mxytomplate_enqueues_a_serializable_list():
         captured[0]
     )  # the data-stream serializer; np.matrix raises TypeError
     assert captured[0]["mplate"] == [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+
+def test_setmotionref_action_error_code_is_timeout_when_homing_times_out():
+    from helao.hexagon.app.action_host import ActionHost
+    from helao.helpers.premodels import Action
+
+    cfg = dict(GALIL_CFG, timeout=0.01, axis_zero={"C": 5.0, "B": 5.0})
+    app, channel = _galil_app(config=cfg, responses=_galil_responses({"SC": "0"}))
+    app.get_main_error = lambda e: ActionHost.get_main_error(None, e)
+    captured = []
+
+    class _Active:
+        action = Action(action_name="setmotionref", action_params={})
+
+        async def enqueue_data_dflt(self, datadict):
+            captured.append(datadict)
+
+        async def finish(self):
+            return self.action
+
+    class _Ctx:
+        async def begin(self, **kw):
+            return _Active()
+
+    asyncio.run(app.routes["/MOTOR/setmotionref"].fn(ctx=_Ctx()))
+    assert captured[0]["setref"]["err_code"] == [ErrorCodes.timeout] * 2
+    assert _Active.action.error_code == ErrorCodes.timeout
+    assert not _emitted(channel, "DP")

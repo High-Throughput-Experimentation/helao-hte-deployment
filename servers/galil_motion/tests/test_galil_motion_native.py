@@ -739,3 +739,95 @@ def test_move_that_finishes_inside_estimate_plus_margin_is_not_a_timeout(
     d.query_axis_moving = q
     out = asyncio.run(d._motor_move([50.0], ["x"], 1000, "relative", "motorxy"))
     assert out["err_code"] == [ErrorCodes.none]
+
+
+def _fake_clock(monkeypatch, step=10.0):
+    clock = [0.0]
+    monkeypatch.setattr(_gmn.time, "time", lambda: clock[0])
+
+    async def fake_sleep(dt):
+        clock[0] += step
+
+    monkeypatch.setattr(_gmn.asyncio, "sleep", fake_sleep)
+    return clock
+
+
+def test_a_stuck_move_times_out_at_estimate_plus_margin_not_at_the_ceiling(
+    monkeypatch,
+):
+    # 50 s estimate + 30 s margin = 80 s deadline, far below the 1800 s default
+    # ceiling. Using the ceiling instead would halt only at ~1800 s.
+    clock = _fake_clock(monkeypatch)
+    d, _ = _drv(responses=_move_responses(), config=dict(MOVE_CFG))
+    d.connect()
+    stopped_at = []
+
+    async def never_stops(axis):
+        return {"motor_status": ["moving"], "err_code": [ErrorCodes.none]}
+
+    async def stop(axis):
+        stopped_at.append(clock[0])
+
+    d.query_axis_moving = never_stops
+    d.stop_axis = stop
+    out = asyncio.run(d._motor_move([50.0], ["x"], 1000, "relative", "motorxy"))
+    assert out["err_code"] == [ErrorCodes.timeout]
+    assert 80 <= stopped_at[0] < 100
+
+
+def test_estop_during_the_settle_wait_reports_estop_not_timeout(monkeypatch):
+    _fake_clock(monkeypatch)
+    d, _ = _drv(responses=_move_responses(), config=dict(MOVE_CFG))
+    d.connect()
+    flag = [False]
+    d._is_estopped = lambda: flag[0]
+
+    async def q(axis):
+        flag[0] = True  # the E-STOP arrives while the axis is still moving
+        return {"motor_status": ["moving"], "err_code": [ErrorCodes.none]}
+
+    d.query_axis_moving = q
+    out = asyncio.run(d._motor_move([50.0], ["x"], 1000, "relative", "motorxy"))
+    assert out["err_code"] == [ErrorCodes.estop]
+
+
+def test_timeout_keeps_an_earlier_failure_code_and_a_stopped_axis_none():
+    cfg = dict(
+        MOVE_CFG,
+        timeout=0.01,
+        axis_id={"x": "A", "y": "B", "z": "C"},
+        count_to_mm={"A": 0.001, "C": 0.001},  # y has no scale -> numerical
+    )
+    d, _ = _drv(responses=_move_responses({"SC": "0, 0, 1"}), config=cfg)
+    d.connect()
+    out = asyncio.run(
+        d._motor_move([1.0, 1.0, 1.0], ["x", "y", "z"], None, "absolute", "motorxy")
+    )
+    assert out["err_code"] == [
+        ErrorCodes.timeout,
+        ErrorCodes.numerical,
+        ErrorCodes.none,
+    ]
+
+
+def test_zero_speed_fails_the_axis_at_once_and_sends_no_motion_command():
+    d, ch = _drv(responses=_move_responses(), config=dict(MOVE_CFG, timeout=600))
+    d.connect()
+    ch.commands.clear()
+    # speed=0 is floored to 0; it must not wait out the 600 s ceiling
+    out = asyncio.run(d._motor_move([1.0], ["x"], 0, "relative", "motorxy"))
+    assert out["err_code"] == [ErrorCodes.motor]
+    assert not [c for c in ch.commands if c.startswith(("SPA", "BGA", "PRA", "PAA"))]
+
+
+def test_setaxisref_aborts_before_dp_when_a_homing_step_times_out():
+    cfg = dict(MOVE_CFG, timeout=0.01)
+    cfg["axis_zero"] = {"A": 5.0}
+    d, ch = _drv(responses=_move_responses({"SC": "0"}), config=cfg)
+    d.connect()
+    ch.commands.clear()
+    out = asyncio.run(d.setaxisref())
+    assert out["err_code"] == [ErrorCodes.timeout]
+    assert not [c for c in ch.commands if c.startswith("DP")]
+    # only the first (homing) step ran
+    assert [c for c in ch.commands if c.startswith("BG")] == ["BGA"]
