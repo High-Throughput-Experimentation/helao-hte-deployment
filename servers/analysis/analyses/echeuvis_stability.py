@@ -15,7 +15,6 @@ from uuid import UUID
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
 from scipy.signal import savgol_filter
 from scipy.stats import binned_statistic
 
@@ -25,7 +24,7 @@ from helao.helpers import helao_logging as logging
 LOGGER = logging.make_logger(__file__) if logging.LOGGER is None else logging.LOGGER
 from helao.core.drivers.data.analyses.base_analysis import BaseAnalysis
 from helao.core.drivers.data.loaders.helao_loader import HelaoAction, HelaoProcess
-from helao.core.models.analysis import AnalysisDataModel, AnalysisInput
+from helao.core.models.analysis import AnalysisDataModel, AnalysisInput, AnalysisOutput
 from helao.core.models.run_use import RunUse
 
 ANALYSIS_DEFAULTS = {
@@ -137,6 +136,14 @@ def refadjust(v, min_mthd_allowed, max_mthd_allowed, min_limit, max_limit) -> tu
     )
 
     return min_rescaled, max_rescaled, w
+
+
+def last_secs_start(ep, skip: int, secs: float) -> int:
+    """First frame index, into the UNSLICED frame array, past ``skip`` and inside the last ``secs``.
+
+    Raises ``ValueError`` when ``skip`` leaves no frames.
+    """
+    return skip + np.where((ep[skip:] - ep.max()) >= -secs)[0].min()
 
 
 class EcheUvisInputs(AnalysisInput):
@@ -364,7 +371,7 @@ class EcheUvisInputs(AnalysisInput):
         return inputs
 
 
-class EcheUvisOutputs(BaseModel):
+class EcheUvisOutputs(AnalysisOutput):
     """Per-sample output payload for :class:`EcheUvisAnalysis`.
 
     Attributes:
@@ -580,27 +587,14 @@ class EcheUvisAnalysis(BaseAnalysis):
         #     ]
         # ).mean(axis=0)
 
+        skip, secs = ap["skip_first_n"], ap["agg_last_secs"]
         # aggregate baseline insitu OCV spectra over final t seconds, omitting first n
-        agg_baseline = aggfunc(
-            btup[2][
-                np.where(
-                    (btup[1][ap["skip_first_n"] :] - btup[1].max())
-                    >= -ap["agg_last_secs"]
-                )[0].min() :
-            ],
-            axis=0,
-        )
+        agg_baseline = aggfunc(btup[2][last_secs_start(btup[1], skip, secs) :], axis=0)
 
         # aggregate insitu CA spectra over final t seconds, omitting first n
         try:
             agg_insitu = aggfunc(
-                itup[2][
-                    np.where(
-                        (itup[1][ap["skip_first_n"] :] - itup[1].max())
-                        >= -ap["agg_last_secs"]
-                    )[0].min() :
-                ],
-                axis=0,
+                itup[2][last_secs_start(itup[1], skip, secs) :], axis=0
             )
         except Exception:
             LOGGER.warning(
@@ -608,24 +602,14 @@ class EcheUvisAnalysis(BaseAnalysis):
                 exc_info=True,
             )
             agg_insitu = aggfunc(
-                itup[2][
-                    np.where((itup[1][0] - itup[1].max()) >= -ap["agg_last_secs"])[
-                        0
-                    ].min() :
-                ],
+                itup[2][np.where((itup[1] - itup[1].max()) >= -secs)[0].min() :],
                 axis=0,
             )
 
         # aggregate presitu OCV spectra over final t seconds, omitting first n
         try:
             agg_presitu = aggfunc(
-                ptup[2][
-                    np.where(
-                        (ptup[1][ap["skip_first_n"] :] - ptup[1].max())
-                        >= -ap["agg_last_secs"]
-                    )[0].min() :
-                ],
-                axis=0,
+                ptup[2][last_secs_start(ptup[1], skip, secs) :], axis=0
             )
         except Exception:
             LOGGER.warning(
@@ -633,11 +617,7 @@ class EcheUvisAnalysis(BaseAnalysis):
                 exc_info=True,
             )
             agg_presitu = aggfunc(
-                ptup[2][
-                    np.where((ptup[1][0] - ptup[1].max()) >= -ap["agg_last_secs"])[
-                        0
-                    ].min() :
-                ],
+                ptup[2][np.where((ptup[1] - ptup[1].max()) >= -secs)[0].min() :],
                 axis=0,
             )
 
@@ -712,6 +692,7 @@ class EcheUvisAnalysis(BaseAnalysis):
 
         # create output model
         self.outputs = EcheUvisOutputs(
+            output_type="spectrum.echeuvis_stability",
             wavelength=list(wl),
             lower_wl_idx=wlindlo,
             upper_wl_idx=wlindhi,

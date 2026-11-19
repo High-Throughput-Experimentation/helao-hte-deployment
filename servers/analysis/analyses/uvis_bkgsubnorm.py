@@ -13,16 +13,15 @@ from uuid import UUID
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
 from scipy.signal import savgol_filter
 from scipy.stats import binned_statistic
 
 from helao.core.drivers.data.analyses.base_analysis import BaseAnalysis
 from helao.core.drivers.data.loaders.helao_loader import HelaoAction, HelaoProcess
-from helao.core.models.analysis import AnalysisDataModel, AnalysisInput
+from helao.core.models.analysis import AnalysisDataModel, AnalysisInput, AnalysisOutput
 from helao.core.version import get_filehash
 
-from .echeuvis_stability import parse_spechlo, refadjust
+from .echeuvis_stability import last_secs_start, parse_spechlo, refadjust
 
 ANALYSIS_DEFAULTS = {
     "ev_parts": [1.8, 2.2, 2.6, 3.0],
@@ -212,7 +211,7 @@ class DryUvisInputs(AnalysisInput):
         return inputs
 
 
-class DryUvisOutputs(BaseModel):
+class DryUvisOutputs(AnalysisOutput):
     """Output payload for :class:`DryUvisAnalysis`.
 
     Attributes:
@@ -346,42 +345,19 @@ class DryUvisAnalysis(BaseAnalysis):
         wlindlo = np.where(wl > ap["lower_wl"])[0].min()
         wlindhi = np.where(wl < ap["upper_wl"])[0].max()
 
+        skip, secs = ap["skip_first_n"], ap["agg_last_secs"]
         # mean aggregate initial and final reference dark spectra
         mean_ref_dark = np.vstack(
-            [
-                arr[
-                    np.where(
-                        (ep[ap["skip_first_n"] :] - ep.max()) >= -ap["agg_last_secs"]
-                    )[0].min() :
-                ]
-                for wl, ep, arr in rdtups
-            ]
+            [arr[last_secs_start(ep, skip, secs) :] for wl, ep, arr in rdtups]
         ).mean(axis=0)
 
         # mean aggregate initial and final reference light spectra
         mean_ref_light = np.vstack(
-            [
-                arr[
-                    np.where(
-                        (ep[ap["skip_first_n"] :] - ep.max()) >= -ap["agg_last_secs"]
-                    )[0].min() :
-                ]
-                for wl, ep, arr in rltups
-            ]
+            [arr[last_secs_start(ep, skip, secs) :] for wl, ep, arr in rltups]
         ).mean(axis=0)
 
-        # aggregate baseline insitu OCV spectra over final t seconds, omitting first n
-        agg_insitu = aggfunc(
-            [
-                arr[
-                    np.where(
-                        (ep[ap["skip_first_n"] :] - ep.max()) >= -ap["agg_last_secs"]
-                    )[0].min() :
-                ]
-                for wl, ep, arr in (btup,)
-            ][0],
-            axis=0,
-        )
+        # aggregate the sample spectra over final t seconds, omitting first n
+        agg_insitu = aggfunc(btup[2][last_secs_start(btup[1], skip, secs) :], axis=0)
 
         inds = range(len(wl[wlindlo:wlindhi]))
         nbins = np.round(len(wl[wlindlo:wlindhi]) / ap["bin_width"]).astype(int)
@@ -403,6 +379,7 @@ class DryUvisAnalysis(BaseAnalysis):
 
         # create output model
         self.outputs = DryUvisOutputs(
+            output_type="spectrum.uvis_bkgsubnorm_ref",
             wavelength=list(wl),
             lower_wl_idx=wlindlo,
             upper_wl_idx=wlindhi,
