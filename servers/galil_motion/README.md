@@ -147,7 +147,7 @@ Queues `{"connection": <str>}` (`helao/deploy/hte/servers/galil_motion/galil_mot
 | `reset_plate_alignment` | default | none | none | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:148-151` |
 | `toMotorXY` | `tomotorxy` | `{"motorxy": ...}` | `float`, `list[float]` of length 3 `[x, y, 1.0]` (homogeneous coordinate; `helao/hexagon/domain/motion_transform.py:81-93`); the `platexy` param is one `"x,y"` string | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:227-233` |
 | `toPlateXY` | `toplatexy` | `{"platexy": ...}` | `float`, `list[float]` of length 3 `[x, y, 1.0]` (`motion_transform.py:99-109`); the `motorxy` param is one `"x,y"` string | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:245-251` |
-| `MxytoMPlate` | `mxytomplate` | `{"mplate": ...}` | none in practice: the `Mxy` param is `Optional[str]`, `np.asarray(str)` is 0-d and `Mxy[0:2,0:2]` raises `IndexError` (`helao/hexagon/domain/motion_transform.py:363-365`), so the endpoint raises and writes no row; with a real matrix the `np.matrix` return is not orjson-serializable and the row would be `{"error": "data was not serializable"}` (`helao/hexagon/adapters/native/data_stream.py:362-374`) | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:262-268` |
+| `MxytoMPlate` | `mxytomplate` | `{"mplate": ...}` | `mplate`: `float \| null`, `list[list[float]]` (3x3): the plate matrix `Minstr^-1 · Mxy` from the JSON-string `Mxy` (`helao/hexagon/domain/motion_transform.py`, `get_Mplate_Msystem`); `null` when `Minstr` is singular. `Mxy` absent raises `ValueError("Mxy required")` (HTTP 500, no row) | none | `helao/deploy/hte/servers/galil_motion/galil_motion.py:264-266` |
 
 `load_plate_alignment`, `reset_plate_alignment` and the aligner also persist the plate matrix, see Files below.
 
@@ -189,5 +189,4 @@ The row is queued only while the aligner holds an active action (`helao/deploy/h
 ## Notes
 
 - `GalilCommandChannel` tests use `tests/fake_gclib.py`, so no gclib install is needed to run them.
-- `MxytoMPlate` cannot work as registered: its `Mxy` param is `Optional[str]`, so `get_Mplate_Msystem` raises `IndexError` on the 0-d array (`helao/hexagon/domain/motion_transform.py:363-365`); a real matrix would return an `np.matrix`, which the data logger cannot serialise (`helao/hexagon/adapters/native/data_stream.py:362-374`).
 - A move that times out raises `RuntimeError("motion timeout: ...")` after halting the axes (`helao/deploy/hte/servers/galil_motion/galil_motion_native.py:712`): the orchestrator pauses and re-queues the move (no E-STOP), and the raised action's server-side session stays open until the next server startup reconciles it (`helao/hexagon/app/action_host.py:1486-1505`).

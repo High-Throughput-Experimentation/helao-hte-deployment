@@ -259,12 +259,10 @@ async def galil_dyn_endpoints(app: ActionHost):
         ):
             """Strip the instrument matrix from a system matrix to obtain ``Mplate``."""
             active = await ctx.begin(action_abbr="mxytomplate")
+            M = app.driver.transform.get_Mplate_Msystem(**active.action.action_params)
+            # np.matrix is not serializable; a singular Minstr gives None -> null
             await active.enqueue_data_dflt(
-                datadict={
-                    "mplate": app.driver.transform.get_Mplate_Msystem(
-                        **active.action.action_params
-                    )
-                }
+                datadict={"mplate": None if M is None else M.tolist()}
             )
             finished_action = await active.finish()
             return finished_action.as_dict()

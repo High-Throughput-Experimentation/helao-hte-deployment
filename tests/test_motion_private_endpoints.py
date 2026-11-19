@@ -1081,3 +1081,45 @@ def test_a_raising_connect_keeps_galil_motion_up_with_no_motion_routes(
     assert out.probe is True  # dyn_endpoints ran to completion against the driver
     # galil_enabled is never set True, so the gated motion routes do not register
     assert not any(p.endswith("/move") for p in out.route_paths if p)
+
+
+# --------------------------------------------------------------------------
+# galil: MxytoMPlate (catalog bugfixes H9)
+# --------------------------------------------------------------------------
+
+
+def test_mxytomplate_enqueues_a_serializable_list():
+    """The JSON-string ``Mxy`` the route declares must yield a list row.
+
+    ``GALIL_CFG`` has no ``M_instr`` and the fake app no ``helaodirs``, so the
+    driver's instrument matrix is the identity; factoring the identity out of
+    an identity system matrix gives the identity plate matrix.
+    """
+    from helao.helpers.premodels import Action
+    from helao.helpers.to_json import hlo_json_dumps
+
+    app, _ = _galil_app()
+    captured = []
+
+    class _Active:
+        action = Action(
+            action_name="MxytoMPlate",
+            action_params={"Mxy": "[[1,0,0],[0,1,0],[0,0,1]]"},
+        )
+
+        async def enqueue_data_dflt(self, datadict):
+            captured.append(datadict)
+
+        async def finish(self):
+            return self.action
+
+    class _Ctx:
+        async def begin(self, **kw):
+            return _Active()
+
+    asyncio.run(app.routes["/MOTOR/MxytoMPlate"].fn(ctx=_Ctx()))
+    assert len(captured) == 1
+    hlo_json_dumps(
+        captured[0]
+    )  # the data-stream serializer; np.matrix raises TypeError
+    assert captured[0]["mplate"] == [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
