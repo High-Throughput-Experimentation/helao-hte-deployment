@@ -1,6 +1,6 @@
 """Dry UV-Vis background-subtraction + normalisation analysis.
 
-Pulls UV-Vis spectrometer actions (query :data:`DRYUVIS_QUERY`),
+Reads a ``UVIS_T`` sequence through a ``LocalLoader`` (:func:`local_frame`),
 averages start/end dark and light reference spectra, normalises the
 sample spectrum, bins, smooths and reference-adjusts the result, and
 emits :class:`DryUvisOutputs` via :class:`DryUvisAnalysis`.
@@ -17,11 +17,20 @@ from scipy.signal import savgol_filter
 from scipy.stats import binned_statistic
 
 from helao.core.drivers.data.analyses.base_analysis import BaseAnalysis
-from helao.core.drivers.data.loaders.helao_loader import HelaoAction, HelaoProcess
+from helao.core.drivers.data.loaders.localfs import (
+    HelaoAction,
+    HelaoProcess,
+    LocalLoader,
+)
 from helao.core.models.analysis import AnalysisDataModel, AnalysisInput, AnalysisOutput
 from helao.core.version import get_filehash
 
-from .echeuvis_stability import last_secs_start, parse_spechlo, refadjust
+from .echeuvis_stability import (
+    last_secs_start,
+    local_frame,
+    parse_spechlo,
+    refadjust,
+)
 
 ANALYSIS_DEFAULTS = {
     "ev_parts": [1.8, 2.2, 2.6, 3.0],
@@ -39,44 +48,6 @@ ANALYSIS_DEFAULTS = {
     "agg_last_secs": 2,
     "agg_method": "mean",
 }
-DRYUVIS_QUERY = """
-SELECT
-    hp.dummy,
-    hp.run_type,
-    hp.sequence_uuid,
-    hp.experiment_uuid,
-    hp.process_uuid,
-    hp.process_group_index,
-    hp.process_params,
-    hp.technique_name,
-    hp.run_use,
-    hp.process_timestamp,
-    hs.sequence_params,
-    hs.sequence_name,
-    hs.sequence_label,
-    hs.sequence_timestamp,
-    hs.sequence_status,
-    he.experiment_params,
-    he.experiment_name,
-    he.experiment_status,
-    ha.action_uuid,
-    ha.action_params,
-    ha.action_name,
-    ha.action_timestamp,
-    hsmp.global_label
-FROM
-    helao_process hp
-    JOIN helao_action ha on ha.process_id = hp.id
-    JOIN helao_sequence hs on hs.sequence_uuid = hp.sequence_uuid
-    JOIN helao_experiment he on he.experiment_uuid = hp.experiment_uuid
-    JOIN helao_sample_process hsmpp on hsmpp.process_id = hp.id
-    JOIN helao_sample hsmp on hsmp.id = hsmpp.sample_id
-WHERE
-    true
-    AND hs.sequence_name in ('UVIS_T')
-    AND hp.run_type='eche'
-    AND ha.action_name in ('acquire_spec_adv')
-"""
 
 
 class DryUvisInputs(AnalysisInput):
@@ -98,62 +69,27 @@ class DryUvisInputs(AnalysisInput):
     insitu_spec_act: HelaoAction
     process_params: dict
 
-    def __init__(
-        self,
-        insitu_process_uuid: UUID,
-        plate_id: int,
-        sample_no: int,
-        query_df: pd.DataFrame,
-    ):
-        """Resolve ref-dark/light/sample actions from the sequence frame.
+    def __init__(self, insitu_process_uuid: UUID, frame: pd.DataFrame):
+        """Resolve ref-dark/light and sample spectrometer actions from ``frame``.
 
         Args:
             insitu_process_uuid: Process UUID of the sample acquisition.
-            plate_id: Plate id of the sample.
-            sample_no: Sample number on that plate.
-            query_df: Result frame produced by :data:`DRYUVIS_QUERY`.
+            frame: :func:`local_frame` of the sequence.
         """
-        self.plate_id = plate_id
-        self.sample_no = sample_no
-        suuid = (
-            query_df.query("process_uuid==@insitu_process_uuid").iloc[0].sequence_uuid
+        spec = frame[frame.action_name == "acquire_spec_adv"].sort_values(
+            "action_timestamp", kind="stable"
         )
-        sdf = query_df.query("sequence_uuid==@suuid")
-        self.ref_darks = [
-            HelaoProcess(x, query_df)
-            for x in sdf.query("run_use=='ref_dark'").process_uuid
-        ]
-        self.ref_dark_spec_acts = [
-            HelaoAction(x, query_df)
-            for x in sdf.query("run_use=='ref_dark'").action_uuid
-        ]
-        self.ref_lights = [
-            HelaoProcess(x, query_df)
-            for x in sdf.query("run_use=='ref_light'").process_uuid
-        ]
-        self.ref_light_spec_acts = [
-            HelaoAction(x, query_df)
-            for x in sdf.query("run_use=='ref_light'").action_uuid
-        ]
-
-        ddf = sdf.query("run_use=='data'")
-        bdf = (
-            ddf.query("experiment_name=='UVIS_sub_measure'")
-            .query("plate_id==@plate_id")
-            .query("sample_no==@sample_no")
-        )
-        self.insitu = HelaoProcess(
-            bdf.sort_values("action_timestamp").iloc[0].process_uuid,
-            query_df,
-        )
+        darks = spec[spec.run_use == "ref_dark"]
+        lights = spec[spec.run_use == "ref_light"]
+        self.ref_darks = list(darks.prc)
+        self.ref_dark_spec_acts = list(darks.act)
+        self.ref_lights = list(lights.prc)
+        self.ref_light_spec_acts = list(lights.act)
+        row = spec[spec.process_uuid == insitu_process_uuid].iloc[0]
+        self.insitu = row.prc
+        self.insitu_spec_act = row.act
+        self.global_label = row.global_label
         self.process_params = self.insitu.process_params
-        self.insitu_spec_act = HelaoAction(
-            bdf.query("action_name=='acquire_spec_adv'")
-            .sort_values("action_timestamp")
-            .iloc[0]
-            .action_uuid,
-            query_df,
-        )
 
     @property
     def ref_dark_spec(self) -> list:
@@ -177,8 +113,8 @@ class DryUvisInputs(AnalysisInput):
 
         Args:
             global_sample_label: Override label; falls back to
-                ``legacy__solid__<plate>_<sample>`` for ``data`` and
-                ``baseline`` run uses.
+                the analysed process's first ``samples_in``
+                ``global_label`` for data/baseline inputs.
         """
         action_keys = [k for k in vars(self).keys() if "spec_act" in k]
         inputs = []
@@ -193,9 +129,7 @@ class DryUvisInputs(AnalysisInput):
                 if global_sample_label is not None:
                     global_sample = global_sample_label
                 elif ru in ["data", "baseline"]:
-                    global_sample = (
-                        f"legacy__solid__{int(self.plate_id):d}_{int(self.sample_no):d}"
-                    )
+                    global_sample = self.global_label
                 else:
                     global_sample = None
                 adm = AnalysisDataModel(
@@ -254,8 +188,6 @@ class DryUvisAnalysis(BaseAnalysis):
         analysis_uuid: Generated analysis UUID.
         analysis_params: Effective parameters (defaults merged with
             caller overrides).
-        plate_id: Plate id under analysis.
-        sample_no: Sample number on that plate.
         process_uuid: UUID of the sample-acquisition process.
         process_timestamp: Timestamp of that process.
         process_name: Technique name from the row.
@@ -273,8 +205,6 @@ class DryUvisAnalysis(BaseAnalysis):
     analysis_timestamp: datetime
     analysis_uuid: UUID
     analysis_params: dict
-    plate_id: int
-    sample_no: int
     process_uuid: UUID
     process_timestamp: datetime
     process_name: str
@@ -285,17 +215,24 @@ class DryUvisAnalysis(BaseAnalysis):
     action_attr: str
     analysis_codehash: str
 
+    @classmethod
+    def select_process_uuids(cls, local_loader) -> list:
+        """The sequence's ``run_use == data`` acquisitions (references excluded)."""
+        f = local_frame(local_loader)
+        sel = f[(f.run_use == "data") & (f.action_name == "acquire_spec_adv")]
+        return list(sel.process_uuid)
+
     def __init__(
         self,
         process_uuid: UUID,
-        query_df: pd.DataFrame,
+        local_loader: LocalLoader,
         analysis_params: dict,
     ):
-        """Build inputs from the query frame and stamp analysis metadata.
+        """Build inputs from the loader's sequence and stamp analysis metadata.
 
         Args:
             process_uuid: Target sample-acquisition process UUID.
-            query_df: Frame produced by :data:`DRYUVIS_QUERY`.
+            local_loader: ``LocalLoader`` bound to the sequence.
             analysis_params: Overrides merged into
                 :data:`ANALYSIS_DEFAULTS`.
         """
@@ -304,20 +241,17 @@ class DryUvisAnalysis(BaseAnalysis):
         self.analysis_timestamp = datetime.now()
         self.analysis_params = copy(ANALYSIS_DEFAULTS)
         self.analysis_params.update(analysis_params)
-        pdf = query_df.query("process_uuid==@process_uuid")
-        self.plate_id = pdf.iloc[0].plate_id
-        self.sample_no = pdf.iloc[0].sample_no
-
-        # additional attrs
-        self.process_timestamp = pdf.iloc[0].process_timestamp
-        self.process_name = pdf.iloc[0].technique_name
-        self.run_type = pdf.iloc[0].run_type
-        self.technique_name = pdf.iloc[0].technique_name
-
-        self.inputs = DryUvisInputs(
-            process_uuid, self.plate_id, self.sample_no, query_df
-        )
+        # ponytail: frame rebuilt per process; loader caches the ymls
+        self.inputs = DryUvisInputs(process_uuid, local_frame(local_loader))
+        prc = self.inputs.insitu
         self.process_uuid = process_uuid
+        self.process_timestamp = prc.process_timestamp
+        self.process_name = prc.technique_name
+        self.run_type = prc.json.get("run_type")
+        self.run_use = "data"
+        self.technique_name = prc.technique_name
+        self.campaign_name = prc.json.get("campaign_name")
+        self.campaign_uuid = prc.json.get("campaign_uuid")
         self.analysis_codehash = get_filehash(sys._getframe().f_code.co_filename)
         self.analysis_codepath = sys._getframe().f_code.co_filename
         self.analysis_classname = self.__class__.__name__

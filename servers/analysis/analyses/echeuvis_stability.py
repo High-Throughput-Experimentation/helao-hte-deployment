@@ -1,7 +1,7 @@
 """In-situ ECHE-UV-Vis optical stability analysis.
 
-Pulls SDC-UVIS process/action records from the Modelyst postgres DB
-(query :data:`SDCUVIS_QUERY`), aligns baseline-OCV, in-situ-CA, and
+Reads an ``ECHEUVIS_multiCA_led`` sequence through a ``LocalLoader``
+(:func:`local_frame`), aligns baseline-OCV, in-situ-CA, and
 post-CA OCV spectra for a single ``(plate_id, sample_no)``, performs
 background-style normalisation, binning, Savitzky-Golay smoothing and
 reference clipping, and emits per-sample stability figures of merit via
@@ -23,7 +23,11 @@ from helao.helpers import helao_logging as logging
 
 LOGGER = logging.make_logger(__file__) if logging.LOGGER is None else logging.LOGGER
 from helao.core.drivers.data.analyses.base_analysis import BaseAnalysis
-from helao.core.drivers.data.loaders.helao_loader import HelaoAction, HelaoProcess
+from helao.core.drivers.data.loaders.localfs import (
+    HelaoAction,
+    HelaoProcess,
+    LocalLoader,
+)
 from helao.core.models.analysis import AnalysisDataModel, AnalysisInput, AnalysisOutput
 from helao.core.models.run_use import RunUse
 
@@ -43,45 +47,6 @@ ANALYSIS_DEFAULTS = {
     "agg_last_secs": 2,
     "agg_method": "mean",
 }
-
-SDCUVIS_QUERY = """
-SELECT
-    hp.dummy,
-    hp.run_type,
-    hp.sequence_uuid,
-    hp.experiment_uuid,
-    hp.process_uuid,
-    hp.process_group_index,
-    hp.process_params,
-    hp.technique_name,
-    hp.run_use,
-    hp.process_timestamp,
-    hs.sequence_params,
-    hs.sequence_name,
-    hs.sequence_label,
-    hs.sequence_timestamp,
-    hs.sequence_status,
-    he.experiment_params,
-    he.experiment_name,
-    he.experiment_status,
-    ha.action_uuid,
-    ha.action_params,
-    ha.action_name,
-    ha.action_timestamp,
-    hsmp.global_label
-FROM
-    helao_process hp
-    JOIN helao_action ha on ha.process_id = hp.id
-    JOIN helao_sequence hs on hs.sequence_uuid = hp.sequence_uuid
-    JOIN helao_experiment he on he.experiment_uuid = hp.experiment_uuid
-    JOIN helao_sample_process hsmpp on hsmpp.process_id = hp.id
-    JOIN helao_sample hsmp on hsmp.id = hsmpp.sample_id
-WHERE
-    true
-    AND hs.sequence_name in ('ECHEUVIS_multiCA_led')
-    AND hp.run_type='echeuvis'
-    AND ha.action_name in ('run_OCV', 'run_CA', 'acquire_spec_adv', 'acquire_spec_extrig')
-"""
 
 
 def parse_spechlo(hlod: dict):
@@ -146,6 +111,49 @@ def last_secs_start(ep, skip: int, secs: float) -> int:
     return skip + np.where((ep[skip:] - ep.max()) >= -secs)[0].min()
 
 
+def local_frame(local_loader: LocalLoader) -> pd.DataFrame:
+    """One row per dispatched action of every process ``local_loader`` indexed.
+
+    Stands in for the retired DB query: the columns the input resolvers select
+    on, plus the loaded process (``prc``) and action (``act``) records.
+    """
+    rows = []
+    for idx, prow in local_loader.processes.iterrows():
+        prc = local_loader.get_prc(idx)
+        sample = (prc.json.get("samples_in") or [{}])[0]
+        for abbr in prc.json.get("dispatched_actions_abbr", []):
+            act = local_loader.resolve_action(
+                abbr["action_uuid"], abbr["action_output_dir"]
+            )
+            rows.append(
+                {
+                    "process_uuid": prow.process_uuid,
+                    "run_use": str(prc.json.get("run_use") or "data"),
+                    "experiment_name": prow.experiment_name,
+                    "global_label": sample.get("global_label"),
+                    "action_uuid": str(act.action_uuid),
+                    "action_name": act.action_name,
+                    "action_timestamp": str(act.action_timestamp),
+                    "prc": prc,
+                    "act": act,
+                }
+            )
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "process_uuid",
+            "run_use",
+            "experiment_name",
+            "global_label",
+            "action_uuid",
+            "action_name",
+            "action_timestamp",
+            "prc",
+            "act",
+        ],
+    )
+
+
 class EcheUvisInputs(AnalysisInput):
     """Resolved baseline/in-situ/pre-situ processes and actions for one sample.
 
@@ -178,114 +186,48 @@ class EcheUvisInputs(AnalysisInput):
     process_params: dict
     # solid_samples: list
 
-    def __init__(
-        self,
-        insitu_process_uuid: UUID,
-        plate_id: int,
-        sample_no: int,
-        query_df: pd.DataFrame,
-    ):
-        """Resolve the baseline / in-situ / pre-situ acts from ``query_df``.
+    def __init__(self, insitu_process_uuid: UUID, frame: pd.DataFrame):
+        """Resolve the baseline / in-situ / pre-situ acts from ``frame``.
 
         Args:
             insitu_process_uuid: Process UUID of the in-situ CA run.
-            plate_id: Plate id of the sample under analysis.
-            sample_no: Sample number on that plate.
-            query_df: Query-result DataFrame produced by
-                :data:`SDCUVIS_QUERY`.
+            frame: :func:`local_frame` of the sequence.
         """
-        self.plate_id = plate_id
-        self.sample_no = sample_no
-        self.insitu = HelaoProcess(insitu_process_uuid, query_df)
+        frame = frame.sort_values("action_timestamp", kind="stable")
+        data = frame[frame.run_use == "data"]
+        ins = frame[frame.process_uuid == insitu_process_uuid]
+        self.insitu = ins.iloc[0].prc
+        self.global_label = ins.iloc[0].global_label
         self.process_params = self.insitu.process_params
-        self.insitu_spec_act = HelaoAction(
-            query_df.query(
-                "process_uuid==@insitu_process_uuid & action_name=='acquire_spec_extrig'"
-                # "process_uuid==@insitu_process_uuid & action_name=='acquire_spec_adv'"
-            )
-            .iloc[0]
-            .action_uuid,
-            query_df,
-        )
-        self.insitu_ca_act = HelaoAction(
-            query_df.query("process_uuid==@insitu_process_uuid & action_name=='run_CA'")
-            .iloc[0]
-            .action_uuid,
-            query_df,
-        )
-        keep_eche = ["run_OCV", "run_CA"]
-        eche_acts = query_df.query(
-            "run_use=='data' & action_name.isin(@keep_eche)"
-        ).sort_values("action_timestamp")
+        self.insitu_spec_act = ins[ins.action_name == "acquire_spec_extrig"].iloc[0].act
+        self.insitu_ca_act = ins[ins.action_name == "run_CA"].iloc[0].act
+
+        # the OCV run immediately before this CA is the post-CA (presitu) reference
+        eche_acts = data[data.action_name.isin(["run_OCV", "run_CA"])]
         presitu_ocv_idx = (
-            list(eche_acts.action_uuid).index(self.insitu_ca_act.action_uuid) - 1
+            list(eche_acts.action_uuid).index(str(self.insitu_ca_act.action_uuid)) - 1
         )
-        self.presitu_ocv_act = HelaoAction(
-            list(eche_acts.action_uuid)[presitu_ocv_idx], query_df
-        )
-        keep_ocv = ["run_OCV", "acquire_spec_extrig"]
-        ocv_specs = query_df.query(
-            "run_use=='data' & action_name.isin(@keep_ocv) & experiment_name=='ECHEUVIS_sub_OCV_led'"
-        ).sort_values("action_timestamp")
+        self.presitu_ocv_act = eche_acts.iloc[presitu_ocv_idx].act
+        self.presitu = eche_acts.iloc[presitu_ocv_idx].prc
+        ocv_specs = data[
+            data.action_name.isin(["run_OCV", "acquire_spec_extrig"])
+            & (data.experiment_name == "ECHEUVIS_sub_OCV_led")
+        ]
         presitu_spec_idx = (
-            list(ocv_specs.action_uuid).index(self.presitu_ocv_act.action_uuid) - 1
+            list(ocv_specs.action_uuid).index(str(self.presitu_ocv_act.action_uuid)) - 1
         )
-        self.presitu_spec_act = HelaoAction(
-            list(ocv_specs.action_uuid)[presitu_spec_idx], query_df
-        )
+        self.presitu_spec_act = ocv_specs.iloc[presitu_spec_idx].act
 
-        self.presitu = HelaoProcess(
-            query_df.query("action_uuid==@self.presitu_ocv_act.action_uuid")
-            .iloc[0]
-            .process_uuid,
-            query_df,
+        # the sample's first OCV experiment is the optical baseline
+        bdf = data[
+            (data.experiment_name == "ECHEUVIS_sub_OCV_led")
+            & (data.global_label == self.global_label)
+        ]
+        self.baseline = bdf.iloc[0].prc
+        self.baseline_spec_act = (
+            bdf[bdf.action_name == "acquire_spec_extrig"].iloc[0].act
         )
-        suuid = (
-            query_df.query("process_uuid==@insitu_process_uuid").iloc[0].sequence_uuid
-        )
-        sdf = query_df.query("sequence_uuid==@suuid")
-        # self.ref_darks = [
-        #     HelaoProcess(x, query_df)
-        #     for x in sdf.query("run_use=='ref_dark'").process_uuid
-        # ]
-        # self.ref_dark_spec_acts = [
-        #     HelaoAction(x, query_df)
-        #     for x in sdf.query("run_use=='ref_dark'").action_uuid
-        # ]
-        # self.ref_lights = [
-        #     HelaoProcess(x, query_df)
-        #     for x in sdf.query("run_use=='ref_light'").process_uuid
-        # ]
-        # self.ref_light_spec_acts = [
-        #     HelaoAction(x, query_df)
-        #     for x in sdf.query("run_use=='ref_light'").action_uuid
-        # ]
-
-        ddf = sdf.query("run_use=='data'")
-        bdf = (
-            ddf.query("experiment_name=='ECHEUVIS_sub_OCV_led'")
-            .query("plate_id==@plate_id")
-            .query("sample_no==@sample_no")
-        )
-        self.baseline = HelaoProcess(
-            bdf.sort_values("action_timestamp").iloc[0].process_uuid,
-            query_df,
-        )
-        self.baseline_spec_act = HelaoAction(
-            bdf.query("action_name=='acquire_spec_extrig'")
-            # bdf.query("action_name=='acquire_spec_adv'")
-            .sort_values("action_timestamp").iloc[0].action_uuid,
-            query_df,
-        )
-        self.baseline_ocv_act = HelaoAction(
-            ddf.query("action_name=='run_OCV'")
-            .sort_values("action_timestamp")
-            .iloc[0]
-            .action_uuid,
-            query_df,
-        )
-
-        # self.solid_samples = [f"legacy__solid__{plate_id}+{sample_no}"]
+        self.baseline_ocv_act = data[data.action_name == "run_OCV"].iloc[0].act
 
     # @property
     # def ref_dark_spec(self):
@@ -332,9 +274,9 @@ class EcheUvisInputs(AnalysisInput):
 
         Args:
             global_sample_label: Override for the resulting
-                ``global_sample_label`` field; falls back to a legacy
-                ``solid__<plate>_<sample>`` label for data/baseline
-                inputs.
+                ``global_sample_label`` field; falls back to the analysed
+                process's first ``samples_in`` ``global_label`` for
+                data/baseline inputs.
         """
         action_keys = [k for k in vars(self).keys() if "spec_act" in k]
         inputs = []
@@ -353,9 +295,7 @@ class EcheUvisInputs(AnalysisInput):
                 if global_sample_label is not None:
                     global_sample = global_sample_label
                 elif ru in ["data", "baseline", "preca_baseline"]:
-                    global_sample = (
-                        f"legacy__solid__{int(self.plate_id):d}_{int(self.sample_no):d}"
-                    )
+                    global_sample = self.global_label
                 else:
                     global_sample = None
                 adm = AnalysisDataModel(
@@ -460,8 +400,6 @@ class EcheUvisAnalysis(BaseAnalysis):
         analysis_uuid: Generated analysis UUID.
         analysis_params: Effective parameters (defaults merged with
             caller overrides).
-        plate_id: Plate id under analysis.
-        sample_no: Sample number on that plate.
         ca_potential_vrhe: CA potential vs. RHE used in the in-situ
             process.
         process_uuid: UUID of the in-situ CA process.
@@ -479,9 +417,7 @@ class EcheUvisAnalysis(BaseAnalysis):
     analysis_timestamp: datetime
     analysis_uuid: UUID
     analysis_params: dict
-    plate_id: int
-    sample_no: int
-    ca_potential_vrhe: float
+    ca_potential_vrhe: float | None
     process_uuid: UUID
     process_timestamp: datetime
     process_name: str
@@ -491,18 +427,23 @@ class EcheUvisAnalysis(BaseAnalysis):
     outputs: EcheUvisOutputs
     analysis_codehash: str
 
+    @classmethod
+    def select_process_uuids(cls, local_loader) -> list:
+        """The sequence's ``run_use == data`` CA processes (the in-situ targets)."""
+        f = local_frame(local_loader)
+        return list(f[(f.run_use == "data") & (f.action_name == "run_CA")].process_uuid)
+
     def __init__(
         self,
         process_uuid: UUID,
-        query_df: pd.DataFrame,
+        local_loader: LocalLoader,
         analysis_params: dict,
     ):
-        """Build inputs, derive plate/sample identifiers, generate UUID.
+        """Build inputs from the loader's sequence and generate the UUID.
 
         Args:
             process_uuid: UUID of the in-situ CA process.
-            query_df: Query result frame produced by
-                :data:`SDCUVIS_QUERY`.
+            local_loader: ``LocalLoader`` bound to the sequence.
             analysis_params: Overrides merged into
                 :data:`ANALYSIS_DEFAULTS`.
         """
@@ -510,24 +451,18 @@ class EcheUvisAnalysis(BaseAnalysis):
         self.analysis_timestamp = datetime.now()
         self.analysis_params = copy(ANALYSIS_DEFAULTS)
         self.analysis_params.update(analysis_params)
-        pdf = query_df.query("process_uuid==@process_uuid").reset_index(drop=True)
-        # print("filtered data has shape:", pdf.shape)
-        self.plate_id = int(pdf.iloc[0].plate_id)
-        self.sample_no = int(pdf.iloc[0].sample_no)
-
-        # additional attrs
-        self.process_timestamp = pdf.iloc[0].process_timestamp
-        self.process_name = pdf.iloc[0].technique_name
-        self.run_type = pdf.iloc[0].run_type
-        self.technique_name = pdf.iloc[0].technique_name
-
-        # print("assembling inputs")
-        self.inputs = EcheUvisInputs(
-            process_uuid, self.plate_id, self.sample_no, query_df
-        )
+        # ponytail: frame rebuilt per process; loader caches the ymls
+        self.inputs = EcheUvisInputs(process_uuid, local_frame(local_loader))
+        prc = self.inputs.insitu
         self.process_uuid = process_uuid
-        self.ca_potential_vrhe = self.inputs.insitu.process_params["CA_potential_vsRHE"]
-        # print("getting code hash")
+        self.process_timestamp = prc.process_timestamp
+        self.process_name = prc.technique_name
+        self.run_type = prc.json.get("run_type")
+        self.run_use = "data"
+        self.technique_name = prc.technique_name
+        self.campaign_name = prc.json.get("campaign_name")
+        self.campaign_uuid = prc.json.get("campaign_uuid")
+        self.ca_potential_vrhe = self.inputs.process_params.get("CA_potential_vsRHE")
         self.analysis_codehash = get_filehash(sys._getframe().f_code.co_filename)
         self.analysis_codepath = sys._getframe().f_code.co_filename
         self.analysis_classname = self.__class__.__name__

@@ -6,10 +6,15 @@ epoch is within 2 s of the last one and past the first 4: frames 7, 8, 9, so
 every aggregate is mean(7, 8, 9) = 8.0 (light: 108.0).
 """
 
+import itertools
+import json
+import uuid
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 
+from helao.core.drivers.data.loaders.localfs import LocalLoader
 from helao.deploy.hte.servers.analysis.analyses import echeuvis_stability as eche
 from helao.deploy.hte.servers.analysis.analyses import uvis_bkgsubnorm as dry
 
@@ -77,3 +82,186 @@ def test_eche_short_insitu_falls_back_to_whole_epoch_vector():
     )
     assert ana.calc_output() is True
     assert ana.outputs.agg_insitu[0] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# LocalLoader contract: a sequence tree written in tmp_path, read
+# through LocalLoader -> select_process_uuids -> constructor -> export.
+# Layout follows helao/core/tests/test_loader_parity.py::_record.
+# ---------------------------------------------------------------------------
+
+
+ECHE_PARAMS = {**PARAMS, "skip_first_n": 1}
+
+
+def _write_hlo(path: Path, payload: dict) -> None:
+    """Legacy ``.hlo``: YAML header, ``%%``, one JSON data line (lists per key)."""
+    wl = json.dumps(payload["meta"]["optional"]["wl"])
+    body = json.dumps(payload["data"])
+    path.write_text(f"optional:\n  wl: {wl}\n%%\n{body}\n", encoding="utf-8")
+
+
+def _sequence(tmp_path: Path, seq_name: str, experiments: list) -> tuple:
+    """Write one sequence and return ``(seq_dir, [process uuid, ...])``.
+
+    ``experiments`` is ``[(experiment_name, [process, ...]), ...]`` in run
+    order; a process is ``{"run_use", "label", "params", "actions"}`` with
+    ``actions`` a list of ``(action_name, hlo payload or None)``. Every record
+    gets a later timestamp than the one before it.
+    """
+    tick = itertools.count(1)
+    seq_dir = tmp_path / "RUNS" / "2026" / "0925" / f"090000__{seq_name}__lab"
+    seq_dir.mkdir(parents=True)
+    (seq_dir / "20260925.090000000000-seq.yml").write_text(
+        json.dumps({"sequence_name": seq_name}), encoding="utf-8"
+    )
+    puuids = []
+    for exp_name, processes in experiments:
+        ets = f"20260925.09{next(tick):04d}000000"
+        exp_dir = seq_dir / f"{ets}__{exp_name}"
+        exp_dir.mkdir()
+        (exp_dir / f"{ets}-exp.yml").write_text(
+            json.dumps({"experiment_name": exp_name}), encoding="utf-8"
+        )
+        for pidx, proc in enumerate(processes):
+            puuid = str(uuid.uuid4())
+            abbr, files = [], []
+            for action_name, payload in proc["actions"]:
+                n = next(tick)
+                act_dir = exp_dir / f"{n}__0__SRV__{action_name}"
+                act_dir.mkdir()
+                auuid = str(uuid.uuid4())
+                act_files = []
+                if payload is not None:
+                    fd = {
+                        "file_name": "spec.hlo",
+                        "file_type": "spec_helao__file",
+                        "data_keys": sorted(payload["data"]),
+                    }
+                    _write_hlo(act_dir / "spec.hlo", payload)
+                    act_files.append(fd)
+                    files.append(dict(fd, action_uuid=auuid, run_use=proc["run_use"]))
+                (act_dir / f"20260925.09{n:04d}000000-act.yml").write_text(
+                    json.dumps(
+                        {
+                            "action_name": action_name,
+                            "action_uuid": auuid,
+                            "action_timestamp": f"2026-09-25T09:{n // 60:02d}:{n % 60:02d}",
+                            "files": act_files,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                abbr.append(
+                    {
+                        "action_uuid": auuid,
+                        "action_output_dir": act_dir.relative_to(
+                            tmp_path / "RUNS"
+                        ).as_posix(),
+                    }
+                )
+            prc = {
+                "technique_name": "tech",
+                "process_uuid": puuid,
+                "run_use": proc["run_use"],
+                "run_type": "test",
+                "process_params": proc.get("params", {}),
+                "samples_in": [{"global_label": proc["label"]}],
+                "dispatched_actions_abbr": abbr,
+                "files": files,
+            }
+            (exp_dir / f"{pidx}__{puuid}__tech-prc.yml").write_text(
+                json.dumps(prc), encoding="utf-8"
+            )
+            puuids.append(puuid)
+    return seq_dir, puuids
+
+
+def _dry_tree(tmp_path):
+    spec = "acquire_spec_adv"
+    ref = lambda ru, off: {
+        "run_use": ru,
+        "label": "ref",
+        "actions": [(spec, _ramp(off))],
+    }
+    smp = lambda lab: {"run_use": "data", "label": lab, "actions": [(spec, _ramp())]}
+    return _sequence(
+        tmp_path,
+        "UVIS_T",
+        [
+            ("UVIS_sub_measure", [ref("ref_dark", 0.0)]),
+            ("UVIS_sub_measure", [ref("ref_light", 100.0)]),
+            ("UVIS_sub_measure", [smp("plate__1")]),
+            ("UVIS_sub_measure", [smp("plate__2")]),
+        ],
+    )
+
+
+def _eche_tree(tmp_path):
+    spec = "acquire_spec_extrig"
+    lab = "plate__1"
+    return _sequence(
+        tmp_path,
+        "ECHEUVIS_multiCA_led",
+        [
+            (
+                "ECHEUVIS_sub_OCV_led",
+                [
+                    {
+                        "run_use": "data",
+                        "label": lab,
+                        "actions": [(spec, _ramp()), ("run_OCV", None)],
+                    }
+                ],
+            ),
+            (
+                "ECHEUVIS_sub_CA_led",
+                [
+                    {
+                        "run_use": "data",
+                        "label": lab,
+                        "params": {"CA_potential_vsRHE": 1.23},
+                        "actions": [(spec, _ramp()), ("run_CA", None)],
+                    }
+                ],
+            ),
+        ],
+    )
+
+
+def test_dry_selects_only_the_sequence_data_processes(tmp_path):
+    seq_dir, puuids = _dry_tree(tmp_path)
+    got = dry.DryUvisAnalysis.select_process_uuids(LocalLoader(str(seq_dir)))
+    assert sorted(str(u) for u in got) == sorted(puuids[2:])
+
+
+def test_eche_selects_only_the_ca_process(tmp_path):
+    seq_dir, puuids = _eche_tree(tmp_path)
+    got = eche.EcheUvisAnalysis.select_process_uuids(LocalLoader(str(seq_dir)))
+    assert [str(u) for u in got] == [puuids[1]]
+
+
+def test_dry_runs_and_exports_through_local_loader(tmp_path):
+    seq_dir, _ = _dry_tree(tmp_path)
+    loader = LocalLoader(str(seq_dir))
+    puuid = dry.DryUvisAnalysis.select_process_uuids(loader)[0]
+    ana = dry.DryUvisAnalysis(puuid, loader, PARAMS)
+    assert ana.calc_output() is True
+    model, _ = ana.export_analysis("b", "r")
+    assert {o["output_type"] for o in model["outputs"]} == {
+        "spectrum.uvis_bkgsubnorm_ref"
+    }
+    assert model["global_sample_label"] == "plate__1"
+
+
+def test_eche_runs_and_exports_through_local_loader(tmp_path):
+    seq_dir, _ = _eche_tree(tmp_path)
+    loader = LocalLoader(str(seq_dir))
+    puuid = eche.EcheUvisAnalysis.select_process_uuids(loader)[0]
+    ana = eche.EcheUvisAnalysis(puuid, loader, ECHE_PARAMS)
+    assert ana.calc_output() is True
+    model, _ = ana.export_analysis("b", "r")
+    assert {o["output_type"] for o in model["outputs"]} == {
+        "spectrum.echeuvis_stability"
+    }
+    assert ana.ca_potential_vrhe == 1.23
