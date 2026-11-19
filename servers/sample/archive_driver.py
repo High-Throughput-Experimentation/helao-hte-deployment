@@ -771,9 +771,12 @@ class Archive:
                                     new_vial_vol = self.positions.trays_dict[tray_no][
                                         slot_no
                                     ].max_vol_ml
-                                    self.positions.trays_dict[tray_no][slot_no].blocked[
-                                        position
-                                    ] = True
+
+            if new_tray is not None:
+                # reserve only the winner; superseded candidates stay free
+                self.positions.trays_dict[new_tray][new_slot].blocked[
+                    new_vial - 1
+                ] = True
 
             LOGGER.info(
                 f"new vial nr. {new_vial} in slot {new_slot} in tray {new_tray}"
