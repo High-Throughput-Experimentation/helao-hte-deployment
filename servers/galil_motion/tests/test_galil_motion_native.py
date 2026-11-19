@@ -16,6 +16,7 @@ import pytest
 
 from helao.core.drivers.helao_driver import HelaoDriver
 from helao.core.error import ErrorCodes
+from helao.hexagon.app.action_host import ActionHost
 from helao.deploy.hte.servers.galil_motion.galil_command_channel import (
     GclibCommandChannel,
 )
@@ -588,7 +589,7 @@ def test_only_unconfigured_axes_sends_no_move_and_does_not_raise():
     assert d.motor_busy is False
 
 
-def test_move_still_running_at_deadline_halts_and_raises():
+def test_move_still_running_at_deadline_halts_and_returns_timeout():
     # SC "0" == moving on every poll; the 0.01 s deadline passes during the
     # first 0.5 s poll sleep, so the loop exits without every axis stopped.
     d, ch = _drv(
@@ -602,10 +603,33 @@ def test_move_still_running_at_deadline_halts_and_raises():
         "mode": "absolute",
         "transformation": "motorxy",
     }
-    with pytest.raises(RuntimeError, match="motion timeout"):
-        asyncio.run(d.motor_move(_active(params)))
-    assert "STA" in ch.commands  # halted before raising
+    out = asyncio.run(d.motor_move(_active(params)))
+    assert out["err_code"] == [ErrorCodes.timeout]
+    assert "STA" in ch.commands  # halted
     assert d.motor_busy is False and d.blocked is False  # next move accepted
+    # the action's error_code is non-none, so an orchestrator E-STOPs
+    assert ActionHost.get_main_error(None, out["err_code"]) == ErrorCodes.timeout
+    d._channel._responses["SC"] = "1"
+    again = asyncio.run(d.motor_move(_active(params)))
+    assert again["err_code"] == [ErrorCodes.none]
+
+
+def test_timeout_marks_only_the_axis_not_seen_stopped():
+    # SC "1, 0": x stopped, y still moving at the deadline.
+    cfg = dict(
+        MOVE_CFG,
+        timeout=0.01,
+        axis_id={"x": "A", "y": "B"},
+        count_to_mm={"A": 0.001, "B": 0.001},
+    )
+    d, ch = _drv(responses=_move_responses({"SC": "1, 0"}), config=cfg)
+    d.connect()
+    out = asyncio.run(
+        d._motor_move([1.0, 1.0], ["x", "y"], None, "absolute", "motorxy")
+    )
+    # timeout=0.01 expires after the first poll, which saw x stopped, y moving
+    assert out["err_code"] == [ErrorCodes.none, ErrorCodes.timeout]
+    assert "STA" in ch.commands
 
 
 def test_move_stopped_at_deadline_is_not_a_timeout():

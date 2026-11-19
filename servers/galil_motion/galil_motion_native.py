@@ -705,21 +705,35 @@ class NativeGalilMotion(HelaoDriver):
                     break
             if not self._is_estopped():
                 if not settled:
-                    # shared motion-timeout rule: halt, then raise so the
-                    # orchestrator pauses and re-queues instead of E-STOPping;
-                    # _motor_move/motor_move release motor_busy/blocked in finally
+                    # shared motion-timeout rule: halt, then mark every axis
+                    # not seen stopped `timeout` and return, so the action's
+                    # error_code is non-none and the orchestrator E-STOPs
                     await self.stop_axis(axis)
-                    raise RuntimeError(
+                    LOGGER.error(
                         f"motion timeout: axes {axis} not stopped after "
                         f"{self.motor_timeout} s"
                     )
-                q_codes = qmove["err_code"]
-                if not isinstance(q_codes, list):  # disabled mid-move: scalar
-                    q_codes = [q_codes] * len(ret_err_code)
-                ret_err_code = [
-                    q_codes[i] if code == ErrorCodes.none and i < len(q_codes) else code
-                    for i, code in enumerate(ret_err_code)
-                ]
+                    status = qmove["motor_status"]
+                    ret_err_code = [
+                        (
+                            code
+                            if i < len(status) and status[i] == "stopped"
+                            else ErrorCodes.timeout
+                        )
+                        for i, code in enumerate(ret_err_code)
+                    ]
+                else:
+                    q_codes = qmove["err_code"]
+                    if not isinstance(q_codes, list):  # disabled mid-move: scalar
+                        q_codes = [q_codes] * len(ret_err_code)
+                    ret_err_code = [
+                        (
+                            q_codes[i]
+                            if code == ErrorCodes.none and i < len(q_codes)
+                            else code
+                        )
+                        for i, code in enumerate(ret_err_code)
+                    ]
             else:
                 ret_err_code = [ErrorCodes.estop for _ in ret_err_code]
         else:
