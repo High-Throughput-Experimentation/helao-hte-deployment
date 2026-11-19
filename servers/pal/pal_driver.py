@@ -532,7 +532,7 @@ class PAL(HelaoDriver):
                 # this also writes the action meta file for the parent action
                 # if split, last action is finished when pal endpoint is done
                 # and will update exp and seq
-                if i > 0:
+                if self.IO_action_run_counter > 0:
                     _ = await job.active.split()
 
                 job.active.action.samples_in = []

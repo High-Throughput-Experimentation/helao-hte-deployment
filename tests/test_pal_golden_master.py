@@ -1096,6 +1096,42 @@ async def _scenario_i():
 # ---------------------------------------------------------------------------
 
 
+async def _scenario_j():
+    """(j) totalruns=2 x 2 microcams: one action per palaction -> 3 splits."""
+    trace = []
+    shim = RecordingShim(trace)
+    shim.seed_custom(
+        "src_j", _liquid("src_j__liquid", "j1", volume_ml=8.0, position="src_j")
+    )
+    shim.allow_dest("dst_j")
+    pal = _make_pal(shim)
+    base = _make_base(trace)
+    microcam = {
+        "method": "transfer_custom_custom",
+        "tool": "LS1",
+        "volume_ul": 50,
+        "requested_source": {"position": "src_j"},
+        "requested_dest": {"position": "dst_j"},
+        "wash1": 0,
+        "wash2": 0,
+        "wash3": 0,
+        "wash4": 0,
+    }
+    A = _make_action(
+        "PAL_arbitrary",
+        {
+            "totalruns": 2,
+            "sampleperiod": [0.0, 0.0],
+            "spacingmethod": "linear",
+            "spacingfactor": 1.0,
+            "timeoffset": 0.0,
+            "microcams": [dict(microcam), dict(microcam)],
+        },
+        "scenario-j",
+    )
+    return await _drive_single_job(pal, base, "build_palcam_arbitrary", A)
+
+
 def _check(cond, msg, failures):
     if not cond:
         failures.append(msg)
@@ -1115,7 +1151,11 @@ async def _run_and_check() -> list:
 
     c = await _scenario_c()
     _check(c["final"]["finished"], "c: action did not finish", failures)
-    _check(c["final"]["split_count"] == 0, "c: repeat must not split", failures)
+    _check(
+        c["final"]["split_count"] == 2,
+        "c: each repeat must get its own split action (3 palactions -> 2 splits)",
+        failures,
+    )
     append_calls = [
         e
         for e in c["trace"]
@@ -1197,6 +1237,14 @@ async def _run_and_check() -> list:
         failures,
     )
 
+    j = await _scenario_j()
+    _check(j["final"]["finished"], "j: action did not finish", failures)
+    _check(
+        j["final"]["split_count"] == 3,
+        "j: 2 runs x 2 microcams = 4 palactions -> 3 splits",
+        failures,
+    )
+
     return failures
 
 
@@ -1207,7 +1255,7 @@ def main():
         for f in failures:
             print(f"  - {f}")
         raise SystemExit(1)
-    print("ALL 9 SCENARIO CHECKS PASSED (a-i)")
+    print("ALL 10 SCENARIO CHECKS PASSED (a-j)")
 
 
 if __name__ == "__main__":
