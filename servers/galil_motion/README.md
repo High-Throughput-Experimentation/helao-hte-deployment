@@ -110,7 +110,7 @@ Action results (in `-act.json`): `easymove_to_solid` and `z_move` rewrite the in
 | `mode` | `action_params` | str | scalar | `absolute` | `helao/deploy/hte/servers/galil_motion/galil_motion.py:349-354`, `:617-623` |
 | `transformation` | `action_params` | str | scalar | `platexy` for `easymove_to_solid` only; `z_move` leaves the caller's value | `helao/deploy/hte/servers/galil_motion/galil_motion.py:349-354` |
 
-`easymove_to_solid` queues no row and sets `error_code` `not_available` when the sample has no platemap XY (`:341-343`); `z_move` with `z_position` `NA` writes no row (`:611`, `:626-627`); any other key is looked up in `z_height_mm`, and one that is missing yields `d_mm=["NA"]` and a move attempt (`:610-625`), which the `Zpos` enum validation normally prevents.
+`easymove_to_solid` queues no row and sets `error_code` `not_available` when the sample has no platemap XY (`:345-347`); `z_move` with `z_position` `NA` writes no row (`:616`, `:630-631`); any other key is looked up in `z_height_mm`, and one that is missing yields `d_mm=["NA"]` and a move attempt (`:614-628`), which the `Zpos` enum validation normally prevents.
 
 ### Axis state rows: `query_positions`, `query_position`, `query_moving`, `axis_off`, `axis_on`, `stop`
 
@@ -186,7 +186,7 @@ The row is queued only while the aligner holds an active action (`helao/deploy/h
 | plate calibration (DB copy) | JSON, nested lists | `<db_root>/plate_calib/<host>_plate_<plateid_or_pmpath>_calib.json` | same matrix, written under the sample-DB root | `helao/deploy/hte/layouts/aligner.py:1242-1247`; writer `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:895-896` |
 | last plate calibration | JSON, nested lists | `<states_root>/<host>_last_plate_calib.json` | matrix last installed by `load_plate_alignment`, `reset_plate_alignment` or the aligner; reloaded at startup | `helao/deploy/hte/servers/galil_motion/galil_motion_native.py:225-229`, `:895-896` |
 
-`<host>` is the lower-cased host name. `/move_axis`, `/stop_motion`, `/get_axis_positions` and the other private endpoints return values to the caller only and write nothing (`galil_motion.py:656-798`).
+`<host>` is the lower-cased host name. `/move_axis`, `/stop_motion`, `/get_axis_positions` and the other private endpoints return values to the caller only and write nothing (`galil_motion.py:654-861`).
 
 ## Notes
 
