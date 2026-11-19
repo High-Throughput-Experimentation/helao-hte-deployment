@@ -310,6 +310,13 @@ class BiologicExec(Executor):
         """
         LOGGER.info("BiologicExec running post_exec.")
         resp = self.driver.cleanup(self.channel)
+        # only the OLE backend moves vendor files (.mps/.mpr/.mpt) into the
+        # action directory; register them so the syncer uploads them
+        for path in resp.data.get("files", []):
+            suffix = os.path.splitext(path)[1].lower().lstrip(".")
+            await self.active.track_file(
+                f"biologic_{suffix}", path, self.active.action.samples_in
+            )
 
         # parse calculate outputs from data buffer:
         for k in ["t_s", "Ewe_V", "I_A"]:

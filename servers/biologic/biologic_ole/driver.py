@@ -34,8 +34,9 @@ to keep in mind when editing it:
   thread blocked -- the honest trade, since the alternative is a wedged
   server.
 * **Artifacts move at cleanup, not during the run.** EC-Lab writes the MPR
-  continuously and ``HelaoYml.misc_files`` globs live directories, so a file
-  written straight into the action directory would be uploaded torn.
+  continuously, so the files ``cleanup`` moves into the action directory and
+  reports in ``data["files"]`` are complete; the executor registers them with
+  ``track_file`` and the syncer uploads them with the record.
 """
 
 import asyncio
@@ -125,6 +126,9 @@ class BiologicOleDriver(HelaoDriver):
         self.output_dirs: dict[int, Optional[Path]] = {
             i: None for i in range(self.num_channels)
         }
+        # artifacts moved into the action dir, per channel; reset at setup so
+        # an internal cleanup (start failure) does not lose them
+        self.shipped: dict[int, list[str]] = {i: [] for i in range(self.num_channels)}
         self.stopping = False
         self._pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=1, thread_name_prefix="olecom"
@@ -389,6 +393,7 @@ class BiologicOleDriver(HelaoDriver):
                 raise ValueError(f"Channel {channel} does not exist.")
             if self.channels[channel] is not None:
                 raise ValueError(f"Channel {channel} is in use.")
+            self.shipped[channel] = []
             doc = self._patch(technique, action_params)
             ttl = mps_assemble.ttl_plan_from_params(action_params)
             if ttl.is_active:
@@ -467,6 +472,7 @@ class BiologicOleDriver(HelaoDriver):
                 raise ValueError(f"Channel {channel} does not exist.")
             if self.channels[channel] is not None:
                 raise ValueError(f"Channel {channel} is in use.")
+            self.shipped[channel] = []
             root = self.protocol_dir.resolve()
             resolved = (root / mps_path).resolve()
             if not resolved.is_relative_to(root):
@@ -687,9 +693,9 @@ class BiologicOleDriver(HelaoDriver):
         """Move the run's ``.mps`` and ``.mpr`` into the action directory.
 
         Moved at cleanup rather than written there: EC-Lab appends to the MPR
-        for the whole run and ``HelaoYml.misc_files`` globs live directories,
-        so a file written straight into the action directory could be uploaded
-        half-finished. A failure here is logged and swallowed -- losing the
+        for the whole run, so only a finished file is moved. Each moved path is
+        kept in ``self.shipped[channel]`` (until the next setup) for ``cleanup``
+        to report. A failure here is logged and swallowed -- losing the
         provenance copy must not fail an otherwise good action.
         """
         run_dir, output_dir = self.scratch.get(channel), self.output_dirs.get(channel)
@@ -700,6 +706,7 @@ class BiologicOleDriver(HelaoDriver):
             for path in sorted(run_dir.iterdir()):
                 if path.suffix.lower() in (".mps", ".mpr", ".mpt"):
                     shutil.move(str(path), str(output_dir / path.name))
+                    self.shipped[channel].append(str(output_dir / path.name))
         except Exception:
             LOGGER.warning(
                 "could not ship OLE artifacts for channel %s from %s",
@@ -722,7 +729,9 @@ class BiologicOleDriver(HelaoDriver):
             self.scratch[channel] = None
             self.output_dirs[channel] = None
             return DriverResponse(
-                response=DriverResponseType.success, status=DriverStatus.ok
+                response=DriverResponseType.success,
+                status=DriverStatus.ok,
+                data={"files": list(self.shipped[channel])},
             )
         except Exception as exc:
             LOGGER.error("cleanup failed", exc_info=True)

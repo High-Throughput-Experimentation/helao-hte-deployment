@@ -8,6 +8,7 @@ at state Stop with one further drain, never at Stop_rec.
 """
 
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -270,8 +271,15 @@ def test_cleanup_moves_the_artifacts_into_the_action_directory(tmp_path, ca_temp
     for _ in range(10):
         if asyncio.run(driver.get_data(0)).message == "done":
             break
-    driver.cleanup(0)
+    (driver.scratch[0] / "run_01_CA.mpr").write_bytes(b"\x00")  # EC-Lab's record
+    resp = driver.cleanup(0)
     assert list(action_dir.glob("*.mps")), list(action_dir.iterdir())
+    shipped = sorted(
+        str(p) for p in action_dir.iterdir() if p.suffix in (".mps", ".mpr")
+    )
+    assert len(shipped) == 2
+    assert resp.data["files"] == shipped
+    assert all(Path(f).is_file() for f in resp.data["files"])
 
 
 def test_the_simulator_reports_the_configured_channel_count():

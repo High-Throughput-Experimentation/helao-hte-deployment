@@ -20,7 +20,7 @@ Host-level keys every server accepts: see docs/config-schema.md ("Group conventi
 
 | key | req | type | default | meaning / allowed values | read at |
 |---|---|---|---|---|---|
-| `pstat_backend` | no | str | `"eclib"` | Backend driver: `"eclib"`, `"olecom"` or `"eclib2"`. Any other value raises `ValueError` when the app is built. | `helao/deploy/hte/servers/biologic/biologic_server.py:1026` |
+| `pstat_backend` | no | str | `"eclib"` | Backend driver: `"eclib"`, `"olecom"` or `"eclib2"`. Any other value raises `ValueError` when the app is built. | `helao/deploy/hte/servers/biologic/biologic_server.py:1033` |
 
 All other keys are read by the selected backend's driver, below. A key set for another backend is ignored.
 
@@ -50,14 +50,14 @@ Driver `biologic_ole/driver.py`.
 
 | key | req | type | default | meaning / allowed values | read at |
 |---|---|---|---|---|---|
-| `address` | no | str | `"192.168.200.240"` | Instrument IP passed to EC-Lab's `ConnectDeviceByIP`. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:107` |
-| `num_channels` | no | int | `12` | Channels this server drives. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:108` |
-| `simulate` | no | bool | `False` | Use the fake COM server in `sim.py` (no EC-Lab, comtypes or instrument needed). | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:109` |
-| `progid` | no | str | `"EC-Lab.Application"` | EC-Lab OLE ProgID. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:110` |
-| `com_timeout_s` | no | number (s) | `30.0` | Per-call ceiling on every COM call. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:111` |
-| `templates_dir` | no | str (path) | `biologic_ole/templates/` in the package | Folder holding the `.mps` templates. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:138` |
-| `scratch_dir` | no | str (path) | `<cwd>/STATES/olecom` | Where patched settings files and in-progress MPR files are written. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:146` |
-| `protocol_dir` | no | str (path) | `templates_dir` | Folder `run_protocol` resolves its `mps_path` against; the file must stay inside it. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:151` |
+| `address` | no | str | `"192.168.200.240"` | Instrument IP passed to EC-Lab's `ConnectDeviceByIP`. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:108` |
+| `num_channels` | no | int | `12` | Channels this server drives. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:109` |
+| `simulate` | no | bool | `False` | Use the fake COM server in `sim.py` (no EC-Lab, comtypes or instrument needed). | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:110` |
+| `progid` | no | str | `"EC-Lab.Application"` | EC-Lab OLE ProgID. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:111` |
+| `com_timeout_s` | no | number (s) | `30.0` | Per-call ceiling on every COM call. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:112` |
+| `templates_dir` | no | str (path) | `biologic_ole/templates/` in the package | Folder holding the `.mps` templates. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:142` |
+| `scratch_dir` | no | str (path) | `<cwd>/STATES/olecom` | Where patched settings files and in-progress MPR files are written. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:150` |
+| `protocol_dir` | no | str (path) | `templates_dir` | Folder `run_protocol` resolves its `mps_path` against; the file must stay inside it. | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:155` |
 
 Example:
 ```yaml
@@ -144,7 +144,7 @@ Action results (in `-act.json`), set at run time by the endpoint after `ctx.begi
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CA` and `run_CALIMIT` | `helao/deploy/hte/servers/biologic/biologic_server.py:423`, `:710` |
+| `AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CA` and `run_CALIMIT` | `helao/deploy/hte/servers/biologic/biologic_server.py:430`, `:717` |
 | `AcqInterval__V` | `action_params` | float | scalar | fixed `10.0` for `run_CP`, `run_OCV`, `run_CPLIMIT`; for `run_CV` `AcqInterval__s * ScanRate__V_s` | `biologic_server.py:460`, `:543`, `:768`, `:506-509` |
 | `CA_AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:660` |
 | `OCV_AcqInterval__V` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:661` |
@@ -218,22 +218,22 @@ Data file `PLAN-*.jsonl` (+ `.meta.json`). Columns are the union of the entries'
 
 ### Files moved into the action directory (`olecom` only)
 
-These files are moved into the action directory but never registered on the action: nothing calls `track_file` for them, so they are not in the record's `files` list and are not uploaded by the syncer (it ships only that list, `helao/hexagon/adapters/native/sync_driver.py:538-562`); `_register_present_files` (`helao/hexagon/app/action_host.py:1522`) runs only when an interrupted action is reconciled. They stay local (see Notes). At `cleanup` the driver moves the run's `.mps`, `.mpr`, `.mpt` files into the action output directory (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:685-702`, called from `cleanup` at `:718`); `run_protocol` also copies the unpatched protocol file into the run directory first (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:499`), so it lands there too. The `eclib` and `eclib2` backends ship no such files (their `setup` takes `output_dir` and never uses it: `helao/deploy/hte/servers/biologic/biologic/driver.py:436`, `helao/deploy/hte/servers/biologic/biologic_eclib2/driver.py:295`).
+At `cleanup` the driver moves the run's `.mps`, `.mpr` and `.mpt` files into the action output directory (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:692-716`, called from `cleanup` at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:725`) and returns their paths as `data["files"]` (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:734`). `BiologicExec._post_exec` registers each with `track_file` as file type `biologic_<suffix>` (`biologic_mps`, `biologic_mpr`, `biologic_mpt`) with the action's `samples_in` (`helao/deploy/hte/servers/biologic/biologic_server.py:315-319`), so they are in the record's `files` list and the syncer uploads them. `run_protocol` also copies the unpatched protocol file into the run directory first (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:505`), so it ships too. When `setup`/`setup_protocol` fails, the patched `.mps` is moved but no `_post_exec` runs, so that file stays local and unregistered. The `eclib` and `eclib2` backends ship no such files (their `setup` takes `output_dir` and never uses it: `helao/deploy/hte/servers/biologic/biologic/driver.py:436`, `helao/deploy/hte/servers/biologic/biologic_eclib2/driver.py:295`).
 
 | file | format | name pattern | meaning | written at |
 |---|---|---|---|---|
-| patched settings | EC-Lab `.mps` text, CRLF line ends | `<technique_name>.mps` (e.g. `CA.mps`) | the template with the action's parameters patched in | `helao/deploy/hte/servers/biologic/biologic_ole/mps_template.py:302-303`, call `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:402` |
-| protocol copy | EC-Lab `.mps` | `<name of the file named by mps_path>` | the station-authored protocol, unpatched (`run_protocol`) | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:499` |
-| raw measurement | EC-Lab `.mpr` binary | EC-Lab-chosen | raw record EC-Lab appends to during the run | EC-Lab itself, moved at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:702` |
-| text export | EC-Lab `.mpt` text | EC-Lab-chosen | shipped if EC-Lab produced one in the run directory | EC-Lab itself, moved at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:702` |
+| patched settings | EC-Lab `.mps` text, CRLF line ends | `<technique_name>.mps` (e.g. `CA.mps`) | the template with the action's parameters patched in; uploaded, file type `biologic_mps` | `helao/deploy/hte/servers/biologic/biologic_ole/mps_template.py:302-303`, call `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:407` |
+| protocol copy | EC-Lab `.mps` | `<name of the file named by mps_path>` | the station-authored protocol, unpatched (`run_protocol`); uploaded, file type `biologic_mps` | `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:505` |
+| raw measurement | EC-Lab `.mpr` binary | EC-Lab-chosen | raw record EC-Lab appends to during the run; uploaded, file type `biologic_mpr` | EC-Lab itself, moved at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:708` |
+| text export | EC-Lab `.mpt` text | EC-Lab-chosen | shipped if EC-Lab produced one in the run directory; uploaded, file type `biologic_mpt` | EC-Lab itself, moved at `helao/deploy/hte/servers/biologic/biologic_ole/driver.py:708` |
 
 ### `get_meas_status` (action)
 
-Intended to queue one row `{"status": <str>}` from `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1079`; `enqueue_data_dflt`, `helao/hexagon/adapters/native/data_stream.py:112`), but no backend defines `dtaqsink`, so the call raises `AttributeError` before the row is queued (see Notes). No action results.
+Intended to queue one row `{"status": <str>}` from `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1086`; `enqueue_data_dflt`, `helao/hexagon/adapters/native/data_stream.py:112`), but no backend defines `dtaqsink`, so the call raises `AttributeError` before the row is queued (see Notes). No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `status` | unknown (dynamic) | scalar per row | none | dtaq sink status; the attribute does not exist, so the type is unknowable and the row is never written | `helao/deploy/hte/servers/biologic/biologic_server.py:1079` |
+| `status` | unknown (dynamic) | scalar per row | none | dtaq sink status; the attribute does not exist, so the type is unknowable and the row is never written | `helao/deploy/hte/servers/biologic/biologic_server.py:1086` |
 
 ### `stop` (action) and `/stop_private`
 
@@ -244,6 +244,5 @@ No data files or action results.
 - `num_channels` defaults differ: the `eclib` and `olecom` drivers default to 12, the `eclib2` driver to 1, and the visualizer to 1. A station driving more than one channel on `eclib` or `olecom` without setting the key gets 12 driver channels but a one-channel visualizer.
 - The `biologic_ole/driver.py` module docstring says "all optional except `address`", but the code gives `address` a default (`192.168.200.240`) on `eclib` and `olecom`.
 - `biologic_server.py:382` writes `server_params["allow_concurrent_actions"] = False` at startup; a config value for it is overwritten.
-- `get_meas_status` reads `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1079`), but no backend defines `dtaqsink`, so the action raises `AttributeError` and queues no row.
+- `get_meas_status` reads `app.driver.dtaqsink.status` (`helao/deploy/hte/servers/biologic/biologic_server.py:1086`), but no backend defines `dtaqsink`, so the action raises `AttributeError` and queues no row.
 - `P_W` is signed `Ewe*I` on `eclib` and `eclib2` but `abs(Ewe*I)` on `olecom` (`helao/deploy/hte/servers/biologic/biologic_ole/mpr_cursor.py:131`), and `cycle` and `process` are `int` on the SDK backends but `float` on `olecom`; the column names match across backends, the values do not.
-- The olecom artifacts (`.mps`, `.mpr`, `.mpt`) are moved into the action directory with `shutil.move` (`helao/deploy/hte/servers/biologic/biologic_ole/driver.py:702`) and never registered with `track_file`, so the syncer, which uploads only the record's `files` list, does not ship them. The `_ship_artifacts` docstring and `helao/deploy/hte/servers/biologic/CLAUDE.md` still describe the old directory-glob uploader.

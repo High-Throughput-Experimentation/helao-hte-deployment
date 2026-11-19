@@ -58,10 +58,13 @@ editing it:
   OCV 11 and 55, CV 6 and 57, PEIS 29 and 60, GEIS 30 and 61, CP 25 and 56.
   Which one a template yields depends on the template; status index 5 reports
   it back and the driver warns on a mismatch rather than refusing.
-- **The `.mps` and `.mpr` ship with the action, moved at cleanup.** EC-Lab
-  appends to the MPR for the whole run and `HelaoYml.misc_files` globs live
-  directories, so writing straight into the action directory would upload a
-  torn file.
+- **The `.mps`, `.mpr` and `.mpt` ship with the action, moved at cleanup.**
+  EC-Lab appends to the MPR for the whole run, so the driver moves the files
+  only after it, keeps their paths in `shipped[channel]` until the next
+  `setup`, and returns them from `cleanup` as `data["files"]`;
+  `BiologicExec._post_exec` registers each with `track_file`
+  (`biologic_mps`/`biologic_mpr`/`biologic_mpt`), so the syncer uploads them.
+  A setup failure skips `_post_exec`, so its `.mps` stays local, unregistered.
 - **The range enums are coerced in each backend's `setup()`, not in the
   endpoints.** Since 2026-09-07 the recorded action param is the string
   (`"AUTO"`, `"m1"`, `"BW4"`) rather than the vendor enum's integer.
