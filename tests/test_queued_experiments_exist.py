@@ -125,6 +125,11 @@ def _config_problems(prefix):
                         )
                         continue
                     args = inspect.getfullargspec(f).args
+                    # the orchestrator folds globals in before it calls the
+                    # experiment (orch_dispatch); stand in a number for each
+                    eparams = dict(em.experiment_params)
+                    for target in (em.from_global_exp_params or {}).values():
+                        eparams.setdefault(target, 0.0)
                     exp = Experiment(
                         experiment_name=em.experiment_name,
                         experiment_params=em.experiment_params,
@@ -132,11 +137,7 @@ def _config_problems(prefix):
                     for a in (
                         f(
                             exp,
-                            **{
-                                k: v
-                                for k, v in em.experiment_params.items()
-                                if k in args
-                            },
+                            **{k: v for k, v in eparams.items() if k in args},
                         )
                         or []
                     ):
