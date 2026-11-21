@@ -304,6 +304,28 @@ async def mfc_dyn_endpoints(app: ActionHost):
             return finished_action.as_dict()
 
         @app.action()
+        async def set_gas(
+            ctx: ActionContext,
+            device_name: app.driver.dev_mfcs = devices[0],
+            gas: Union[int, str] = "N2",
+        ):
+            """Select a single gas on the chosen device, as an orchestrator action.
+
+            Args:
+                action: Action wrapper supplied by the orchestrator.
+                device_name: MFC device identifier.
+                gas: Alicat gas short name (e.g. ``N2``, ``O2``) or gas index.
+
+            Returns:
+                The finished action dictionary.
+            """
+            active = await ctx.begin(action_abbr="set_gas")
+            params = active.action.action_params
+            await app.driver.set_gas(params["device_name"], params["gas"])
+            finished_action = await active.finish()
+            return finished_action.as_dict()
+
+        @app.action()
         async def set_pressure(
             ctx: ActionContext,
             device_name: app.driver.dev_mfcs = devices[0],
@@ -485,7 +507,7 @@ async def mfc_dyn_endpoints(app: ActionHost):
             return app.driver.list_gases(device_name)
 
         @app.post("/set_gas", tags=["private"])
-        async def set_gas(
+        async def set_gas_private(
             device_name: app.driver.dev_mfcs = devices[0], gas: Union[int, str] = "N2"
         ):
             """Select a single gas on the chosen device."""

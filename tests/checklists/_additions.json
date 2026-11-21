@@ -82,5 +82,12 @@
     "method": "post",
     "date": "2026-09-22",
     "why": "private live wavelength axis for action visualizers, same contract as the Ocean /get_wl; the axis is in the action yml header, not on ws_data (50085eb6)"
+  },
+  {
+    "module": "mfc_server.py",
+    "path": "/MFC/set_gas",
+    "method": "post",
+    "date": "2026-11-20",
+    "why": "select a single gas (Alicat name or index) as an orchestrator action, so a sequence can switch a shared N2/O2 unit between gas steps (AGDE cal-gas steps); the private /set_gas stays for the panel and direct calls"
   }
 ]

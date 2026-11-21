@@ -213,6 +213,24 @@ class GamryExec(Executor):
                 return {"error": ErrorCodes.setup}
             LOGGER.warning("Gamry cell is busy. Waiting 1 second.")
             await asyncio.sleep(1)
+        previous_ocv = self.action_params.get("previous_ocv__V")
+        if previous_ocv is not None:
+            # A preceding OCV's mean, copied in by the orchestrator: the ecms3
+            # ECSA reference inside one experiment. Never with versus_OCV
+            # (that would offset twice) and never a non-number.
+            if self.action_params.get("versus_OCV", False):
+                LOGGER.error("previous_ocv__V and versus_OCV are both set")
+                return {"error": ErrorCodes.setup}
+            if (
+                isinstance(previous_ocv, bool)
+                or not isinstance(previous_ocv, (int, float))
+                or not np.isfinite(previous_ocv)
+            ):
+                LOGGER.error(f"previous_ocv__V must be finite, got {previous_ocv!r}")
+                return {"error": ErrorCodes.setup}
+            self.signal_params = offset_potentials(
+                self.signal_params, float(previous_ocv)
+            )
         if self.action_params.get("versus_OCV", False):
             try:
                 self.mean_ocv = await measure_init_ocv(
@@ -918,6 +936,7 @@ async def gamry_dyn_endpoints(app: ActionHost):
         OCV_duration__s: float = 2.0,  # OCV measurement time for versus_OCV
         OCV_acquisition_period__s: float = 0.1,
         SamplingMode: Optional[GamrySamplingMode] = None,  # None keeps pstat default
+        previous_ocv__V: Optional[float] = None,  # V added to every potential
         SetStopIMin: Optional[
             float
         ] = None,  # lower current threshold to trigger early stopping
@@ -964,6 +983,8 @@ async def gamry_dyn_endpoints(app: ActionHost):
             OCV_acquisition_period__s: OCV sampling period in seconds.
             SamplingMode: Per-step current sampling (``Surface`` for
                 Cdl/ECSA); ``None`` leaves the instrument default.
+            previous_ocv__V: A preceding OCV's mean potential (V), added to every potential;
+                refused with versus_OCV.
             SetStopIMin: Lower current threshold for early stop.
             SetStopIMax: Upper current threshold for early stop.
             SetStopAtDelayIMin: Consecutive-point delay for ``SetStopIMin``.

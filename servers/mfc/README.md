@@ -67,7 +67,7 @@ Action results (in `-act.json`):
 
 ### `maintain_pressure`, `maintain_concentration` (actions)
 
-`MfcConstPresExec` (`helao/deploy/hte/servers/mfc/mfc_server.py:433-437`, `action_abbr` `hold_pres`) and `MfcConstConcExec` (`:114-118`, `hold_conc`) return no `data` from `_poll` (`helao/deploy/hte/servers/mfc/alicat_driver.py:742-745`, `:906-909`), so no data file is written.
+`MfcConstPresExec` (`helao/deploy/hte/servers/mfc/mfc_server.py:455-459`, `action_abbr` `hold_pres`) and `MfcConstConcExec` (`:114-118`, `hold_conc`) return no `data` from `_poll` (`helao/deploy/hte/servers/mfc/alicat_driver.py:742-745`, `:906-909`), so no data file is written.
 
 Action results (in `-act.json`):
 
@@ -75,14 +75,16 @@ Action results (in `-act.json`):
 |---|---|---|---|---|---|
 | `total_scc` | `action_params` | float \| int | scalar | integrated gas dispensed (scc) over the run, integer `0` if no poll succeeded (`helao/deploy/hte/servers/mfc/alicat_driver.py:698`, `helao/deploy/hte/servers/mfc/alicat_driver.py:862`); set after the run, not set when `_pre_exec` aborts (concentration variant: device not connected or setup failure, `:847`) | `helao/deploy/hte/servers/mfc/alicat_driver.py:750` (pressure), `:914` (concentration) |
 
-### `set_flowrate`, `set_pressure`, `hold_valve_action`, `cancel_hold_valve_action`, `hold_valve_closed_action`, `cancel_maintain_concentration`, `cancel_maintain_pressure`, `cancel_acquire_flowrate`, `cancel_acquire_pressure` (actions)
+### `set_flowrate`, `set_gas`, `set_pressure`, `hold_valve_action`, `cancel_hold_valve_action`, `hold_valve_closed_action`, `cancel_maintain_concentration`, `cancel_maintain_pressure`, `cancel_acquire_flowrate`, `cancel_acquire_pressure` (actions)
+
+`set_gas` (`action_abbr` `set_gas`, `helao/deploy/hte/servers/mfc/mfc_server.py:307`) and the private `/set_gas` (`set_gas_private`) both call `AliCatMFC.set_gas` (`helao/deploy/hte/servers/mfc/alicat_driver.py:305`), which pauses polling, selects the gas and checks register 46; an unknown gas name raises `ValueError` and a failed readback `IOError`, so the action fails with an HTTP error.
 
 No data files or action results.
 
 ### Private endpoints
 
-`/start_polling`, `/stop_polling`, `/list_devices`, `/list_gases`, `/set_gas`, `/set_gas_mixture`, `/lock_display`, `/unlock_display`, `/hold_valve`, `/hold_valve_closed`, `/hold_cancel`, `/tare_volume`, `/tare_pressure`, `/manual_query_state`, `/read_valve_register`, `/write_valve_register` and `/send_command` (`helao/deploy/hte/servers/mfc/mfc_server.py:463-594`) return values to the caller only; no data files or action results.
+`/start_polling`, `/stop_polling`, `/list_devices`, `/list_gases`, `/set_gas`, `/set_gas_mixture`, `/lock_display`, `/unlock_display`, `/hold_valve`, `/hold_valve_closed`, `/hold_cancel`, `/tare_volume`, `/tare_pressure`, `/manual_query_state`, `/read_valve_register`, `/write_valve_register` and `/send_command` (`helao/deploy/hte/servers/mfc/mfc_server.py:485-616`) return values to the caller only; no data files or action results.
 
 ### Live data (status/ws stream)
 
-`AliCatMFCPoller.get_data` (`helao/deploy/hte/servers/mfc/alicat_driver.py:458-487`) publishes one status dict per configured device (`<device_name>` is a key of the server's `devices` config); never written to a file by the poller itself. A device whose read fails is left out; while polling is paused or no device answers nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`). The value has the fields of the data-file table above except `epoch_s`: `MfcExec._poll` adds it by mutating the stored live-buffer dict in place (`helao/deploy/hte/servers/mfc/alicat_driver.py:567-568`), so the stored value, and the `/manual_query_state` reply (`helao/deploy/hte/servers/mfc/mfc_server.py:548`), carry `epoch_s` until the next publish replaces the dict; all have `structure` `scalar per poll`. The dict is the device's `get_status()` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1147-1196`, `control_point` added at `:1466`); a status lacking `mass_flow`, `pressure` or `control_point` is dropped (`helao/deploy/hte/servers/mfc/alicat_driver.py:242-249`). A reply with 5 fields (a flow meter) has no `setpoint` key from `get_status` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1184-1185`); it is published with `setpoint` set to `null` (`helao/deploy/hte/servers/mfc/alicat_driver.py:245`).
+`AliCatMFCPoller.get_data` (`helao/deploy/hte/servers/mfc/alicat_driver.py:458-487`) publishes one status dict per configured device (`<device_name>` is a key of the server's `devices` config); never written to a file by the poller itself. A device whose read fails is left out; while polling is paused or no device answers nothing is published. Each key is stamped `(value, epoch)` (`helao/hexagon/app/action_host.py:403`). The value has the fields of the data-file table above except `epoch_s`: `MfcExec._poll` adds it by mutating the stored live-buffer dict in place (`helao/deploy/hte/servers/mfc/alicat_driver.py:567-568`), so the stored value, and the `/manual_query_state` reply (`helao/deploy/hte/servers/mfc/mfc_server.py:570`), carry `epoch_s` until the next publish replaces the dict; all have `structure` `scalar per poll`. The dict is the device's `get_status()` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1147-1196`, `control_point` added at `:1466`); a status lacking `mass_flow`, `pressure` or `control_point` is dropped (`helao/deploy/hte/servers/mfc/alicat_driver.py:242-249`). A reply with 5 fields (a flow meter) has no `setpoint` key from `get_status` (`helao/deploy/hte/servers/mfc/alicat_driver.py:1184-1185`); it is published with `setpoint` set to `null` (`helao/deploy/hte/servers/mfc/alicat_driver.py:245`).
