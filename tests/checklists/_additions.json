@@ -88,6 +88,6 @@
     "path": "/MFC/set_gas",
     "method": "post",
     "date": "2026-11-20",
-    "why": "select a single gas (Alicat name or index) as an orchestrator action, so a sequence can switch a shared N2/O2 unit between gas steps (AGDE cal-gas steps); the private /set_gas stays for the panel and direct calls"
+    "why": "select a single gas (Alicat name or index) as an orchestrator action, so a sequence can switch a shared N2/O2 unit between gas steps (a sequence's cal-gas steps); the private /set_gas stays for the panel and direct calls"
   }
 ]
