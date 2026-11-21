@@ -40,11 +40,11 @@ params:
 
 ## Outputs
 
-The server is backed by `GamryComAdapter` (`helao/deploy/hte/servers/gamry/gamry_server2.py:1335`); `GamryPoller` is defined (`helao/deploy/hte/servers/gamry/driver.py:824`) but its wiring is commented out (`gamry_server2.py:1336`), so there is no idle live-data stream. Technique and EIS actions write through the framework default data connection: one JSON object per queued message, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). `Executor` actions queue the `data` dict returned by `_poll` as one row (`helao/hexagon/app/executor_runner.py:129-136`); an empty dict queues nothing. Columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`). Non-finite floats are written as `null` (`helao/helpers/to_json.py:30`).
+The server is backed by `GamryComAdapter` (`helao/deploy/hte/servers/gamry/gamry_server2.py:1346`); `GamryPoller` is defined (`helao/deploy/hte/servers/gamry/driver.py:824`) but its wiring is commented out (`gamry_server2.py:1347`), so there is no idle live-data stream. Technique and EIS actions write through the framework default data connection: one JSON object per queued message, file `<action_abbr>-<orch_submit_order>.<action_order>.<action_retry>.<action_split>__<n>.jsonl` plus `.meta.json` header (`helao/hexagon/adapters/native/data_file.py:172`, `:288`). `Executor` actions queue the `data` dict returned by `_poll` as one row (`helao/hexagon/app/executor_runner.py:129-136`); an empty dict queues nothing. Columns are the keys of the first message queued (`helao/hexagon/adapters/native/data_stream.py:338-349`). Non-finite floats are written as `null` (`helao/helpers/to_json.py:30`).
 
 ### `run_LSV`, `run_CA`, `run_CP`, `run_CV`, `run_OCV`, `run_RCA` (actions)
 
-`GamryExec` (`helao/deploy/hte/servers/gamry/gamry_server2.py:115`); `action_abbr` is `LSV` (`:773`), `CA` (`:847`), `CP` (`:913`), `CV` (`:1002`), `OCV` (`:1062`), `RCA` (`:1141`). Each `_poll` queues the dtaq sink's new points as one row (`gamry_server2.py:362`); every value is a list with one entry per point. The columns are the technique's `output_keys` in order (`helao/deploy/hte/servers/gamry/gamry_com.py:345-350`), and all are `list[float]` because the points are stacked with `np.matrix(...).T.tolist()` (`gamry_com.py:349`). The dtaq per technique is set in `helao/deploy/hte/servers/gamry/technique.py` (`LSV` `:82`, `CA` `:94`, `CP` `:103`, `CV` `:112`, `OCV` `:120`, `RCA` `:127`).
+`GamryExec` (`helao/deploy/hte/servers/gamry/gamry_server2.py:115`); `action_abbr` is `LSV` (`:781`), `CA` (`:855`), `CP` (`:921`), `CV` (`:1013`), `OCV` (`:1073`), `RCA` (`:1152`). Each `_poll` queues the dtaq sink's new points as one row (`gamry_server2.py:370`); every value is a list with one entry per point. The columns are the technique's `output_keys` in order (`helao/deploy/hte/servers/gamry/gamry_com.py:345-350`), and all are `list[float]` because the points are stacked with `np.matrix(...).T.tolist()` (`gamry_com.py:349`). The dtaq per technique is set in `helao/deploy/hte/servers/gamry/technique.py` (`LSV` `:82`, `CA` `:94`, `CP` `:103`, `CV` `:112`, `OCV` `:120`, `RCA` `:127`).
 
 Data file `<action_abbr>-*.jsonl` (+ `.meta.json`), one row per poll that returned points. `<n>` below is the column's position in that dtaq's `output_keys`:
 
@@ -70,29 +70,29 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the run produced `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `helao/deploy/hte/servers/gamry/gamry_server2.py:385` |
-| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `helao/deploy/hte/servers/gamry/gamry_server2.py:385` |
-| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `helao/deploy/hte/servers/gamry/gamry_server2.py:385` |
-| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: `bubble_detection` result using the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `helao/deploy/hte/servers/gamry/gamry_server2.py:400` |
-| `AcqPointsPerCycle` | `action_params` | int | scalar | `run_RCA` only: `round((Tinit__s + Tstep__s) / AcqInterval__s)` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1136` |
-| `SignalArray__V` | `action_params` | float | list[float] | `run_RCA` only: `Vinit__V` while `i * AcqInterval__s <= Tinit__s`, else `Vstep__V`, one entry per point of a cycle | `helao/deploy/hte/servers/gamry/gamry_server2.py:1137` |
+| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the run produced `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
+| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
+| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
+| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: `bubble_detection` result using the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `helao/deploy/hte/servers/gamry/gamry_server2.py:408` |
+| `AcqPointsPerCycle` | `action_params` | int | scalar | `run_RCA` only: `round((Tinit__s + Tstep__s) / AcqInterval__s)` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1147` |
+| `SignalArray__V` | `action_params` | float | list[float] | `run_RCA` only: `Vinit__V` while `i * AcqInterval__s <= Tinit__s`, else `Vstep__V`, one entry per point of a cycle | `helao/deploy/hte/servers/gamry/gamry_server2.py:1148` |
 
 ### `init_ocv.jsonl` (written by all technique and EIS actions when `versus_OCV` is set)
 
-Before the cell is energised, `GamryExec._pre_exec` (`gamry_server2.py:235-237`) and `GamryEisExec._pre_exec` (`gamry_server2.py:514-518`) call `measure_init_ocv`, which writes `init_ocv.jsonl` (+ `init_ocv.meta.json`) of file type `pstat_helao__file` as a single JSON line (`helao/deploy/hte/servers/gamry/gamry_server2.py:81-88`):
+Before the cell is energised, `GamryExec._pre_exec` (`gamry_server2.py:243-245`) and `GamryEisExec._pre_exec` (`gamry_server2.py:522-526`) call `measure_init_ocv`, which writes `init_ocv.jsonl` (+ `init_ocv.meta.json`) of file type `pstat_helao__file` as a single JSON line (`helao/deploy/hte/servers/gamry/gamry_server2.py:81-88`):
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
 | `t_s` | float | list[float] | s | time since the OCV measurement started | `helao/deploy/hte/servers/gamry/readz.py:49` |
 | `Ewe_V` | unknown (dynamic) | list[unknown (dynamic)] | V | `pstat.MeasureV()` reading; the COM return type is not defined in the repo. This file is written with stdlib `json.dumps` (`helao/deploy/hte/servers/gamry/gamry_server2.py:82`), so a NaN would appear as a bare `NaN` token, not `null` | `helao/deploy/hte/servers/gamry/readz.py:49` |
 
-`init_ocv.meta.json` header (`gamry_server2.py:86`): `mean_ocv` (float, V), the mean of the last 5 `Ewe_V` samples. The signal potentials of the technique are then shifted by `mean_ocv` (`gamry_server2.py:242`) and the shifted values are what the driver sets up; the `mean_ocv` value is not copied into `action_params`.
+`init_ocv.meta.json` header (`gamry_server2.py:86`): `mean_ocv` (float, V), the mean of the last 5 `Ewe_V` samples. The signal potentials of the technique are then shifted by `mean_ocv` (`gamry_server2.py:250`) and the shifted values are what the driver sets up; the `mean_ocv` value is not copied into `action_params`.
 
-`run_CV` also takes `previous_ocv__V` (V, default `None`). When it is set, `GamryExec._pre_exec` adds it to every signal potential with `offset_potentials` before setup and measures nothing (`helao/deploy/hte/servers/gamry/gamry_server2.py:216`); no `init_ocv.jsonl` is written. An orchestrator fills it from a preceding OCV action's `Ewe_V__mean_final` (`from_global_act_params`), which is how a CV references an OCV run in the same experiment. It is refused (`setup`) together with `versus_OCV`, or when it is not a finite number. The recorded `action_params` keep the requested potentials and the `previous_ocv__V` used.
+`run_CV` also takes `versus_previous_OCV` (bool, default `False`) and `previous_ocv__V` (V, default `None`). With `versus_previous_OCV` true and `previous_ocv__V` a finite number, `GamryExec._pre_exec` adds it to every signal potential with `offset_potentials` before setup and measures nothing (`helao/deploy/hte/servers/gamry/gamry_server2.py:216`); no `init_ocv.jsonl` is written. An orchestrator fills `previous_ocv__V` from a preceding OCV action's `Ewe_V__mean_final` (`from_global_act_params`), which is how a CV references an OCV run in the same experiment. Refused (`setup`) with nothing set up: `versus_previous_OCV` together with `versus_OCV`; `versus_previous_OCV` true with `previous_ocv__V` unset or not a finite number (`nan`, `inf`, a string, a bool); `previous_ocv__V` set while `versus_previous_OCV` is false (no implicit shift); either of the two on any technique other than CV. The recorded `action_params` keep the requested potentials plus `previous_ocv__V` and `versus_previous_OCV`, so every new CV record carries `previous_ocv__V: null` and `versus_previous_OCV: false` unless used; no other written field changed.
 
 ### `run_PEIS`, `run_GEIS` (actions)
 
-`GamryEisExec` (`helao/deploy/hte/servers/gamry/gamry_server2.py:419`); `action_abbr` is `PEIS` (`:1192`) or `GEIS` (`:1237`). Each `_poll` that has an impedance result queues one row (`gamry_server2.py:626`): the final impedance tuple of one frequency, read from the `GamryReadZ` COM object when the sink reports `ReadZStatusOk` (`helao/deploy/hte/servers/gamry/readz.py:402`, `:431`), plus `t_s` added by the executor. Values are scalars. `dtaqsink.reset()` clears the result before the next frequency (`gamry_server2.py:610`; `readz.py:439-441`), so rows are normally one per frequency; a frequency is retried up to `MaxRetries` times and a retried one writes no row until it succeeds.
+`GamryEisExec` (`helao/deploy/hte/servers/gamry/gamry_server2.py:427`); `action_abbr` is `PEIS` (`:1203`) or `GEIS` (`:1248`). Each `_poll` that has an impedance result queues one row (`gamry_server2.py:634`): the final impedance tuple of one frequency, read from the `GamryReadZ` COM object when the sink reports `ReadZStatusOk` (`helao/deploy/hte/servers/gamry/readz.py:402`, `:431`), plus `t_s` added by the executor. Values are scalars. `dtaqsink.reset()` clears the result before the next frequency (`gamry_server2.py:618`; `readz.py:439-441`), so rows are normally one per frequency; a frequency is retried up to `MaxRetries` times and a retried one writes no row until it succeeds.
 
 Data file `<action_abbr>-*.jsonl` (+ `.meta.json`), one row per frequency. The values come from COM getters on `GamryReadZ`, whose return types are fixed by the Gamry type library, not by this repo, so each type is `unknown (dynamic)`:
 
@@ -104,17 +104,17 @@ Data file `<action_abbr>-*.jsonl` (+ `.meta.json`), one row per frequency. The v
 | `Ireal`, `Iimag`, `Isig`, `Imod`, `Iphz`, `Idc` | unknown (dynamic) | scalar per row | A (`Iphz` degrees) | current components, modulus, phase, DC | `helao/deploy/hte/servers/gamry/readz.py:402` |
 | `Vreal`, `Vimag`, `Vsig`, `Vmod`, `Vphz`, `Vdc` | unknown (dynamic) | scalar per row | V (`Vphz` degrees) | potential components, modulus, phase, DC | `helao/deploy/hte/servers/gamry/readz.py:402` |
 | `Gain`, `INoise`, `VNoise`, `IENoise`, `IERange` | unknown (dynamic) | scalar per row | none | gain, noise figures and current-range code reported by `GamryReadZ` | `helao/deploy/hte/servers/gamry/readz.py:402` |
-| `t_s` | float | scalar per row | s | wall-clock seconds since the executor's `start_time` | `helao/deploy/hte/servers/gamry/gamry_server2.py:624-625` |
+| `t_s` | float | scalar per row | s | wall-clock seconds since the executor's `start_time` | `helao/deploy/hte/servers/gamry/gamry_server2.py:632-633` |
 
 The keys are the fixed list at `readz.py:377-401`. No action results.
 
 ### `get_meas_status` (action)
 
-Queues one row from the adapter's sink (`helao/deploy/hte/servers/gamry/gamry_server2.py:1256`; `GamryComAdapter.dtaqsink`, `gamry_com.py:265`); data file `<action_abbr>-*.jsonl` (+ `.meta.json`). No action results.
+Queues one row from the adapter's sink (`helao/deploy/hte/servers/gamry/gamry_server2.py:1267`; `GamryComAdapter.dtaqsink`, `gamry_com.py:265`); data file `<action_abbr>-*.jsonl` (+ `.meta.json`). No action results.
 
 | field | type | structure | unit | meaning | written at |
 |---|---|---|---|---|---|
-| `status` | str | scalar per row | none | state of `driver.dtaqsink` (`gamry_com.py:265`): `idle`, `measuring` or `done`. During an EIS run the underlying driver's `dtaqsink` is the dummy sink (`helao/deploy/hte/servers/gamry/driver.py:757-760`, `:811`), so it reports `idle` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1256` |
+| `status` | str | scalar per row | none | state of `driver.dtaqsink` (`gamry_com.py:265`): `idle`, `measuring` or `done`. During an EIS run the underlying driver's `dtaqsink` is the dummy sink (`helao/deploy/hte/servers/gamry/driver.py:757-760`, `:811`), so it reports `idle` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1267` |
 
 ### `stop` (action) and private endpoints
 
@@ -122,5 +122,5 @@ No data files or action results (`/stop_private`, `/gamry_state`, `/gamry_is_ope
 
 ## Notes
 
-- `gamry_dyn_endpoints` writes `server_params["allow_concurrent_actions"] = False` at startup (`gamry_server2.py:674`). The server sets this itself; a config value is overwritten.
+- `gamry_dyn_endpoints` writes `server_params["allow_concurrent_actions"] = False` at startup (`gamry_server2.py:682`). The server sets this itself; a config value is overwritten.
 - `driver.py:89` stores `grounded` as `int(...)`, while `driver.py:259` re-reads the raw value for `SetGround`. Both come from the same key.

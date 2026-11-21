@@ -83,7 +83,7 @@ No data files or action results.
 
 ### Private endpoints
 
-`/start_polling`, `/stop_polling`, `/list_devices`, `/list_gases`, `/set_gas`, `/set_gas_mixture`, `/lock_display`, `/unlock_display`, `/hold_valve`, `/hold_valve_closed`, `/hold_cancel`, `/tare_volume`, `/tare_pressure`, `/manual_query_state`, `/read_valve_register`, `/write_valve_register` and `/send_command` (`helao/deploy/hte/servers/mfc/mfc_server.py:485-616`) return values to the caller only; no data files or action results.
+`/start_polling`, `/stop_polling`, `/list_devices`, `/list_gases`, `/set_gas`, `/set_gas_mixture`, `/lock_display`, `/unlock_display`, `/hold_valve`, `/hold_valve_closed`, `/hold_cancel`, `/tare_volume`, `/tare_pressure`, `/manual_query_state`, `/read_valve_register`, `/write_valve_register` and `/send_command` (`helao/deploy/hte/servers/mfc/mfc_server.py:485-584`) return values to the caller only; no data files or action results.
 
 ### Live data (status/ws stream)
 

@@ -20,13 +20,17 @@
         "annotation": "float",
         "default": "0.1"
       },
+      "versus_previous_OCV": {
+        "annotation": "bool",
+        "default": "False"
+      },
       "previous_ocv__V": {
         "annotation": "Optional[float]",
         "default": "None"
       }
     },
     "date": "2026-10-14",
-    "why": "SamplingMode selects Gamry Fast/NoiseReject/Surface per-step sampling (Surface for Cdl/ECSA); versus_OCV applies potentials relative to a pre-measured OCV, as run_PEIS does. All default to the previous behaviour. previous_ocv__V (2026-11-20) adds a preceding OCV action's Ewe_V__mean_final, copied in by the orchestrator, to every potential, so a CV in the same experiment as its OCV gets the ecms3 ECSA reference; defaults to the previous behaviour."
+    "why": "SamplingMode selects Gamry Fast/NoiseReject/Surface per-step sampling (Surface for Cdl/ECSA); versus_OCV applies potentials relative to a pre-measured OCV, as run_PEIS does. All default to the previous behaviour. previous_ocv__V (2026-11-20) adds a preceding OCV action's Ewe_V__mean_final, copied in by the orchestrator, to every potential, so a CV in the same experiment as its OCV gets the ecms3 ECSA reference; defaults to the previous behaviour (versus_previous_OCV must be set for the shift; CV-only; existing CV records now carry previous_ocv__V: null and versus_previous_OCV: false)."
   },
   {
     "module": "gamry_server2.py",

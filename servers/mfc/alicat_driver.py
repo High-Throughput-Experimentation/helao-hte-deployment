@@ -305,9 +305,10 @@ class AliCatMFC(HelaoDriver):
     async def set_gas(self, device_name: str, gas: Union[int, str]):
         """Set the device to a pure gas (by Alicat gas index or short name)."""
         await self.stop_polling()
-        resp = self.fcs[device_name].set_gas(gas)
-        await self.start_polling()
-        return resp
+        try:
+            return self.fcs[device_name].set_gas(gas)
+        finally:
+            await self.start_polling()
 
     async def set_gas_mixture(self, device_name: str, gas_dict: dict):
         """Define and select a custom mix (slot 236) given `{gas_name: pct}`.
@@ -320,13 +321,14 @@ class AliCatMFC(HelaoDriver):
             return {}
         else:
             await self.stop_polling()
-            self.fcs[device_name].delete_mix(236)
-            self.fcs[device_name].create_mix(
-                mix_no=236, name="HELAO_mix", gases=gas_dict
-            )
-            resp = self.fcs[device_name].set_gas(236)
-            await self.start_polling()
-            return resp
+            try:
+                self.fcs[device_name].delete_mix(236)
+                self.fcs[device_name].create_mix(
+                    mix_no=236, name="HELAO_mix", gases=gas_dict
+                )
+                return self.fcs[device_name].set_gas(236)
+            finally:
+                await self.start_polling()
 
     async def lock_display(self, device_name: Optional[str] = None):
         """Lock the front-panel display on one device, or on all when `device_name` is None."""

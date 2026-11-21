@@ -68,6 +68,7 @@ def test_set_gas_is_an_action_and_the_private_post_stays():
     app = _app()
     assert app.routes["/MFC/set_gas"][0] == ["action"]
     assert app.routes["/set_gas"][0] == ["private"]
+    assert app.routes["/set_gas"][1].__name__ == "set_gas_private"
 
 
 def test_the_set_gas_action_selects_the_gas_on_the_named_device():
@@ -83,3 +84,47 @@ def test_the_private_set_gas_still_calls_the_driver():
     app = _app()
     asyncio.run(app.routes["/set_gas"][1](device_name="CO2", gas="N2"))
     assert app.driver.calls == [("CO2", "N2")]
+
+
+def _alicat(fc):
+    import helao.deploy.hte.servers.mfc.alicat_driver as alicat
+
+    drv = alicat.AliCatMFC(
+        config={"devices": {"CO2": {"port": "COM3", "unit_id": "A"}}}
+    )
+    drv.fcs = {"CO2": fc}
+    drv.polling = True
+    return drv
+
+
+class _FailingFc:
+    def set_gas(self, gas):
+        raise IOError("readback failed")
+
+    def delete_mix(self, n):
+        pass
+
+    def create_mix(self, **kw):
+        pass
+
+
+def test_driver_set_gas_restarts_polling_when_the_device_raises():
+    drv = _alicat(_FailingFc())
+    try:
+        asyncio.run(drv.set_gas("CO2", "N2"))
+    except IOError:
+        pass
+    else:
+        raise AssertionError("IOError expected")
+    assert drv.polling is True
+
+
+def test_driver_set_gas_mixture_restarts_polling_when_the_device_raises():
+    drv = _alicat(_FailingFc())
+    try:
+        asyncio.run(drv.set_gas_mixture("CO2", {"N2": 50, "O2": 50}))
+    except IOError:
+        pass
+    else:
+        raise AssertionError("IOError expected")
+    assert drv.polling is True
