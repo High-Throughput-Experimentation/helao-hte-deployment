@@ -224,7 +224,7 @@ def _ecms_seq_series_CA(recirc, cali=False, **p):
         )
         _ecms_seq_fill(epm, p, recirc)
         if cali:
-            _ecms_seq_gas(epm, p, p["CO2flowrate_sccm"], p["Califlowrate_sccm"])
+            _ecms_seq_gas(epm, p, p["CO2flowrate_sccm"], p["Califlowrate_sccm_O2"], p["califlowrate_sccm_Ar"])
         else:
             _ecms_seq_gas(epm, p)
         _ecms_seq_CA(epm, p, potential, time)
@@ -1009,34 +1009,35 @@ def ECMS_series_CA_recirculation(
     return _ecms_seq_series_CA(**locals(), recirc=True)
 
 
-@sequence(version=5)
+@sequence(version=6)
 def ECMS_series_CA_recirculation_mixedreactant(
     plate_id: int = 4534,
     solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 2,
-    volume_ul_cell_liquid: float = 600,
+    reservoir_liquid_sample_no: int = 1,
+    volume_ul_cell_liquid: float = 2050,
     # liquid_forward_time: float = 0,
-    liquid_backward_time: float = 80,
+    liquid_backward_time: float = 35,
     # vacuum_time: float = 10,
     CO2equilibrium_duration: float = 30,
-    CO2flowrate_sccm: float = 1.2,
-    Califlowrate_sccm: float = 1.8,
+    CO2flowrate_sccm: float = 7.5,
+    Califlowrate_sccm_O2: float = 0.0,
+    califlowrate_sccm_Ar: float = 2.5,
     flow_ramp_sccm: float = 0,
     MS_baseline_duration_1: float = 90,
     MS_baseline_duration_2: float = 180,
-    WE_potential__V: list[float] = [-1.4, -1.6, -1.8, -1.9, -2.0],
+    WE_potential__V: list[float] = [-1.5, -1.7, -1.8, -1.9, -2.0],
     WE_versus: str = "ref",
     ref_type: str = "leakless",
-    pH: float = 7.8,
+    pH: float = 8.3,
     CA_duration_sec: list[float] = [600, 600, 600, 600, 600],
     SampleRate: float = 1,
     IErange: str = "auto",
     ref_offset__V: float = 0.0,
     MS_equilibrium_time: float = 120.0,
-    cleaning_times: int = 1,
-    liquid_fill_time: float = 7,
-    liquid_drain_time: float = 60.0,
-    tube_clear_time: float = 20,
+    cleaning_times: int = 0,
+    liquid_fill_time: float = 10.0,
+    liquid_drain_time: float = 75.0,
+    tube_clear_time: float = 12,
     tube_clear_delaytime: float = 40.0,
     # liquid_cleancell_time: float = 120,
     OCV_duration__s: float = 2.0,
