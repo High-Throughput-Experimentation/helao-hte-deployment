@@ -1,8 +1,8 @@
 """Launch guardrail test: at most one server may declare params.positions.
 
-Run (from repo root, ``helao`` conda env, ``PYTHONPATH`` = repo root)::
+Run (from repo root, ``helao`` env, ``PYTHONPATH`` = repo root)::
 
-    conda run -n helao python helao/deploy/hte/tests/test_validate_config_positions.py
+    python helao/deploy/hte/tests/test_validate_config_positions.py
 
 Phase 4 adds a launch-blocking check to ``launch.validateConfig``: a config in
 which more than one server declares ``params.positions`` must be rejected

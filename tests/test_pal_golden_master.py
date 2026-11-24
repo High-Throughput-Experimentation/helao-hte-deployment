@@ -40,10 +40,10 @@ What is FAKED/STUBBED (the harness surface, matching the spec's
 No production code (``pal_driver.py``, ``pal_server.py``) is modified by
 this file.
 
-Run (conda env ``helao``, no pytest in this env -- run as a script, exactly
+Run (helao env, as a script, exactly
 like ``test_pal_ioloop_c1_guard.py``)::
 
-    conda run -n helao python helao/deploy/hte/tests/test_pal_golden_master.py
+    python helao/deploy/hte/tests/test_pal_golden_master.py
 
 Prints a PASS/FAIL summary of the 9 scenario checks; exits 1 on any failure.
 """

@@ -13,7 +13,7 @@ still deliberately stays server-free so it runs anywhere, including CI.
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_sample.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_sample.py -q
 """
 
 from __future__ import annotations

@@ -12,7 +12,7 @@ pure capture logic -- so it runs on Linux.
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_biologic.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_biologic.py -q
 """
 
 from __future__ import annotations

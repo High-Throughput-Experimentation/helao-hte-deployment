@@ -10,7 +10,7 @@ only runs at-station with the SM303 attached (see golden_capture_spec.py docstri
 
 Run:
 
-    conda run -n helao python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_spec.py -q
+    python -m pytest helao/deploy/hte/tests/smoke/test_golden_capture_spec.py -q
 """
 
 from __future__ import annotations
