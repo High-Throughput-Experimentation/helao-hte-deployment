@@ -590,7 +590,7 @@ class MfcExec(Executor):
     async def _post_exec(self) -> dict:
         """Record `total_scc` on the action and close the valve unless `stay_open`."""
         LOGGER.info("MfcExec running cleanup methods.")
-        self.active.action.action_params["total_scc"] = self.total_scc
+        self.active.set_output(total_scc=self.total_scc)
         if not self.active.action.action_params.get("stay_open", False):
             closevlv_resp = await self.active.driver.hold_valve_closed(
                 device_name=self.device_name,
@@ -749,7 +749,7 @@ class MfcConstPresExec(MfcExec):
     async def _post_exec(self) -> dict:
         """Record `total_scc` and close the valve unless `stay_open` is set."""
         LOGGER.info("MfcConstPresExec running cleanup methods.")
-        self.active.action.action_params["total_scc"] = self.total_scc
+        self.active.set_output(total_scc=self.total_scc)
         if not self.active.action.action_params.get("stay_open", False):
             closevlv_resp = await self.active.driver.hold_valve_closed(
                 device_name=self.device_name,
@@ -913,7 +913,7 @@ class MfcConstConcExec(MfcExec):
     async def _post_exec(self) -> dict:
         """Record `total_scc` and close the valve unless `stay_open` is set."""
         LOGGER.info("MfcConstConcExec running cleanup methods.")
-        self.active.action.action_params["total_scc"] = self.total_scc
+        self.active.set_output(total_scc=self.total_scc)
         if not self.active.action.action_params.get("stay_open", False):
             closevlv_resp = await self.active.driver.hold_valve_closed(
                 device_name=self.device_name,

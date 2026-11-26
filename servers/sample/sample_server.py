@@ -121,7 +121,7 @@ def makeApp(server_key) -> ActionHost:
         await active.append_sample(samples=[sample], IO="in")
         datadict = {"sample": sample.as_dict(), "error_code": error_code}
         datamodel = DataModel(data={active.base.dflt_file_conn_key(): datadict})
-        active.action.action_params.update({"_fast_samples_in": [sample.as_dict()]})
+        active.set_output(_fast_samples_in=[sample.as_dict()])
         active.enqueue_data_nowait(datamodel, action=active.action)
         finished_action = await active.finish()
         return finished_action.as_dict()
@@ -591,9 +591,11 @@ def makeApp(server_key) -> ActionHost:
             unloaded_vol = 0
         else:
             unloaded_vol = first_unloaded_liquid["volume_ml"]
-        active.action.action_params.update({"_unloaded_solid": first_unloaded_solid})
-        active.action.action_params.update({"_unloaded_liquid": first_unloaded_liquid})
-        active.action.action_params.update({"_unloaded_liquid_vol": unloaded_vol})
+        active.set_output(
+            _unloaded_solid=first_unloaded_solid,
+            _unloaded_liquid=first_unloaded_liquid,
+            _unloaded_liquid_vol=unloaded_vol,
+        )
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -622,7 +624,7 @@ def makeApp(server_key) -> ActionHost:
         active.action.error_code = error_code
         await active.append_sample(samples=[sample], IO="in")
         datadict = {"sample": sample.as_dict(), "error_code": error_code}
-        active.action.action_params.update({"_fast_samples_in": [sample.as_dict()]})
+        active.set_output(_fast_samples_in=[sample.as_dict()])
         datamodel = DataModel(data={active.base.dflt_file_conn_key(): datadict})
         active.enqueue_data_nowait(datamodel, action=active.action)
         finished_action = await active.finish()
@@ -838,7 +840,7 @@ def makeApp(server_key) -> ActionHost:
         datamodel = DataModel(data={active.base.dflt_file_conn_key(): datadict})
         active.enqueue_data_nowait(datamodel, action=active.action)
         if sample_out_dicts:
-            active.action.action_params["_fast_sample_out"] = sample_out_dicts[0]
+            active.set_output(_fast_sample_out=sample_out_dicts[0])
         finished_action = await active.finish()
         return finished_action.as_dict()
 
@@ -927,12 +929,10 @@ def makeApp(server_key) -> ActionHost:
             customkey: custom.sample.global_label
             for customkey, custom in positions.customs_dict.items()
         }
-        active.action.action_params.update(
-            {
-                "_positions": positions.as_dict(),
-                "_tray_pos": tray_positions,
-                "_custom_pos": custom_positions,
-            }
+        active.set_output(
+            _positions=positions.as_dict(),
+            _tray_pos=tray_positions,
+            _custom_pos=custom_positions,
         )
         finished_action = await active.finish()
         return finished_action.as_dict()

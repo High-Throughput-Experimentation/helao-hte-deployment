@@ -70,10 +70,10 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the run produced `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
-| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
-| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
-| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: `bubble_detection` result using the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `helao/deploy/hte/servers/gamry/gamry_server2.py:408` |
+| `t_s__mean_final` | `action_output` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the run produced `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
+| `Ewe_V__mean_final` | `action_output` | float \| null | scalar | same for `Ewe_V` | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
+| `I_A__mean_final` | `action_output` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `helao/deploy/hte/servers/gamry/gamry_server2.py:393` |
+| `has_bubble` | `action_output` | bool | scalar | `run_OCV` only: `bubble_detection` result using the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `helao/deploy/hte/servers/gamry/gamry_server2.py:408` |
 | `AcqPointsPerCycle` | `action_params` | int | scalar | `run_RCA` only: `round((Tinit__s + Tstep__s) / AcqInterval__s)` | `helao/deploy/hte/servers/gamry/gamry_server2.py:1147` |
 | `SignalArray__V` | `action_params` | float | list[float] | `run_RCA` only: `Vinit__V` while `i * AcqInterval__s <= Tinit__s`, else `Vstep__V`, one entry per point of a cycle | `helao/deploy/hte/servers/gamry/gamry_server2.py:1148` |
 

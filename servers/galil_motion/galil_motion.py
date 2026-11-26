@@ -490,7 +490,7 @@ async def galil_dyn_endpoints(app: ActionHost):
             platexy = datadict.get("platexy", [[None, None]])[0]
             if platexy[0] is None or platexy[1] is None:
                 active.action.error_code = ErrorCodes.not_available
-            active.action.action_params.update({"_platexy": platexy})
+            active.set_output(_platexy=platexy)
             await active.enqueue_data_dflt(datadict=datadict)
             finished_action = await active.finish()
             return finished_action.as_dict()
@@ -508,7 +508,7 @@ async def galil_dyn_endpoints(app: ActionHost):
             """
             active = await ctx.begin()
             refxy = app.world_cfg[active.action.action_params["ref_position_name"]]
-            active.action.action_params.update({"_refxy": refxy})
+            active.set_output(_refxy=refxy)
             await active.enqueue_data_dflt(datadict={"_refxy": refxy})
             finished_action = await active.finish()
             return finished_action.as_dict()
@@ -555,7 +555,7 @@ async def galil_dyn_endpoints(app: ActionHost):
             )
             refno = refnos[nearest]
             refxy = list(refxys[nearest])
-            active.action.action_params.update({"_refno": refno, "_refxy": refxy})
+            active.set_output(_refno=refno, _refxy=refxy)
             await active.enqueue_data_dflt(datadict={"_refno": refno, "_refxy": refxy})
             finished_action = await active.finish()
             return finished_action.as_dict()

@@ -48,7 +48,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_present_volume_ul` | `action_params` | float | scalar | same value as the row's `present_volume_ul`, so later actions inherit it | `helao/deploy/hte/servers/syringe/syringe_server.py:117` |
+| `_present_volume_ul` | `action_output` | float | scalar | same value as the row's `present_volume_ul`, so later actions inherit it | `helao/deploy/hte/servers/syringe/syringe_server.py:117` |
 
 ### Private endpoints
 

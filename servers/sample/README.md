@@ -120,7 +120,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_fast_samples_in` | `action_params` | dict | list[dict] | one-element list with the same sample dict | `helao/deploy/hte/servers/sample/sample_server.py:124` |
+| `_fast_samples_in` | `action_output` | dict | list[dict] | one-element list with the same sample dict | `helao/deploy/hte/servers/sample/sample_server.py:124` |
 
 **`archive_tray_load`** (`load_sample`, `helao/deploy/hte/servers/sample/sample_server.py:191`). Row (`helao/deploy/hte/servers/sample/sample_server.py:199-201`); data file `load_sample-*.jsonl` (+ `.meta.json`). The loaded sample is verified in the sample DB first; the in-memory table is updated without a state-file write (see above). No action results.
 
@@ -190,15 +190,15 @@ Action results (in `-act.json`), `archive_custom_unloadall` only:
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_unloaded_solid` | `action_params` | dict \| null | dict | sample dict of the first unloaded solid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:594` |
-| `_unloaded_liquid` | `action_params` | dict \| null | dict | sample dict of the first unloaded liquid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:595` |
-| `_unloaded_liquid_vol` | `action_params` | float \| int \| null | scalar | `volume_ml` of that liquid, `null` when the liquid's `volume_ml` is unset, or the integer `0` when there is no liquid | `helao/deploy/hte/servers/sample/sample_server.py:596` |
+| `_unloaded_solid` | `action_output` | dict \| null | dict | sample dict of the first unloaded solid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:594-598` |
+| `_unloaded_liquid` | `action_output` | dict \| null | dict | sample dict of the first unloaded liquid, `null` if none | `helao/deploy/hte/servers/sample/sample_server.py:594-598` |
+| `_unloaded_liquid_vol` | `action_output` | float \| int \| null | scalar | `volume_ml` of that liquid, `null` when the liquid's `volume_ml` is unset, or the integer `0` when there is no liquid | `helao/deploy/hte/servers/sample/sample_server.py:594-598` |
 
 **`archive_custom_query_sample`** (`query_sample`, `helao/deploy/hte/servers/sample/sample_server.py:617`). Row (`helao/deploy/hte/servers/sample/sample_server.py:624-627`); data file `query_sample-*.jsonl`. Same fields as `archive_tray_query_sample` (`sample`, `error_code`, `helao/deploy/hte/servers/sample/sample_server.py:624`), and the same result:
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_fast_samples_in` | `action_params` | dict | list[dict] | one-element list with the sample dict | `helao/deploy/hte/servers/sample/sample_server.py:625` |
+| `_fast_samples_in` | `action_output` | dict | list[dict] | one-element list with the sample dict | `helao/deploy/hte/servers/sample/sample_server.py:627` |
 
 **`archive_custom_add_liquid`, `archive_custom_add_gas`** (`add_liquid`, `add_gas`, `helao/deploy/hte/servers/sample/sample_server.py:666`, `helao/deploy/hte/servers/sample/sample_server.py:723`). Add volume to a custom position; created and updated samples go to the sample DB (`helao/deploy/hte/servers/sample/archive_driver.py:1661-1913`) and the state file is rewritten through `custom_replace_sample` (`helao/deploy/hte/servers/sample/archive_driver.py:948`). Row (`helao/deploy/hte/servers/sample/sample_server.py:684-686`, `helao/deploy/hte/servers/sample/sample_server.py:740-742`); data file `add_liquid-*.jsonl` or `add_gas-*.jsonl` (+ `.meta.json`). No action results.
 
@@ -224,7 +224,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_fast_sample_out` | `action_params` | dict | dict | first created sample dict; present only when at least one sample was created | `helao/deploy/hte/servers/sample/sample_server.py:841` |
+| `_fast_sample_out` | `action_output` | dict | dict | first created sample dict; present only when at least one sample was created | `helao/deploy/hte/servers/sample/sample_server.py:843` |
 
 **`generate_plate_sample_no_list`** (action name as abbreviation). When `plate_id`, `sample_code` and `skip_n_samples` are given and the plate's platemap loads, writes the sample numbers as a text file (`helao/deploy/hte/servers/sample/archive_driver.py:2083-2089`); otherwise nothing. No data row, no action results.
 
@@ -232,13 +232,13 @@ Action results (in `-act.json`):
 |---|---|---|---|---|
 | sample-number list | text; `%%` line, then one sample number per line | `<plate_id>.txt`, file type `plate_sample_no_list_file`, tracked on the action | platemap rows chosen by a stride rule: row `i` is taken when `i - last_taken - 1 == skip_n_samples` and its `code` equals `sample_code`; the first stride row whose code differs stops all later selection, because the gap then never matches again (`helao/deploy/hte/servers/sample/archive_driver.py:2076-2080`) | `helao/deploy/hte/servers/sample/archive_driver.py:2083-2089` |
 
-**`get_loaded_positions`** (route of `get_positions`, action name as abbreviation). No row; writes three results into the action record (`helao/deploy/hte/servers/sample/sample_server.py:930-936`):
+**`get_loaded_positions`** (route of `get_positions`, action name as abbreviation). No row; writes three results into the action record (`helao/deploy/hte/servers/sample/sample_server.py:932-936`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `_positions` | `action_params` | dict | dict | whole archive (`trays_dict`, `customs_dict`; same layout as the state file) | `helao/deploy/hte/servers/sample/sample_server.py:932` |
-| `_tray_pos` | `action_params` | str \| null | dict | `{"<tray>,<slot>,<vial>": global label}` for every loaded vial (e.g. `"1,1,1"`); `{}` when none is loaded | `helao/deploy/hte/servers/sample/sample_server.py:918` |
-| `_custom_pos` | `action_params` | str \| null | dict | `{custom_name: global label of the loaded sample}`; `null` for an empty position's label | `helao/deploy/hte/servers/sample/sample_server.py:934` |
+| `_positions` | `action_output` | dict | dict | whole archive (`trays_dict`, `customs_dict`; same layout as the state file) | `helao/deploy/hte/servers/sample/sample_server.py:932-936` |
+| `_tray_pos` | `action_output` | str \| null | dict | `{"<tray>,<slot>,<vial>": global label}` for every loaded vial (e.g. `"1,1,1"`); `{}` when none is loaded | `helao/deploy/hte/servers/sample/sample_server.py:932-936` |
+| `_custom_pos` | `action_output` | str \| null | dict | `{custom_name: global label of the loaded sample}`; `null` for an empty position's label | `helao/deploy/hte/servers/sample/sample_server.py:932-936` |
 
 ### Private endpoints
 

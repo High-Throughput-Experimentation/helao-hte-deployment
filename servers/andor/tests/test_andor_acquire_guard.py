@@ -111,6 +111,7 @@ class _FakeActive:
                 "exp_time": 0.0098,
                 "framerate": 98,
             },
+            action_output={},
             action_name="acquire",
             action_uuid="fake-uuid",
             exec_id=None,
@@ -118,6 +119,9 @@ class _FakeActive:
         )
         self.finished = False
         self.started_executor = None
+
+    def set_output(self, **values):
+        self.action.action_output.update(values)
 
     def start_executor(self, executor):
         self.started_executor = executor
@@ -458,6 +462,7 @@ def _fake_active(driver):
     """The subset of ``Active`` that ``Executor.__init__`` touches."""
     return SimpleNamespace(
         driver=driver,
+        set_output=lambda **kw: None,
         action=SimpleNamespace(
             action_name="fake",
             action_uuid="fake-uuid",
@@ -512,7 +517,7 @@ async def test_acquire_records_calibrated_false_on_the_channel_index():
 
     await acquire(ctx)
 
-    assert ctx.active.action.action_params["calibrated"] is False
+    assert ctx.active.action.action_output["calibrated"] is False
     # The index still sizes the columns and fills the header, so the record
     # is well-formed -- it is just indices rather than nanometres.
     assert ctx.begin_kwargs["json_data_keys"] == [
@@ -533,7 +538,7 @@ async def test_acquire_records_calibrated_true_on_a_real_axis():
 
     await acquire(ctx)
 
-    assert ctx.active.action.action_params["calibrated"] is True
+    assert ctx.active.action.action_output["calibrated"] is True
 
 
 @pytest.mark.asyncio
@@ -546,4 +551,4 @@ async def test_calibrated_defaults_to_false_on_a_driver_without_the_flag():
 
     await acquire(ctx)
 
-    assert ctx.active.action.action_params["calibrated"] is False
+    assert ctx.active.action.action_output["calibrated"] is False

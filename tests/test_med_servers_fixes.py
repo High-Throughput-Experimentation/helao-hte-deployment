@@ -144,7 +144,10 @@ async def _run_calibrate(peaks, int_time_ms):
     )
 
     class Active:
-        action = types.SimpleNamespace(action_params=params)
+        action = types.SimpleNamespace(action_params=params, action_output={})
+
+        def set_output(self, **values):
+            self.action.action_output.update(values)
 
         async def enqueue_data_dflt(self, datadict):
             pass

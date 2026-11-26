@@ -221,8 +221,8 @@ class AndorAcquire(Executor):
 
             # link attrs for convenience
             self.action_params = self.active.action.action_params
-            self.active.action.action_params["action_path"] = str(
-                self.active.action.action_output_dir
+            self.active.set_output(
+                action_path=str(self.active.action.action_output_dir)
             )
 
             self.driver = self.active.driver
@@ -387,12 +387,10 @@ async def andor_dyn_endpoints(app: ActionHost):
         )
 
         # Recorded on both paths: `False` says `wl` is the channel index, not
-        # nanometres. Written after ctx.begin so it lands in the action params
+        # nanometres. Written after ctx.begin so it lands in the action output
         # the record keeps, the same way AndorAcquire writes `action_path`.
-        active.action.action_params["calibrated"] = bool(
-            getattr(app.driver, "wl_calibrated", False)
-        )
-        if not active.action.action_params["calibrated"]:
+        active.set_output(calibrated=bool(getattr(app.driver, "wl_calibrated", False)))
+        if not active.action.action_output["calibrated"]:
             LOGGER.warning(
                 "acquiring on /%s without a wavelength calibration: `wl` is "
                 "the channel index and this action records calibrated=False",

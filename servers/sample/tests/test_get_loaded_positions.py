@@ -39,6 +39,9 @@ class _Active:
     def __init__(self):
         self.action = Action(action_name="get_loaded_positions", action_params={})
 
+    def set_output(self, **values):
+        self.action.set_output(**values)
+
     async def finish(self):
         return self.action
 
@@ -61,4 +64,4 @@ def test_loaded_vial_serializes_with_string_key(monkeypatch):
     active = _Active()
     asyncio.run(app.routes["get_positions"](ctx=_Ctx(active)))
     clean = active.action.clean_dict()  # what the -act.json writer serializes
-    assert clean["action_params"]["_tray_pos"] == {"1,1,1": LABEL}
+    assert clean["action_output"]["_tray_pos"] == {"1,1,1": LABEL}

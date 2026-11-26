@@ -322,7 +322,7 @@ class BiologicExec(Executor):
         for k in ["t_s", "Ewe_V", "I_A"]:
             if k in self.data_buffer:
                 meanv = np.nanmean(np.array(self.data_buffer[k])[-5:])
-                self.active.action.action_params[f"{k}__mean_final"] = meanv
+                self.active.set_output(**{f"{k}__mean_final": meanv})
 
         if self.active.action.action_name == "run_OCV":
             data_df = pd.DataFrame(self.data_buffer)
@@ -337,7 +337,7 @@ class BiologicExec(Executor):
                 signal_change_thresh,
                 amplitude_thresh,
             )
-            self.active.action.action_params["has_bubble"] = has_bubble
+            self.active.set_output(has_bubble=has_bubble)
 
         error = (
             ErrorCodes.none if resp.response == "success" else ErrorCodes.critical_error

@@ -67,7 +67,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `peak_intensity` | `action_params` | int \| null | scalar | `peak_intensity` of the last row; `null` when the last row was an error row | `helao/deploy/hte/servers/spec/spec_server.py:294` |
+| `peak_intensity` | `action_output` | int \| null | scalar | `peak_intensity` of the last row; `null` when the last row was an error row | `helao/deploy/hte/servers/spec/spec_server.py:294` |
 
 ### `calibrate_intensity` (action)
 
@@ -77,9 +77,8 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `int_time_ms` | `action_params` | int | scalar | the caller's input is overwritten with each adjusted integration time (`spec_params` is `action_params` itself, not a copy), so the recorded value is the last one tried | `helao/deploy/hte/servers/spec/spec_server.py:372` |
-| `peak_intensity` | `action_params` | int | scalar | peak intensity of the last spectrum | `helao/deploy/hte/servers/spec/spec_server.py:379` |
-| `calibrated_int_time_ms` | `action_params` | int | scalar | final integration time, capped at `max_integration_time` | `helao/deploy/hte/servers/spec/spec_server.py:380` |
+| `peak_intensity` | `action_output` | int | scalar | peak intensity of the last spectrum | `helao/deploy/hte/servers/spec/spec_server.py:377-379` |
+| `calibrated_int_time_ms` | `action_output` | int | scalar | final integration time, capped at `max_integration_time` | `helao/deploy/hte/servers/spec/spec_server.py:377-379` |
 
 ### `acquire_spec_extrig` (action)
 

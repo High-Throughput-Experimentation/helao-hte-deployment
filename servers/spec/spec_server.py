@@ -291,9 +291,7 @@ async def sm303_dyn_endpoints(app: ActionHost):
                 specdict = app.driver.acquire_spec_adv(**active.action.action_params)
                 await active.enqueue_data_dflt(datadict=specdict)
 
-        active.action.action_params["peak_intensity"] = specdict.get(
-            "peak_intensity", None
-        )
+        active.set_output(peak_intensity=specdict.get("peak_intensity", None))
         # wait 0.1 second to capture dangling data messages
         await asyncio.sleep(0.1)
         finished_act = await active.finish()
@@ -368,16 +366,17 @@ async def sm303_dyn_endpoints(app: ActionHost):
                 current_int_time = active.action.action_params["max_integration_time"]
                 max_reached = True
             LOGGER.info(f"Adjusting integration time to: {current_int_time} ms")
-            spec_params = active.action.action_params
-            spec_params.update({"int_time_ms": current_int_time})
-            specdict = app.driver.acquire_spec_adv(**spec_params)
+            specdict = app.driver.acquire_spec_adv(
+                **{**active.action.action_params, "int_time_ms": current_int_time}
+            )
             await active.enqueue_data_dflt(datadict=specdict)
             peak_int = specdict["peak_intensity"]
             LOGGER.info(f"Current peak intensity: {peak_int}")
             adjust_count += 1
 
-        active.action.action_params["peak_intensity"] = peak_int
-        active.action.action_params["calibrated_int_time_ms"] = current_int_time
+        active.set_output(
+            peak_intensity=peak_int, calibrated_int_time_ms=current_int_time
+        )
         # wait 0.1 second to capture dangling data messages
         await asyncio.sleep(0.1)
         finished_act = await active.finish()

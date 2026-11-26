@@ -114,7 +114,7 @@ def makeApp(server_key) -> ActionHost:
         present_volume = app.driver.present_volume_ul
         datadict = {"present_volume_ul": present_volume, "error_code": ErrorCodes.none}
         datamodel = DataModel(data={active.base.dflt_file_conn_key(): datadict})
-        active.action.action_params.update({"_present_volume_ul": present_volume})
+        active.set_output(_present_volume_ul=present_volume)
         active.enqueue_data_nowait(datamodel, action=active.action)
         finished_action = await active.finish()
         return finished_action.as_dict()

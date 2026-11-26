@@ -43,7 +43,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `mean_co2_ppm` | `action_params` | float | scalar | mean of the `co2_ppm` values of all polls; set at the end of the run and only when at least one poll succeeded | `helao/deploy/hte/servers/co2sensor/sprintir_driver.py:305` |
+| `mean_co2_ppm` | `action_output` | float | scalar | mean of the `co2_ppm` values of all polls; set at the end of the run and only when at least one poll succeeded | `helao/deploy/hte/servers/co2sensor/sprintir_driver.py:305` |
 
 ### `cancel_acquire_co2` (action)
 

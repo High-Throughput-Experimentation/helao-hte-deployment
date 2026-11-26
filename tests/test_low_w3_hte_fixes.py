@@ -354,7 +354,10 @@ def test_db_new_samples_with_no_reference_samples_does_not_raise(monkeypatch):
         return finished
 
     active = SimpleNamespace(
-        action=SimpleNamespace(samples_in=[], samples_out=[], action_params={}),
+        action=SimpleNamespace(
+            samples_in=[], samples_out=[], action_params={}, action_output={}
+        ),
+        set_output=lambda **kw: None,
         append_sample=anoop,
         base=SimpleNamespace(
             dflt_file_conn_key=lambda: "00000000-0000-0000-0000-000000000001"
@@ -368,7 +371,7 @@ def test_db_new_samples_with_no_reference_samples_does_not_raise(monkeypatch):
 
     out = asyncio.run(app.routes["db_new_samples"](SimpleNamespace(begin=begin)))
     assert out == {"done": True}
-    assert "_fast_sample_out" not in active.action.action_params
+    assert "_fast_sample_out" not in active.action.action_output
 
 
 # --- sample_vis -------------------------------------------------------------

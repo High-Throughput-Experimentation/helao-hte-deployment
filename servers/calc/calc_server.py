@@ -258,7 +258,7 @@ def makeApp(server_key) -> ActionHost:
 
         LOGGER.info(f"minimum potential was: {result}")
         await active.enqueue_data_dflt(datadict={"result": result})
-        active.action.action_params["min_offset_ocv"] = result
+        active.set_output(min_offset_ocv=result)
         finished_action = await active.finish()
         return finished_action.as_dict()
 
@@ -309,7 +309,7 @@ def makeApp(server_key) -> ActionHost:
         await active.enqueue_data_dflt(
             datadict={"CP_Ewe_V__mean_final": limted_Ewe_V__mean_final}
         )
-        active.action.action_params["CP_Ewe_V__mean_final"] = limted_Ewe_V__mean_final
+        active.set_output(CP_Ewe_V__mean_final=limted_Ewe_V__mean_final)
         finished_action = await active.finish()
         return finished_action.as_dict()
 

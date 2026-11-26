@@ -103,7 +103,7 @@ class XafsScanExec(Executor):
     def _record_error(self, message: str) -> dict:
         """Mark the scan failed; the poll loop ends with ``cmd_error``."""
         LOGGER.error(f"xafs scan: {message}")
-        self.active.action.action_params["sidecar_error"] = message
+        self.active.set_output(sidecar_error=message)
         self._failed = True
         return {"error": ErrorCodes.cmd_error, "status": HloStatus.errored, "data": {}}
 
@@ -228,16 +228,16 @@ class XafsScanExec(Executor):
             (save_dir / ".helao_recorded").touch()
         except ScanSetupError as exc:
             LOGGER.error(f"xafs scan setup: {exc}")
-            self.active.action.action_params["sidecar_error"] = str(exc)
+            self.active.set_output(sidecar_error=str(exc))
             return {"error": exc.code}
         except OSError as exc:
             LOGGER.error(f"xafs scan setup: cannot write marker: {exc}")
-            self.active.action.action_params["sidecar_error"] = str(exc)
+            self.active.set_output(sidecar_error=str(exc))
             return {"error": ErrorCodes.cmd_error}
         except Exception as exc:
             # the runner does not wrap _pre_exec: an exception would wedge the server
             LOGGER.error(f"xafs scan setup failed: {exc!r}", exc_info=True)
-            self.active.action.action_params["sidecar_error"] = repr(exc)
+            self.active.set_output(sidecar_error=repr(exc))
             return {"error": ErrorCodes.cmd_error}
         return {"error": ErrorCodes.none}
 
@@ -332,7 +332,7 @@ class XafsScanExec(Executor):
         except Exception as exc:
             LOGGER.error(f"xafs post_exec failed: {exc!r}", exc_info=True)
             action = self.active.action
-            action.action_params["sidecar_error"] = repr(exc)
+            self.active.set_output(sidecar_error=repr(exc))
             action.append_action_status(HloStatus.errored)
             action.error_code = ErrorCodes.cmd_error
             return {"error": ErrorCodes.cmd_error, "data": {}}
@@ -344,17 +344,19 @@ class XafsScanExec(Executor):
         final = await self._wait_terminal()
         if final is not None:
             for k in ("scan_state", "n_points", "n_expected"):
-                action.action_params[k] = final["state" if k == "scan_state" else k]
+                self.active.set_output(
+                    **{k: final["state" if k == "scan_state" else k]}
+                )
         if final is None or final["state"] not in _OK_END:
             action.error_code = ErrorCodes.cmd_error
-            action.action_params["sidecar_error"] = (final or {}).get(
-                "error"
-            ) or "scan did not end cleanly"
+            self.active.set_output(
+                sidecar_error=(final or {}).get("error") or "scan did not end cleanly"
+            )
             return {"error": ErrorCodes.cmd_error, "data": {}}
         if await self._drain() is not None:
             action.error_code = ErrorCodes.cmd_error
             return {"error": ErrorCodes.cmd_error, "data": {}}
-        action.action_params["exd_path"] = final["exd_path"]
+        self.active.set_output(exd_path=final["exd_path"])
         if final["exd_path"] is None:
             # operator stop before the first point: nothing saved, nothing to fetch
             return {"error": ErrorCodes.none, "data": {}}
@@ -390,7 +392,7 @@ class XafsScanExec(Executor):
                 "xafstrack__json_file",
                 filename=f"xafs_track-{self.savename}.json",
             )
-        action.action_params.update(arts.data["metadata"])
+        self.active.set_output(**arts.data["metadata"])
         return {"error": ErrorCodes.none, "data": {}}
 
 

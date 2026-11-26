@@ -54,8 +54,8 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `action_path` | `action_params` | str | scalar | `action_output_dir` of the action | `helao/deploy/hte/servers/andor/andor_server.py:224` |
-| `calibrated` | `action_params` | bool | scalar | `False` when the wavelength axis is the channel index, `True` for a real calibration; written on both paths | `helao/deploy/hte/servers/andor/andor_server.py:392` |
+| `action_path` | `action_output` | str | scalar | `action_output_dir` of the action | `helao/deploy/hte/servers/andor/andor_server.py:224` |
+| `calibrated` | `action_output` | bool | scalar | `False` when the wavelength axis is the channel index, `True` for a real calibration; written on both paths | `helao/deploy/hte/servers/andor/andor_server.py:390` |
 
 ### `cancel_acquire` (action)
 

@@ -83,12 +83,12 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `scan_state` | `action_params` | str | scalar | final sidecar state (`done`, `stopped`, `error`, ...); present once the sidecar reports a terminal state | `helao/deploy/hte/servers/xafs/xafs_server.py:347` |
-| `n_points` | `action_params` | int | scalar | points the sidecar recorded | `helao/deploy/hte/servers/xafs/xafs_server.py:347` |
-| `n_expected` | `action_params` | int | scalar | points the scan was expected to record | `helao/deploy/hte/servers/xafs/xafs_server.py:347` |
-| `exd_path` | `action_params` | str \| null | scalar | path of the exd archive; `null` when the operator stopped before the first point; absent when the scan did not end cleanly | `helao/deploy/hte/servers/xafs/xafs_server.py:357` |
-| `sidecar_error` | `action_params` | str | scalar | error text; present only when setup, start, polling or finishing failed | `helao/deploy/hte/servers/xafs/xafs_server.py:106`, `:231`, `:235`, `:240`, `:335`, `:350` |
-| `<metadata key>` | `action_params` | unknown (dynamic) | scalar | every key of the exd archive's `metadata.json`, merged in after a successful scan; the vendor writes that file, so the keys and types are not in this repo | `helao/deploy/hte/servers/xafs/xafs_server.py:393` |
+| `scan_state` | `action_output` | str | scalar | final sidecar state (`done`, `stopped`, `error`, ...); present once the sidecar reports a terminal state | `helao/deploy/hte/servers/xafs/xafs_server.py:347` |
+| `n_points` | `action_output` | int | scalar | points the sidecar recorded | `helao/deploy/hte/servers/xafs/xafs_server.py:347` |
+| `n_expected` | `action_output` | int | scalar | points the scan was expected to record | `helao/deploy/hte/servers/xafs/xafs_server.py:347` |
+| `exd_path` | `action_output` | str \| null | scalar | path of the exd archive; `null` when the operator stopped before the first point; absent when the scan did not end cleanly | `helao/deploy/hte/servers/xafs/xafs_server.py:357` |
+| `sidecar_error` | `action_output` | str | scalar | error text; present only when setup, start, polling or finishing failed | `helao/deploy/hte/servers/xafs/xafs_server.py:106`, `:231`, `:235`, `:240`, `:335`, `:350` |
+| `<metadata key>` | `action_output` | unknown (dynamic) | scalar | every key of the exd archive's `metadata.json`, merged in after a successful scan; the vendor writes that file, so the keys and types are not in this repo | `helao/deploy/hte/servers/xafs/xafs_server.py:393` |
 
 ### `initialize`, `calibrate`, `status`, `set_xray`, `shutter` (actions)
 

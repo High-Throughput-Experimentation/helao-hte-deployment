@@ -63,7 +63,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `total_scc` | `action_params` | float \| int | scalar | integrated gas dispensed (scc), integer `0` if no poll succeeded (`helao/deploy/hte/servers/mfc/alicat_driver.py:553`), trapezoid of `mass_flow` over the polls, floored at 0 flow; set after the run, not set when `_pre_exec` aborts because the device is not connected | `helao/deploy/hte/servers/mfc/alicat_driver.py:591` |
+| `total_scc` | `action_output` | float \| int | scalar | integrated gas dispensed (scc), integer `0` if no poll succeeded (`helao/deploy/hte/servers/mfc/alicat_driver.py:553`), trapezoid of `mass_flow` over the polls, floored at 0 flow; set after the run, not set when `_pre_exec` aborts because the device is not connected | `helao/deploy/hte/servers/mfc/alicat_driver.py:591` |
 
 ### `maintain_pressure`, `maintain_concentration` (actions)
 
@@ -73,7 +73,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `total_scc` | `action_params` | float \| int | scalar | integrated gas dispensed (scc) over the run, integer `0` if no poll succeeded (`helao/deploy/hte/servers/mfc/alicat_driver.py:698`, `helao/deploy/hte/servers/mfc/alicat_driver.py:862`); set after the run, not set when `_pre_exec` aborts (concentration variant: device not connected or setup failure, `:847`) | `helao/deploy/hte/servers/mfc/alicat_driver.py:750` (pressure), `:914` (concentration) |
+| `total_scc` | `action_output` | float \| int | scalar | integrated gas dispensed (scc) over the run, integer `0` if no poll succeeded (`helao/deploy/hte/servers/mfc/alicat_driver.py:698`, `helao/deploy/hte/servers/mfc/alicat_driver.py:862`); set after the run, not set when `_pre_exec` aborts (concentration variant: device not connected or setup failure, `:847`) | `helao/deploy/hte/servers/mfc/alicat_driver.py:750` (pressure), `:914` (concentration) |
 
 ### `set_flowrate`, `set_gas`, `set_pressure`, `hold_valve_action`, `cancel_hold_valve_action`, `hold_valve_closed_action`, `cancel_maintain_concentration`, `cancel_maintain_pressure`, `cancel_acquire_flowrate`, `cancel_acquire_pressure` (actions)
 

@@ -88,7 +88,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `min_offset_ocv` | `action_params` | float | scalar | the clamped `result`, overwriting the inherited value so later actions inherit it | `helao/deploy/hte/servers/calc/calc_server.py:261` |
+| `min_offset_ocv` | `action_output` | float | scalar | the clamped `result`, the output-first resolver passes it to later actions in place of the inherited param | `helao/deploy/hte/servers/calc/calc_server.py:261` |
 
 ### `check_CP_Ewe_bounds` (action)
 
@@ -102,7 +102,7 @@ Action results (in `-act.json`):
 
 | key | in | type | structure | meaning | set at |
 |---|---|---|---|---|---|
-| `CP_Ewe_V__mean_final` | `action_params` | float \| bool | scalar | the clamped value, overwriting the inherited one | `helao/deploy/hte/servers/calc/calc_server.py:312` |
+| `CP_Ewe_V__mean_final` | `action_output` | float \| bool | scalar | the clamped value, taking precedence over the inherited param | `helao/deploy/hte/servers/calc/calc_server.py:312` |
 
 ## Notes
 

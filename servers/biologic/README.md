@@ -149,10 +149,10 @@ Action results (in `-act.json`), set at run time by the endpoint after `ctx.begi
 | `CA_AcqInterval__A` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:667` |
 | `OCV_AcqInterval__V` | `action_params` | float | scalar | fixed `10.0`; `run_CAOCV` only | `biologic_server.py:668` |
 | `Cycles` | `action_params` | int | scalar | `run_CV` only: the requested value minus 1 ("additional cycles") | `biologic_server.py:512` |
-| `t_s__mean_final` | `action_params` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the data buffer holds `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `biologic_server.py:325` |
-| `Ewe_V__mean_final` | `action_params` | float \| null | scalar | same for `Ewe_V` | `biologic_server.py:325` |
-| `I_A__mean_final` | `action_params` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `biologic_server.py:325` |
-| `has_bubble` | `action_params` | bool | scalar | `run_OCV` only: result of `bubble_detection` on the buffered data, with the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `biologic_server.py:340` |
+| `t_s__mean_final` | `action_output` | float \| null | scalar | `nanmean` of the last 5 `t_s` samples; present only when the data buffer holds `t_s`; NaN is written as `null` by the orjson record writer (`helao/helpers/meta_io.py:60`) | `biologic_server.py:325` |
+| `Ewe_V__mean_final` | `action_output` | float \| null | scalar | same for `Ewe_V` | `biologic_server.py:325` |
+| `I_A__mean_final` | `action_output` | float \| null | scalar | same for `I_A`; absent for `run_OCV` (no `I_A` column) | `biologic_server.py:325` |
+| `has_bubble` | `action_output` | bool | scalar | `run_OCV` only: result of `bubble_detection` on the buffered data, with the `RSD_threshold`, `simple_threshold`, `signal_change_threshold`, `amplitude_threshold` params (default `1` each) | `biologic_server.py:340` |
 
 (`*__mean_final` is written for every technique action, `run_plan` and `run_protocol` included, for whichever of `t_s`, `Ewe_V`, `I_A` the run produced; the table lists the three keys once.)
 

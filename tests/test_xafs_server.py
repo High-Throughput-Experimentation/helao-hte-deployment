@@ -164,6 +164,7 @@ class FakeSession:
             action_uuid="u1",
             action_name="normal_scan",
             action_params=params,
+            action_output={},
             action_output_dir="out",
             manual_action=False,
             nonblocking=False,
@@ -182,6 +183,9 @@ class FakeSession:
         self.written = []
         self.tracked = []
         self.runner = ExecutorRunner(self)
+
+    def set_output(self, **values):
+        self.action.action_output.update(values)
 
     def enqueue_data_nowait(self, datamodel):
         self.enqueued.append(datamodel)
@@ -274,7 +278,7 @@ async def test_post_exec_files(tmp_path):
     assert len(s.written) == 1
     ftype, _, text = s.written[0]
     assert ftype == "xafstrack__json_file" and json.loads(text) == {"k": 1}
-    ap = s.action.action_params
+    ap = s.action.action_output
     assert ap["exd_path"] == "/data/run/Zn_x_000_exd.csv.zip"
     assert ap["alpha_deg"] == 3.5
 
@@ -297,7 +301,7 @@ async def test_sidecar_error_state(tmp_path):
     await run(s, ex)
     assert s.action.error_code == ErrorCodes.cmd_error
     assert len(s.rows()) == 2  # rows kept
-    assert "boom" in s.action.action_params["sidecar_error"]
+    assert "boom" in s.action.action_output["sidecar_error"]
 
 
 @pytest.mark.asyncio
@@ -421,7 +425,7 @@ async def test_stop_before_first_point_no_fetch_not_error(tmp_path):
     await run(s, ex)
     assert s.action.error_code == ErrorCodes.none
     assert "fetch_mcas" not in d.names() and "fetch_artifacts" not in d.names()
-    assert s.action.action_params["scan_state"] == "stopped"
+    assert s.action.action_output["scan_state"] == "stopped"
     assert s.tracked == []
 
 
@@ -526,7 +530,7 @@ async def test_scan_index_out_of_range(tmp_path, idx):
 async def test_final_state_recorded(tmp_path):
     s, ex, _ = make(tmp_path)
     await run(s, ex)
-    ap = s.action.action_params
+    ap = s.action.action_output
     assert (ap["scan_state"], ap["n_points"], ap["n_expected"]) == ("done", 4, 4)
 
 
