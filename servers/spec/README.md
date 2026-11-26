@@ -71,7 +71,7 @@ Action results (in `-act.json`):
 
 ### `calibrate_intensity` (action)
 
-Queues one spectrum row for the initial acquisition (`helao/deploy/hte/servers/spec/spec_server.py:344`) and one per integration-time adjustment (`:373`); data file `OPT-*.jsonl` (+ `.meta.json`). It reads `specdict["peak_intensity"]` unguarded (`:345`, `:374`), so an error row raises `KeyError` out of the endpoint.
+Queues one spectrum row for the initial acquisition (`helao/deploy/hte/servers/spec/spec_server.py:341`) and one per integration-time adjustment (`:369`); data file `OPT-*.jsonl` (+ `.meta.json`). It reads `specdict["peak_intensity"]` unguarded (`:343`, `:373`), so an error row raises `KeyError` out of the endpoint.
 
 Action results (in `-act.json`):
 
@@ -115,4 +115,4 @@ Returns `app.driver.pxwl` to the caller (`helao/deploy/hte/servers/spec/spec_ser
 
 ## Notes
 
-- `calibrate_intensity` reads `specdict["peak_intensity"]` unguarded (`helao/deploy/hte/servers/spec/spec_server.py:345`, `:374`), but `acquire_spec_adv` returns `{"error_code": "not_available"}` without that key on a failed read (`helao/deploy/hte/servers/spec/spectral_products_driver.py:374`, `:379`, `:381`), so a failed read raises `KeyError`.
+- `calibrate_intensity` reads `specdict["peak_intensity"]` unguarded (`helao/deploy/hte/servers/spec/spec_server.py:343`, `:373`), but `acquire_spec_adv` returns `{"error_code": "not_available"}` without that key on a failed read (`helao/deploy/hte/servers/spec/spectral_products_driver.py:374`, `:379`, `:381`), so a failed read raises `KeyError`.

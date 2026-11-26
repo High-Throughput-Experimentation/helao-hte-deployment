@@ -160,6 +160,8 @@ async def _run_calibrate(peaks, int_time_ms):
             return Active()
 
     await endpoints["calibrate_intensity"](Ctx())
+    # the requested input is not overwritten by the adjusted integration time
+    assert params["int_time_ms"] == int_time_ms
     return app.int_times
 
 

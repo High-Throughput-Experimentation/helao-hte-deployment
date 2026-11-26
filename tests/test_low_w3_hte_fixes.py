@@ -357,7 +357,6 @@ def test_db_new_samples_with_no_reference_samples_does_not_raise(monkeypatch):
         action=SimpleNamespace(
             samples_in=[], samples_out=[], action_params={}, action_output={}
         ),
-        set_output=lambda **kw: None,
         append_sample=anoop,
         base=SimpleNamespace(
             dflt_file_conn_key=lambda: "00000000-0000-0000-0000-000000000001"
@@ -365,6 +364,7 @@ def test_db_new_samples_with_no_reference_samples_does_not_raise(monkeypatch):
         enqueue_data_nowait=lambda *a, **k: None,
         finish=finish,
     )
+    active.set_output = active.action.action_output.update
 
     async def begin(**kw):
         return active

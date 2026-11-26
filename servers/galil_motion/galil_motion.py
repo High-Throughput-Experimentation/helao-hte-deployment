@@ -479,8 +479,8 @@ async def galil_dyn_endpoints(app: ActionHost):
         ):
             """Return the plate XY position(s) for ``sample_no`` on ``plate_id``.
 
-            Stores the first returned ``platexy`` pair back on the action
-            params as ``_platexy`` and sets ``error_code`` to ``not_available``
+            Stores the first returned ``platexy`` pair in the action
+            output as ``_platexy`` and sets ``error_code`` to ``not_available``
             when the lookup yields no coordinates.
             """
             active = await ctx.begin()
@@ -504,7 +504,7 @@ async def galil_dyn_endpoints(app: ActionHost):
             """Return a pre-configured spectrometer reference position from world config.
 
             Looks up ``ref_position_name`` in :attr:`Base.world_cfg` and stores
-            it on the action params as ``_refxy``.
+            it in the action output as ``_refxy``.
             """
             active = await ctx.begin()
             refxy = app.world_cfg[active.action.action_params["ref_position_name"]]
@@ -524,7 +524,7 @@ async def galil_dyn_endpoints(app: ActionHost):
 
             Pulls the platemap for ``plate_id``, filters for rows whose
             ``code`` equals ``specref_code``, and picks the one closest to the
-            target sample. Stores ``_refno`` and ``_refxy`` on the action params.
+            target sample. Stores ``_refno`` and ``_refxy`` in the action output.
             """
             active = await ctx.begin()
             datadict = await app.driver.solid_get_platemap(

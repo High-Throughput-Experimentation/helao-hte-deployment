@@ -304,9 +304,9 @@ class BiologicExec(Executor):
     async def _post_exec(self) -> dict:
         """Clean up the channel and post-process the buffered data.
 
-        Stores the trailing mean of ``t_s``/``Ewe_V``/``I_A`` on the action
-        params and, for OCV runs, evaluates :func:`bubble_detection` and sets
-        ``has_bubble`` on the action params.
+        Stores the trailing mean of ``t_s``/``Ewe_V``/``I_A`` in the action
+        output and, for OCV runs, evaluates :func:`bubble_detection` and sets
+        ``has_bubble`` in the action output.
         """
         LOGGER.info("BiologicExec running post_exec.")
         resp = self.driver.cleanup(self.channel)

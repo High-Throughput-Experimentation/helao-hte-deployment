@@ -547,7 +547,7 @@ def makeApp(server_key) -> ActionHost:
         """Unload every custom position with phase-specific keep/destroy flags.
 
         Also stashes the first unloaded solid and the first unloaded liquid
-        (and that liquid's volume) into ``action_params`` for downstream
+        (and that liquid's volume) into the action output for downstream
         consumers.
 
         Args:
@@ -901,7 +901,7 @@ def makeApp(server_key) -> ActionHost:
     # note on archive_tray_new_position above.
     @app.action(path=f"/{server_key}/get_loaded_positions")
     async def get_positions(ctx: ActionContext):
-        """Snapshot the archive's loaded positions into ``action_params``.
+        """Snapshot the archive's loaded positions into the action output.
 
         Populates ``_positions`` (full archive dict), ``_tray_pos`` (loaded
         tray vials keyed by ``"tray,slot,vial"``), and ``_custom_pos``

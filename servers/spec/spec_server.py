@@ -316,7 +316,7 @@ async def sm303_dyn_endpoints(app: ActionHost):
         ``[target_peak_min, target_peak_max]`` and re-acquires until the peak
         intensity is in range, ``max_iters`` is reached, or the integration
         time saturates at ``max_integration_time``. The final integration
-        time and peak intensity are written back to ``action_params``.
+        time and peak intensity are written to the action output.
 
         Args:
             action: Action wrapper supplied by the orchestrator.

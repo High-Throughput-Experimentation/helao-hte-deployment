@@ -376,7 +376,7 @@ class GamryExec(Executor):
         """Compute summary statistics and run OCV bubble detection.
 
         Calls ``driver.cleanup``, stores the mean of the final five samples
-        of ``t_s``, ``Ewe_V``, and ``I_A`` back into ``action_params`` under
+        of ``t_s``, ``Ewe_V``, and ``I_A`` into the action output under
         ``<key>__mean_final``, and, for ``run_OCV`` actions, calls
         :func:`bubble_detection` and stores the boolean result under
         ``has_bubble``.

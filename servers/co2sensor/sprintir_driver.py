@@ -300,7 +300,7 @@ class CO2MonExec(Executor):
         }
 
     async def _post_exec(self) -> dict:
-        """Write the mean CO2 ppm back to the action params at the end of the run."""
+        """Write the mean CO2 ppm to the action output at the end of the run."""
         if self.num_acqs > 0:
             self.active.set_output(mean_co2_ppm=self.total / self.num_acqs)
         return {"data": {}, "error": ErrorCodes.none}

@@ -219,7 +219,7 @@ def makeApp(server_key) -> ActionHost:
         prior ``run_OCV`` via the orchestrator's global params. Missing values
         (``False``) are replaced with a high fallback so the comparison still
         produces a usable result. The output is clamped to
-        ``[lower_limit, upper_limit]`` and stored back on the action params as
+        ``[lower_limit, upper_limit]`` and stored in the action output as
         ``min_offset_ocv``.
         """
 

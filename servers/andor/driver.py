@@ -72,7 +72,7 @@ class AndorDriver(HelaoDriver):
     # wl_arr is still None, i.e. connect() never succeeded.
     wl_arr: Optional[np.ndarray]
     #: False when `wl_arr` is the bare channel index rather than a measured
-    #: axis. `acquire` copies it into the action params as `calibrated`, which
+    #: axis. `acquire` copies it into the action output as `calibrated`, which
     #: is the only thing distinguishing an uncalibrated run from a real one in
     #: the recorded data.
     wl_calibrated: bool
@@ -482,7 +482,7 @@ class AndorDriver(HelaoDriver):
         calibration, and ``acquire`` runs anyway rather than refusing: a
         station should be able to take data before it has been calibrated.
         What makes that safe is that the substitution is *recorded* --
-        ``acquire`` writes ``calibrated`` into the action params, so a run
+        ``acquire`` writes ``calibrated`` into the action output, so a run
         taken on the index is distinguishable from a real one forever after.
         Without that marker this would be the silent-wrong-axis failure the
         rest of this module exists to prevent.
