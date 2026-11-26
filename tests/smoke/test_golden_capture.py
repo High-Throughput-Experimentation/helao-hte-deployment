@@ -86,14 +86,14 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
         assert manifest.masked_hlo_columns == OCV_MASKED_HLO_COLUMNS
         assert manifest.hlo_row_count_tolerance == OCV_HLO_ROW_COUNT_TOLERANCE
         assert set(OCV_HLO_COLUMNS) == set(manifest.masked_hlo_columns["*OCV*.hlo"])
-        # The data-derived -act.yml action_params are masked via masked_meta_keys
+        # The data-derived -act.yml action_output are masked via masked_meta_keys
         # (manifest-driven meta-value mask) so parity is a clean PASS when only
         # those values differ; assert the manifest carries the mask + round-trips.
         assert manifest.masked_meta_keys == OCV_ACT_YML_MASKED_META_KEYS
         assert manifest.masked_meta_keys_for("run_OCV__0-act.yml") == [
-            "action_params.t_s__mean_final",
-            "action_params.Ewe_V__mean_final",
-            "action_params.has_bubble",
+            "action_output.t_s__mean_final",
+            "action_output.Ewe_V__mean_final",
+            "action_output.has_bubble",
         ]
 
 

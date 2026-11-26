@@ -129,13 +129,13 @@ OCV_MASKED_HLO_COLUMNS = {
 OCV_HLO_ROW_COUNT_TOLERANCE = {"*OCV*.hlo": 2, "*OCV*.hlo.json*": 2}
 
 # BiologicExec._post_exec (biologic_server.py ~269-303) writes data-derived
-# summary values into the run's -act.yml action_params: for each of t_s / Ewe_V
+# summary values into the run's -act.yml action_output: for each of t_s / Ewe_V
 # that is present in the OCV data buffer it stores "<k>__mean_final" (the mean of
 # the trailing 5 samples), and for run_OCV it stores "has_bubble" (the
 # bubble_detection verdict over the whole OCV trace). All three derive from the
 # exact same live/unmasked measurement and are NOT covered by masked_hlo_columns
 # (which masks .hlo files only) nor by harness.yaml_pass.normalize_meta's §5.5
-# volatile lists (they are plain float/bool leaves under action_params, not
+# volatile lists (they are plain float/bool leaves under action_output, not
 # uuids/timestamps/host-identity). Without masking, harness.parity's diff_meta
 # would report a diff on these keys between any two independent captures, even
 # against the identical dummy cell. (I_A__mean_final is NOT emitted for OCV: the
@@ -150,9 +150,9 @@ OCV_HLO_ROW_COUNT_TOLERANCE = {"*OCV*.hlo": 2, "*OCV*.hlo.json*": 2}
 # mirrors gamry's run_OCV masking (golden_capture.py) exactly.
 OCV_ACT_YML_MASKED_META_KEYS = {
     "*-act.yml": [
-        "action_params.t_s__mean_final",
-        "action_params.Ewe_V__mean_final",
-        "action_params.has_bubble",
+        "action_output.t_s__mean_final",
+        "action_output.Ewe_V__mean_final",
+        "action_output.has_bubble",
     ],
 }
 
@@ -279,7 +279,7 @@ def snapshot(
         "monitor, imposes no potential/current). The .hlo data columns (t_s, "
         "Ewe_V, and the _<Field> CurrentValues segment columns) are live "
         "measurements masked via masked_hlo_columns; 'channel' is deterministic "
-        "and unmasked. -act.yml action_params t_s__mean_final, Ewe_V__mean_final, "
+        "and unmasked. -act.yml action_output t_s__mean_final, Ewe_V__mean_final, "
         "has_bubble are data-derived from the live measurement and are masked via "
         "masked_meta_keys so parity is a clean PASS when only they differ."
     )

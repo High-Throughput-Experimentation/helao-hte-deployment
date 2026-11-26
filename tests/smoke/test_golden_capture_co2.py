@@ -3,7 +3,7 @@
 Exercises only:
   - the PARITY_TOPS snapshot copy + provenance.yml round-trip (``snapshot``)
   - the masked-column set (co2_ppm / epoch_s are masked) and the masked
-    meta-key set (action_params.mean_co2_ppm is masked)
+    meta-key set (action_output.mean_co2_ppm is masked)
 
 The real-hardware POST to ``/CO2SENSOR/acquire_co2`` is NOT exercised here --
 that only runs at-station with the SprintIR sensor attached on COM12 (see
@@ -50,9 +50,9 @@ def test_poll_paced_row_count_tolerance_is_nonzero():
 
 def test_data_derived_mean_is_masked_in_act_yml():
     # CO2MonExec._post_exec writes mean_co2_ppm (data-derived) back into
-    # action_params -- it MUST be masked or parity false-fails between captures.
+    # action_output -- it MUST be masked or parity false-fails between captures.
     keys = CO2_ACT_YML_MASKED_META_KEYS["*-act.yml"]
-    assert "action_params.mean_co2_ppm" in keys
+    assert "action_output.mean_co2_ppm" in keys
 
 
 def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():

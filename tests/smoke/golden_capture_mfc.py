@@ -149,7 +149,7 @@ MFC_HLO_ROW_COUNT_TOLERANCE = {"*.hlo": 2, "*.hlo.json*": 2}
 # action_params). Mask its VALUE via masked_meta_keys so -act.yml parity is a
 # clean PASS when only it differs; presence + every other key still diff normally.
 MFC_ACT_YML_MASKED_META_KEYS = {
-    "*-act.yml": ["action_params.total_scc"],
+    "*-act.yml": ["action_output.total_scc"],
 }
 
 
@@ -245,7 +245,7 @@ def snapshot(
         "columns epoch_s/acquire_time/pressure/temperature/volumetric_flow/"
         "mass_flow/setpoint (+ total flow) are live device readings, masked via "
         "masked_hlo_columns; gas/control_point are config-deterministic and "
-        "compared unmasked. action_params.total_scc (integrated live flow) is "
+        "compared unmasked. action_output.total_scc (integrated live flow) is "
         "masked via masked_meta_keys. Row counts are poll-paced -> compared "
         "within hlo_row_count_tolerance."
     )

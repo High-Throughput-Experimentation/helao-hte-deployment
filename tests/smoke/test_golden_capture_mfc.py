@@ -4,7 +4,7 @@ Exercises only:
   - the PARITY_TOPS snapshot copy + provenance.yml round-trip (``snapshot``)
   - the masked-column set (the live sensor/clock columns are masked; the
     config-deterministic categorical columns gas/control_point are NOT)
-  - the masked_meta_keys lever (action_params.total_scc is masked)
+  - the masked_meta_keys lever (action_output.total_scc is masked)
 
 The real-hardware POST to ``/MFC/acquire_flowrate`` is NOT exercised here --
 that only runs at-station with the Alicat MFC attached on COM9 (see
@@ -53,10 +53,10 @@ def test_masked_columns_cover_live_telemetry_but_not_deterministic_categoricals(
 
 
 def test_masked_meta_keys_mask_total_scc():
-    # MfcExec._post_exec writes the data-derived action_params.total_scc back
+    # MfcExec._post_exec writes the data-derived action_output.total_scc back
     # into -act.yml; it must be masked (the meta-side analogue of a live column).
     keys = MFC_ACT_YML_MASKED_META_KEYS["*-act.yml"]
-    assert "action_params.total_scc" in keys
+    assert "action_output.total_scc" in keys
 
 
 def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():

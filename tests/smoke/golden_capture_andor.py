@@ -152,7 +152,7 @@ ANDOR_HLO_ROW_COUNT_TOLERANCE = {"*.hlo": 20, "*.hlo.json*": 20}
 # a no-op on any yml lacking it.
 ANDOR_ACT_YML_MASKED_META_KEYS = {
     "*-act.yml": [
-        "action_params.action_path",
+        "action_output.action_path",
     ],
 }
 

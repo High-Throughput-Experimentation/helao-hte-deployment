@@ -136,9 +136,9 @@ OCV_CONTENT_MASKED_FILES = {"*.csv": "line-count"}
 # GM-OCV capture set); the keys are no-ops on any yml lacking them.
 OCV_ACT_YML_MASKED_META_KEYS = {
     "*-act.yml": [
-        "action_params.t_s__mean_final",
-        "action_params.Ewe_V__mean_final",
-        "action_params.has_bubble",
+        "action_output.t_s__mean_final",
+        "action_output.Ewe_V__mean_final",
+        "action_output.has_bubble",
     ],
 }
 

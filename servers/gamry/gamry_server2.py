@@ -1043,7 +1043,7 @@ async def gamry_dyn_endpoints(app: ActionHost):
 
         The post-exec hook runs :func:`bubble_detection` over the recorded
         Ewe trace using the four ``*_threshold`` parameters and stores the
-        boolean result under ``action_params['has_bubble']``.
+        boolean result under ``action_output['has_bubble']``.
 
         Args:
             action: Action wrapper supplied by the orchestrator.

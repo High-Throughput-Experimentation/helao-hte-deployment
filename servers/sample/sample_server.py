@@ -99,7 +99,7 @@ def makeApp(server_key) -> ActionHost:
 
         The retrieved sample is appended to ``samples_in`` and a data row
         with the sample dict and error code is enqueued; the sample dict is
-        also mirrored into ``action_params['_fast_samples_in']``.
+        also mirrored into ``action_output['_fast_samples_in']``.
 
         Args:
             action: Action wrapper supplied by the orchestrator.
@@ -613,7 +613,7 @@ def makeApp(server_key) -> ActionHost:
 
         Returns:
             The finished action dictionary; the sample dict is mirrored into
-            ``action_params['_fast_samples_in']``.
+            ``action_output['_fast_samples_in']``.
         """
         active = await ctx.begin(
             action_abbr="query_sample",
@@ -825,7 +825,7 @@ def makeApp(server_key) -> ActionHost:
 
         Returns:
             The finished action dictionary; the first created sample is
-            mirrored into ``action_params['_fast_sample_out']``.
+            mirrored into ``action_output['_fast_sample_out']``.
         """
         active = await ctx.begin()
         samples = await app.driver.create_samples(

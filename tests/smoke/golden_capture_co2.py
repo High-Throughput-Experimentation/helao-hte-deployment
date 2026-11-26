@@ -33,12 +33,12 @@ allowed (mirrors gamry ``run_OCV``, not spec's exact single-shot count).
 
 Unlike spec's ``acquire_spec`` (and like gamry's ``run_OCV``), the
 ``acquire_co2`` executor writes ONE data-derived summary value back into
-``action_params``: ``CO2MonExec._post_exec`` stashes ``mean_co2_ppm`` (mean of
-the masked live samples) into ``action_params`` at the end of the run. That
+``action_output``: ``CO2MonExec._post_exec`` stashes ``mean_co2_ppm`` (mean of
+the masked live samples) into ``action_output`` at the end of the run. That
 value derives from the same live measurement and is NOT covered by
 ``masked_hlo_columns`` (which masks .hlo files only) nor by
 ``normalize_meta``'s §5.5 volatile lists (it is a plain float leaf under
-``action_params``), so it is masked via ``masked_meta_keys`` -- otherwise
+``action_output``), so it is masked via ``masked_meta_keys`` -- otherwise
 parity would report a diff on it between any two independent captures.
 
 Standalone counterpart to ``harness.capture.snapshot_capture`` for the
@@ -110,16 +110,16 @@ CO2_MASKED_HLO_COLUMNS = {
 # spec's exact single-shot count).
 CO2_HLO_ROW_COUNT_TOLERANCE = {"*.hlo": 2, "*.hlo.json*": 2}
 # CO2MonExec._post_exec writes the data-derived summary value mean_co2_ppm back
-# into the run's -act.yml action_params. It derives from the same live/unmasked
+# into the run's -act.yml action_output. It derives from the same live/unmasked
 # measurement and is NOT covered by masked_hlo_columns (hlo files only) nor by
-# normalize_meta's §5.5 volatile lists (a plain float leaf under action_params).
+# normalize_meta's §5.5 volatile lists (a plain float leaf under action_output).
 # Masked via masked_meta_keys (the meta-side analogue of masked_hlo_columns):
 # parity neutralizes its VALUE on both sides while keeping the key present, so
 # the runtime diff is a CLEAN PASS when only it differs and a real regression in
 # any other key/file still surfaces. The key is a no-op on any yml lacking it.
 CO2_ACT_YML_MASKED_META_KEYS = {
     "*-act.yml": [
-        "action_params.mean_co2_ppm",
+        "action_output.mean_co2_ppm",
     ],
 }
 
@@ -207,7 +207,7 @@ def snapshot(
         ".hlo body columns co2_ppm/epoch_s are live sensor data and are masked "
         "via masked_hlo_columns; the row count is compared within "
         "hlo_row_count_tolerance (the executor is poll-paced). The data-derived "
-        "action_params key mean_co2_ppm is masked via masked_meta_keys, so "
+        "action_output key mean_co2_ppm is masked via masked_meta_keys, so "
         "parity is a clean PASS when only these differ."
     )
     if notes:

@@ -101,7 +101,7 @@ def makeApp(server_key) -> ActionHost:
         """Read and record the driver's tracked syringe volume.
 
         Enqueues a data row with the current ``present_volume_ul`` and stores
-        the value back into ``action_params['_present_volume_ul']``.
+        the value back into ``action_output['_present_volume_ul']``.
 
         Args:
             action: Action wrapper supplied by the orchestrator.

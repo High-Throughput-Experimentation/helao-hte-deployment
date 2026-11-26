@@ -4,7 +4,7 @@ Exercises only:
   - the PARITY_TOPS snapshot copy + provenance.yml round-trip (``snapshot``)
   - the masked-column set (tick_time / elapsed_time_s / ch_NNNN are masked; the
     deterministic header `wl` is NOT)
-  - the data-derived meta-key mask (action_params.action_path)
+  - the data-derived meta-key mask (action_output.action_path)
 
 The real-hardware POST to ``/ANDOR/acquire`` is NOT exercised here -- that only
 runs at-station with the Andor camera + spectrograph attached (see
@@ -48,12 +48,12 @@ def test_masked_columns_cover_all_live_channels_but_not_header_wl():
 
 
 def test_action_path_is_masked_via_meta_keys():
-    # AndorAcquire writes the per-run action_output_dir into action_params as
+    # AndorAcquire writes the per-run action_output_dir into action_output as
     # action_path; normalize_meta does not §5.1-normalize a non-_output_dir key,
     # so it must be value-masked to keep parity clean.
     assert ANDOR_ACT_YML_MASKED_META_KEYS != {}
     keys = ANDOR_ACT_YML_MASKED_META_KEYS["*-act.yml"]
-    assert "action_params.action_path" in keys
+    assert "action_output.action_path" in keys
 
 
 def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
@@ -90,7 +90,7 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
             "helao/deploy/hte/tests/smoke/configs/andorgold.yml"
         )
         assert manifest.masked_hlo_columns == ANDOR_MASKED_HLO_COLUMNS
-        # the per-run action_params.action_path is masked via masked_meta_keys
+        # the per-run action_output.action_path is masked via masked_meta_keys
         assert manifest.masked_meta_keys == ANDOR_ACT_YML_MASKED_META_KEYS
         # poll-paced stream -> a non-zero row-count tolerance is recorded
         assert manifest.hlo_row_count_tolerance.get("*.hlo", 0) > 0

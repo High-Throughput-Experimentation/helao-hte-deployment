@@ -79,15 +79,15 @@ def test_snapshot_copies_parity_tops_and_writes_roundtrippable_provenance():
 
 
 def test_masked_meta_keys_cover_the_ocv_post_exec_summary_leaves():
-    """The data-derived -act.yml action_params (t_s/Ewe_V trailing means +
+    """The data-derived -act.yml action_output (t_s/Ewe_V trailing means +
     has_bubble) written by BiologicExec._post_exec must be masked so two
     independent real captures diff clean on those values only. I_A__mean_final
     is intentionally NOT masked: OCV emits no I_A column, so _post_exec never
     writes it."""
     keys = OCV_ACT_YML_MASKED_META_KEYS["*-act.yml"]
-    assert "action_params.t_s__mean_final" in keys
-    assert "action_params.Ewe_V__mean_final" in keys
-    assert "action_params.has_bubble" in keys
+    assert "action_output.t_s__mean_final" in keys
+    assert "action_output.Ewe_V__mean_final" in keys
+    assert "action_output.has_bubble" in keys
     assert "action_params.I_A__mean_final" not in keys
 
 
