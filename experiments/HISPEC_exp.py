@@ -16,10 +16,8 @@ EXPERIMENTS = [
     "HISPEC_sub_CP",
     # "HISPEC_sub_CP_led",
     # "HISPEC_sub_CV_DOtrigger",
-    # "HISPEC_sub_disengage",
     "HISPEC_sub_disengage",
     "HISPEC_sub_engage",
-    # "HISPEC_sub_interrupt",
     "HISPEC_sub_load_solid",
     "HISPEC_sub_OCV",
     # "HISPEC_sub_OCV_led",
@@ -31,6 +29,7 @@ EXPERIMENTS = [
     "HISPEC_sub_unloadall_customs",
 ]
 
+from helao.deploy.hte.experiments import ECHE_exp, ECHEUVIS_exp
 from helao.helpers import helao_logging as logging
 
 if logging.LOGGER is None:
@@ -111,25 +110,8 @@ def HISPEC_sub_stop_flow() -> list:
 
 @experiment(version=1)
 def HISPEC_sub_unloadall_customs() -> list:
-    """Unload every sample from every custom position via the PAL server.
-
-    Returns:
-        List containing a single PAL ``archive_custom_unloadall`` action
-        with ``destroy_liquid=True``.
-    """
-
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-
-    apm.add(
-        SAMPLE_server,
-        "archive_custom_unloadall",
-        {
-            "destroy_liquid": True,
-        },
-        start_condition=ActionStartCondition.wait_for_all,  # orch is waiting for all action_dq to finish
-    )
-
-    return apm.planned_actions  # returns complete action list to orch
+    """Alias of :func:`ECHE_sub_unloadall_customs`, published so queued runs resolve."""
+    return ECHE_exp.ECHE_sub_unloadall_customs(**locals())
 
 
 @experiment(version=2)
@@ -139,39 +121,8 @@ def HISPEC_sub_add_liquid(
     solution_bubble_gas: str = "O2",
     liquid_volume_ml: float = 1.0,
 ) -> list:
-    """Inject a liquid aliquot from a reservoir sample into a custom position.
-
-    Args:
-        solid_custom_position: Target custom position holding the solid sample.
-        reservoir_liquid_sample_no: Liquid sample number in the local PAL db.
-        solution_bubble_gas: Reservoir headspace gas label.
-        liquid_volume_ml: Volume of liquid to add in millilitres.
-
-    Returns:
-        List with a single PAL ``archive_custom_add_liquid`` action.
-    """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-
-    apm.add(
-        SAMPLE_server,
-        "archive_custom_add_liquid",
-        {
-            "custom": solid_custom_position,
-            "source_liquid_in": LiquidSample.model_validate(
-                {
-                    "sample_no": reservoir_liquid_sample_no,
-                    "machine_name": gethostname().lower(),
-                }
-            ).model_dump(),
-            "volume_ml": liquid_volume_ml,
-            "reservoir_bubbler_gas": solution_bubble_gas,
-            "combine_liquids": True,
-            "dilute_liquids": True,
-        },
-        start_condition=ActionStartCondition.wait_for_all,  # orch is waiting for all action_dq to finish
-    )
-
-    return apm.planned_actions  # returns complete action list to orch
+    """Alias of :func:`ECHE_sub_add_liquid`, published so queued runs resolve."""
+    return ECHE_exp.ECHE_sub_add_liquid(**locals())
 
 
 @experiment(version=1)
@@ -180,36 +131,8 @@ def HISPEC_sub_load_solid(
     solid_plate_id: int = 4534,
     solid_sample_no: int = 1,
 ) -> list:
-    """Load a solid sample (plate_id/sample_no) into a custom PAL position.
-
-    Args:
-        solid_custom_position: Target custom position name.
-        solid_plate_id: Plate id of the solid sample.
-        solid_sample_no: Sample number on the plate.
-
-    Returns:
-        List with a single PAL ``archive_custom_load`` action.
-    """
-
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-
-    apm.add(
-        SAMPLE_server,
-        "archive_custom_load",
-        {
-            "custom": solid_custom_position,
-            "load_sample_in": SolidSample.model_validate(
-                {
-                    "sample_no": solid_sample_no,
-                    "plate_id": solid_plate_id,
-                    "machine_name": "legacy",
-                }
-            ).model_dump(),
-        },
-        start_condition=ActionStartCondition.wait_for_all,  # orch is waiting for all action_dq to finish
-    )
-
-    return apm.planned_actions  # returns complete action list to orch
+    """Alias of :func:`ECHE_sub_load_solid`, published so queued runs resolve."""
+    return ECHE_exp.ECHE_sub_load_solid(**locals())
 
 
 @experiment(version=1)
@@ -222,83 +145,8 @@ def HISPEC_sub_engage(
     max_integration_time: int = 150,
     # illumination_source: str = "doric_wled",
 ) -> list:
-    """Engage the cell: raise the K-motor stage, prime electrolyte flow, then idle.
-
-    Drives the KMOTOR stage to ``z_height``, closes vent valves, energises the
-    selected WE/CE flow and pump digital outputs to pull electrolyte into the
-    chambers, waits ``fill_wait`` seconds, then turns off the high-speed pumps
-    while keeping the WE flow on when requested.
-
-    Args:
-        flow_we: If True, enable working-electrode flow during the fill step.
-        flow_ce: If True, enable counter-electrode pump during the fill step.
-        z_height: Absolute Z position in millimetres for the K-motor.
-        fill_wait: Seconds to dwell while electrolyte is pulled in.
-        max_integration_time: Detector integration ceiling (currently unused).
-
-    Returns:
-        List of motion/IO/wait actions performing the engage sequence.
-    """
-
-    # raise z (engage)
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-
-    apm.add(KMOTOR_server, "kmove", {"move_mode": "absolute", "value_mm": z_height})
-    # close vent valves
-    for item in ("we_vent", "ce_vent"):
-        apm.add(
-            IO_server,
-            "set_digital_out",
-            {"do_item": item, "on": False},
-            ActionStartCondition.no_wait,
-        )
-    # pull electrolyte through WE and CE chambers
-    for item, flow_flag in (
-        ("we_flow", flow_we),
-        ("we_pump", flow_we),
-        ("ce_pump", flow_ce),
-    ):
-        apm.add(
-            IO_server,
-            "set_digital_out",
-            {"do_item": item, "on": flow_flag},
-            ActionStartCondition.no_wait,
-        )
-    # wait for specified time (seconds)
-    apm.add(ORCH_server, "wait", {"waittime": fill_wait})
-    # stop high speed flow, but keep low speed flow if flow_we is True
-    for i, (item, flow_flag) in enumerate(
-        [("we_flow", flow_we), ("we_pump", False), ("ce_pump", False)]
-    ):
-        apm.add(
-            IO_server,
-            "set_digital_out",
-            {"do_item": item, "on": flow_flag},
-            (
-                ActionStartCondition.no_wait
-                if i > 0
-                else ActionStartCondition.wait_for_all
-            ),
-        )
-
-    return apm.planned_actions  # returns complete action list to orch
-
-
-@experiment(version=1)
-def HISPEC_sub_interrupt(
-    reason: str = "wait",
-) -> list:
-    """Pause the orchestrator with a human-readable reason.
-
-    Args:
-        reason: Message displayed by the operator UI when the interrupt fires.
-
-    Returns:
-        List with a single ORCH ``interrupt`` action.
-    """
-    apm = ActionPlanMaker()
-    apm.add(ORCH_server, "interrupt", {"reason": reason})
-    return apm.planned_actions
+    """Alias of :func:`ECHEUVIS_sub_engage`, published so queued runs resolve."""
+    return ECHEUVIS_exp.ECHEUVIS_sub_engage(**locals())
 
 
 @experiment(version=1)
@@ -308,48 +156,8 @@ def HISPEC_sub_disengage(
     z_height: float = 0,
     vent_wait: float = 10.0,
 ) -> list:
-    """Disengage the cell: optionally vent/clear chambers and lower the stage.
-
-    Opens vent valves and runs pumps to clear the WE/CE chambers as requested,
-    waits ``vent_wait`` seconds, lowers the K-motor stage to ``z_height``, then
-    closes every WE/CE vent and pump.
-
-    Args:
-        clear_we: If True, energise WE vent/pump during the clear step.
-        clear_ce: If True, energise CE vent/pump during the clear step.
-        z_height: Absolute Z position in millimetres for the K-motor.
-        vent_wait: Seconds to dwell while venting/draining.
-
-    Returns:
-        List of IO, wait, and motion actions performing the disengage.
-    """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-    for clear_flag, items in (
-        (clear_ce, ("ce_vent", "ce_pump")),
-        (clear_we, ("we_vent", "we_pump")),
-    ):
-        for item in items:
-            apm.add(
-                IO_server,
-                "set_digital_out",
-                {"do_item": item, "on": clear_flag},
-                ActionStartCondition.no_wait,
-            )
-    apm.add(ORCH_server, "wait", {"waittime": vent_wait})
-    # lower z (disengage)
-    apm.add(KMOTOR_server, "kmove", {"move_mode": "absolute", "value_mm": z_height})
-    for i, item in enumerate(["we_vent", "we_pump", "ce_vent", "ce_pump"]):
-        apm.add(
-            IO_server,
-            "set_digital_out",
-            {"do_item": item, "on": False},
-            (
-                ActionStartCondition.no_wait
-                if i > 0
-                else ActionStartCondition.wait_for_all
-            ),
-        )
-    return apm.planned_actions  # returns complete action list to orch
+    """Alias of :func:`ECHEUVIS_sub_disengage`, published so queued runs resolve."""
+    return ECHEUVIS_exp.ECHEUVIS_sub_disengage(**locals())
 
 
 @experiment(version=2)
@@ -361,113 +169,14 @@ def HISPEC_sub_startup(
     solution_bubble_gas: str = "N2",
     liquid_volume_ml: float = 1.0,
 ) -> list:
-    """Start-up sequence: unload existing samples, load solid+liquid, move to XY.
-
-    Chains :func:`HISPEC_sub_unloadall_customs`, :func:`HISPEC_sub_load_solid`,
-    and :func:`HISPEC_sub_add_liquid`, then queries the plate XY for the chosen
-    sample and moves the motor stage to that position.
-
-    Args:
-        solid_custom_position: Custom position used for the working electrode.
-        solid_plate_id: Plate id of the solid sample.
-        solid_sample_no: Sample number on the plate.
-        reservoir_liquid_sample_no: Liquid sample number for cell filling.
-        solution_bubble_gas: Reservoir headspace gas label.
-        liquid_volume_ml: Volume of liquid to add in millilitres.
-
-    Returns:
-        List of planned PAL, MOTOR and motion actions composing the start-up.
-    """
-
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-
-    # unload all samples from custom positions
-    apm.add_actions(HISPEC_sub_unloadall_customs())
-
-    # load new requested solid samples
-    apm.add_actions(
-        HISPEC_sub_load_solid(
-            solid_custom_position=solid_custom_position,
-            solid_plate_id=solid_plate_id,
-            solid_sample_no=solid_sample_no,
-        )
-    )
-
-    # add liquid to solid
-    apm.add_actions(
-        HISPEC_sub_add_liquid(
-            solid_custom_position=solid_custom_position,
-            reservoir_liquid_sample_no=reservoir_liquid_sample_no,
-            solution_bubble_gas=solution_bubble_gas,
-            liquid_volume_ml=liquid_volume_ml,
-        )
-    )
-
-    # get sample plate coordinates
-    apm.add(
-        MOTOR_server,
-        "solid_get_samples_xy",
-        {
-            "plate_id": solid_plate_id,
-            "sample_no": solid_sample_no,
-        },
-        to_global_params=[
-            "_platexy"
-        ],  # save new liquid_sample_no of eche cell to globals
-        start_condition=ActionStartCondition.wait_for_all,
-    )
-
-    # move to position
-    apm.add(
-        MOTOR_server,
-        "move",
-        {
-            # "d_mm": [x_mm, y_mm],
-            "axis": ["x", "y"],
-            "mode": MoveModes.absolute,
-            "transformation": TransformationModes.platexy,
-        },
-        from_global_act_params={"_platexy": "d_mm"},
-        start_condition=ActionStartCondition.wait_for_all,
-    )
-
-    return apm.planned_actions  # returns complete action list to orch
+    """Alias of :func:`ECHE_sub_startup`, published so queued runs resolve."""
+    return ECHE_exp.ECHE_sub_startup(**locals())
 
 
 @experiment(version=1)
 def HISPEC_sub_shutdown() -> list:
-    """Shutdown sequence: unload every custom position and destroy liquid.
-
-    Returns:
-        List containing a single PAL ``archive_custom_unloadall`` action.
-    """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-    apm.add(SAMPLE_server, "archive_custom_unloadall", {"destroy_liquid": True})
-    return apm.planned_actions  # returns complete action list to orch
-
-
-@experiment(version=1)
-def HISPEC_sub_check_CP_Ewe_bounds(
-    Ewe_V__mean_final: float = 0.3,
-) -> list:
-    """Bound the final CP Ewe value through the CALC server.
-
-    Args:
-        Ewe_V__mean_final: Candidate final mean Ewe to bound.
-
-    Returns:
-        List with a single CALC ``check_CP_Ewe_bounds`` action that exports the
-        limited value to the orch global parameter ``limited_Ewe_V__mean_final``.
-    """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-    apm.add(
-        CALC_server,
-        "check_CP_Ewe_bounds",
-        {"Ewe_V__mean_final": Ewe_V__mean_final},
-        to_global_params={"limited_Ewe_V__mean_final": "Ewe_V__mean_final"},
-    )
-
-    return apm.planned_actions  # returns complete action list to orch
+    """Alias of :func:`ECHE_sub_shutdown`, published so queued runs resolve."""
+    return ECHE_exp.ECHE_sub_shutdown(**locals())
 
 
 @experiment(version=1)

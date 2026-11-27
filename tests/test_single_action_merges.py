@@ -239,7 +239,7 @@ def test_tier3_pairs_are_folded(mod, first, second):
     "mod,seqs,shutdown",
     [
         (ECHEUVIS_seq, ["ECHEUVIS_multiCA_led"], "ECHEUVIS_sub_shutdown"),
-        (HISPEC_seq, ["HISPEC_CV", "HISPEC_EIS_only"], "HISPEC_sub_shutdown"),
+        (HISPEC_seq, ["HISPEC_CV", "HISPEC_EIS_only"], "ECHE_sub_shutdown"),
     ],
 )
 def test_no_unloadall_before_shutdown(mod, seqs, shutdown):

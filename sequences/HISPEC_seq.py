@@ -11,7 +11,7 @@ from helao.helpers.lib_decorators import sequence
 from helao.helpers.premodels import ExperimentPlanMaker
 
 
-@sequence(version=4)
+@sequence(version=5)
 def HISPEC_CV(
     plate_id: int = 1,  # @Dan - what is this? -- plate_id is the ID of the material library in our database. it's first assigned to a substrate after which we can use this ID to track the library's deposition, annealing, and experiment history
     plate_sample_no_list: list = [
@@ -119,9 +119,9 @@ def HISPEC_CV(
         list: Ordered list of planned ``Experiment`` objects.
     """
     epm = ExperimentPlanMaker()
-    epm.add("HISPEC_sub_unloadall_customs", {})
+    epm.add("ECHE_sub_unloadall_customs", {})
     epm.add(
-        "HISPEC_sub_disengage",
+        "ECHEUVIS_sub_disengage",
         {
             "clear_we": True,
             "clear_ce": False,
@@ -133,7 +133,7 @@ def HISPEC_CV(
     for i, plate_sample in enumerate(plate_sample_no_list):
         if i > 0 and use_z_motor:
             epm.add(
-                "HISPEC_sub_disengage",
+                "ECHEUVIS_sub_disengage",
                 {
                     "clear_we": True,
                     "clear_ce": False,
@@ -143,7 +143,7 @@ def HISPEC_CV(
             )
 
         epm.add(
-            "HISPEC_sub_startup",
+            "ECHE_sub_startup",
             {
                 "solid_custom_position": "cell1_we",
                 "solid_plate_id": plate_id,
@@ -156,7 +156,7 @@ def HISPEC_CV(
 
         if use_z_motor:
             epm.add(
-                "HISPEC_sub_engage",
+                "ECHEUVIS_sub_engage",
                 {
                     "flow_we": True,
                     "flow_ce": True,
@@ -278,12 +278,12 @@ def HISPEC_CV(
     #         "skip_nspec": calc_skip_nspec,
     #     },
     # )
-    epm.add("HISPEC_sub_shutdown", {})
+    epm.add("ECHE_sub_shutdown", {})
 
     return epm.planned_experiments  # returns complete experiment list
 
 
-@sequence(version=5)
+@sequence(version=6)
 def HISPEC_EIS_only(
     plate_id: int = 1,  # @Dan - what is this? -- plate_id is the ID of the material library in our database. it's first assigned to a substrate after which we can use this ID to track the library's deposition, annealing, and experiment history
     plate_sample_no_list: list = [
@@ -364,7 +364,7 @@ def HISPEC_EIS_only(
 
     # Unload only: each sample's ECHE_sub_startup below loads it. A bare
     # HISPEC_sub_startup would load its default solid (plate 4534, sample 1).
-    epm.add("HISPEC_sub_unloadall_customs", {})
+    epm.add("ECHE_sub_unloadall_customs", {})
 
     if use_z_motor:
         epm.add(
@@ -471,6 +471,6 @@ def HISPEC_EIS_only(
             },
         )
 
-    epm.add("HISPEC_sub_shutdown", {})
+    epm.add("ECHE_sub_shutdown", {})
 
     return epm.planned_experiments  # returns complete experiment list
