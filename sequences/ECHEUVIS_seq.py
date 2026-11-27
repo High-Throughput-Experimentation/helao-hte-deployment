@@ -301,7 +301,7 @@ def ECHEUVIS_CV_led(
     return _echeuvis_led(locals(), measure)
 
 
-@sequence(version=5)
+@sequence(version=6)
 def ECHEUVIS_CA_led(
     plate_id: int = 1,
     plate_sample_no_list: list = [2],
@@ -441,6 +441,7 @@ def ECHEUVIS_CA_led(
                 "spec_int_time_ms": spec_int_time_ms,
                 "spec_n_avg": spec_n_avg,
                 "spec_technique": spec_technique,
+                "use_calibrated_int_time": False,  # this sequence never calibrates
             },
         )
 

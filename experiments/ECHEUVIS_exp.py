@@ -316,7 +316,7 @@ def ECHEUVIS_sub_CV_led(
     return apm.planned_actions
 
 
-@experiment(version=6)
+@experiment(version=7)
 def ECHEUVIS_sub_CA_led(
     CA_potential_vsRHE: float = 0.0,
     solution_ph: float = 9.53,
@@ -348,6 +348,7 @@ def ECHEUVIS_sub_CA_led(
     spec_int_time_ms: float = 15,
     spec_n_avg: int = 10,
     spec_technique: str = "T_UVVIS",
+    use_calibrated_int_time: bool = True,
     comment: str = "",
 ) -> list:
     """Run a CA experiment with hardware-triggered LED + spec triggering and spectroscopy.
@@ -383,6 +384,11 @@ def ECHEUVIS_sub_CA_led(
         spec_int_time_ms: Spec integration time (ms).
         spec_n_avg: Spec averaging count.
         spec_technique: Spec technique key into ``SPECSRV_MAP``.
+        use_calibrated_int_time: Read the integration time from the global
+            ``calibrated_int_time_ms`` (published by an ``ECHEUVIS_sub_engage``
+            with ``calibrate_intensity``) instead of ``spec_int_time_ms``. Pass
+            False when nothing earlier in the sequence calibrates, or the spectra
+            take a stale value from an earlier run.
         comment: Free-form comment (informational).
 
     Returns:
@@ -394,7 +400,7 @@ def ECHEUVIS_sub_CA_led(
         apm,
         CA_duration_sec,
         ActionStartCondition.no_wait,
-        True,
+        use_calibrated_int_time,
         toggle_illum_time=toggle_illum_time,
         toggle2_time=toggle2_time,
         illumination_source=illumination_source,
