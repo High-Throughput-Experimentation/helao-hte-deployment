@@ -14,19 +14,13 @@ SEQUENCES = [
     "ANEC_create_and_load_liquid_sample",
     # "ANEC_create_liquid_sample",
     # "ANEC_create_liquid_tray",
-    "ANEC_ferricyanide_protocol",
-    "ANEC_ferricyanide_simpleprotocol",
     "ANEC_gasonly_CA",
-    "ANEC_heatOCV",
     "ANEC_OCV",
     "ANEC_photo_CA",
     "ANEC_photo_CAgasonly",
     "ANEC_photo_CV",
     "ANEC_repeat_CA",
     "ANEC_repeat_CV",
-    "ANEC_repeat_HeatCA",
-    "ANEC_repeat_TentHeatCA",
-    "ANEC_repeat_TentHeatCAgasonly",
     "ANEC_sample_ready",
     "ANEC_series_CA",
     "ANEC_series_CAliquidOnly",
@@ -45,8 +39,6 @@ def _anec_seq_cell(
     loop,
     sampling=None,
     flush=True,
-    setheat=False,
-    heatoff=None,
     alloff=None,
     ready_prefix=False,
     **p,
@@ -56,15 +48,13 @@ def _anec_seq_cell(
     ``p`` is the calling sequence's own parameters (its ``locals()``); the
     keyword knobs select the variant:
 
-    tech: ``"CA"`` | ``"HeatCA"`` | ``"photo_CA"`` | ``"OCV"`` | ``"CV"`` | ``"photo_CV"``.
+    tech: ``"CA"`` | ``"photo_CA"`` | ``"OCV"`` | ``"CV"`` | ``"photo_CV"``.
     loop: ``"series"`` (zip WE_potential__V/CA_duration_sec lists), ``"repeat"``
         (``num_repeats`` x scalar params) or ``"once"``.
     sampling: ``None`` | ``"aliquot"`` | ``"aliquot_nomixing"`` |
         ``"liquidarchive"`` | ``"GC_preparation"`` | ``"GC_headspacealiquot_nomixing"``.
     flush: add ``ANEC_sub_flush_fill_cell`` each iteration
         (flush time ``p["liquid_flush_time"]``, default 80 s).
-    setheat: add ``ANEC_sub_setheat`` at the top of each iteration.
-    heatoff: ``None`` | ``"end"`` (after the loop).
     alloff: ``None`` | ``"always"`` | ``"multi"`` (only for >1 potential).
     ready_prefix: prepend startup, normal_state and two cleanups.
     """
@@ -105,11 +95,6 @@ def _anec_seq_cell(
                 f" ... cycle {cycle} duration:",
                 time,
             )
-        if setheat:
-            epm.add(
-                "ANEC_sub_setheat",
-                {"target_temperature_degc": p["target_temperature_degc"]},
-            )
         if flush:
             epm.add(
                 "ANEC_sub_flush_fill_cell",
@@ -135,22 +120,6 @@ def _anec_seq_cell(
                     "CA_duration_sec": time,
                     "SampleRate": p["SampleRate"],
                     "IErange": p["IErange"],
-                },
-            )
-        elif tech == "HeatCA":
-            epm.add(
-                "ANEC_sub_HeatCA",
-                {
-                    "WE_potential__V": potential,
-                    "WE_versus": p["WE_versus"],
-                    "OCV_duration__s": p["OCV_duration__s"],
-                    "ref_type": p["ref_type"],
-                    "pH": p["pH"],
-                    "ref_offset__V": p["ref_offset__V"],
-                    "CA_duration_sec": time,
-                    "SampleRate": p["SampleRate"],
-                    "IErange": p["IErange"],
-                    "target_temperature_degc": p["target_temperature_degc"],
                 },
             )
         elif tech == "photo_CA":
@@ -291,83 +260,8 @@ def _anec_seq_cell(
 
         epm.add("ANEC_sub_drain_cell", {"drain_time": p["liquidDrain_time"]})
 
-    if heatoff == "end":
-        epm.add("ANEC_sub_heatoff", {})
     if alloff == "always" or (alloff == "multi" and len(p["WE_potential__V"]) > 1):
         epm.add("ANEC_sub_alloff", {})
-    return epm.planned_experiments
-
-
-def _anec_seq_ferricyanide(simple, **p):
-    """Shared body of the two ferricyanide HeatCV(+HeatCA) protocols.
-
-    simple=True: ``num_repeats`` x [HeatCV, HeatCA] at one temperature, no
-    fill/drain. simple=False: fill once, then per temperature in
-    ``target_temperature_degc`` a HeatCV (+ HeatCA unless ``CV_only != "no"``),
-    then heatoff and drain.
-    """
-    epm = ExperimentPlanMaker()
-
-    # housekeeping
-    epm.add(
-        "ANEC_sub_load_solid_only",
-        {"solid_plate_id": p["plate_id"], "solid_sample_no": p["solid_sample_no"]},
-    )
-
-    if simple:
-        temps = (p["target_temperature_degc"] for _ in range(p["num_repeats"]))
-    else:
-        epm.add(
-            "ANEC_sub_flush_fill_cell",
-            {
-                "liquid_flush_time": 80,
-                "co2_purge_time": 15,
-                "equilibration_time": 1.0,
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "volume_ul_cell_liquid": p["volume_ul_cell_liquid"],
-            },
-        )
-        temps = p["target_temperature_degc"]
-
-    for temp in temps:
-        epm.add(
-            "ANEC_sub_HeatCV",
-            {
-                "WE_versus": p["WE_versus"],
-                "OCV_duration__s": p["OCV_duration__s"],
-                "ref_type": p["ref_type"],
-                "pH": p["pH"],
-                "WE_potential_init__V": p["WE_potential_init__V"],
-                "WE_potential_apex1__V": p["WE_potential_apex1__V"],
-                "WE_potential_apex2__V": p["WE_potential_apex2__V"],
-                "WE_potential_final__V": p["WE_potential_final__V"],
-                "ScanRate_V_s": p["ScanRate_V_s"],
-                "Cycles": p["Cycles"],
-                "SampleRate": p["SampleRate_CV"],
-                "IErange": p["IErange"],
-                "target_temperature_degc": temp,
-            },
-        )
-        if simple or p["CV_only"] == "no":
-            epm.add(
-                "ANEC_sub_HeatCA",
-                {
-                    "WE_potential__V": p["WE_potential__V"],
-                    "WE_versus": p["WE_versus"],
-                    "OCV_duration__s": p["OCV_duration__s"],
-                    "ref_type": p["ref_type"],
-                    "pH": p["pH"],
-                    "ref_offset__V": p["ref_offset__V"],
-                    "CA_duration_sec": p["CA_duration_sec"],
-                    "SampleRate": p["SampleRate_CA"],
-                    "IErange": p["IErange"],
-                    "target_temperature_degc": temp,
-                },
-            )
-
-    if not simple:
-        epm.add("ANEC_sub_heatoff", {})
-        epm.add("ANEC_sub_drain_cell", {"drain_time": p["liquidDrain_time"]})
     return epm.planned_experiments
 
 
@@ -1063,238 +957,6 @@ def ANEC_repeat_CA(
 
 
 @sequence(version=3)
-def ANEC_repeat_TentHeatCAgasonly(
-    num_repeats: int = 1,
-    plate_id: int = 6284,
-    solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 1511,
-    volume_ul_cell_liquid: float = 1000,
-    WE_potential__V: float = 0.0,
-    WE_versus: str = "ref",
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    CA_duration_sec: float = 0.1,
-    SampleRate: float = 0.01,
-    IErange: str = "auto",
-    ref_offset__V: float = 0.0,
-    toolGC: str = "HS 2",
-    volume_ul_GC: int = 300,
-    liquid_flush_time: float = 70.0,
-    liquidDrain_time: float = 60.0,
-    target_temperature_degc: float = 25.0,
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Repeated tent-heated CA with GC headspace aliquots.
-
-    For ``num_repeats`` iterations: heat the tent, fill, run CA, take a GC-only aliquot, drain.
-
-    Args:
-        num_repeats: Number of repeats.
-        plate_id: Plate ID of the solid sample library.
-        solid_sample_no: Solid-sample number on the plate to measure.
-        reservoir_liquid_sample_no: Liquid-sample number of the reservoir electrolyte.
-        volume_ul_cell_liquid: Cell liquid fill volume (µL).
-        WE_potential__V: Working-electrode potential (V).
-        WE_versus: Potential reference the working-electrode values are quoted against.
-        ref_type: Reference-electrode type.
-        pH: Electrolyte pH.
-        CA_duration_sec: Chronoamperometry duration (s).
-        SampleRate: Data acquisition sample rate.
-        IErange: Potentiostat current (I/E) range setting.
-        ref_offset__V: Reference-electrode potential offset (V).
-        toolGC: PAL tool used for gas-chromatograph sampling.
-        volume_ul_GC: Volume sampled for gas chromatography (µL).
-        liquid_flush_time: Duration of the liquid flush (s).
-        liquidDrain_time: Duration of the liquid drain (s).
-        target_temperature_degc: Target temperature (°C).
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    return _anec_seq_cell(
-        **locals(),
-        tech="CA",
-        loop="repeat",
-        sampling="GC_preparation",
-        setheat=True,
-        heatoff="end",
-    )
-
-
-@sequence(version=2)
-def ANEC_heatOCV(
-    plate_id: int = 4534,
-    solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 1511,
-    volume_ul_cell_liquid: float = 1000,
-    Tval__s: Optional[float] = 900.0,
-    IErange: Optional[str] = "auto",
-    liquid_flush_time: float = 60.0,
-    liquidDrain_time: float = 60.0,
-    target_temperature_degc: float = 25.0,
-) -> list:
-    """Repeated heated OCV measurement with archive aliquots.
-
-    For ``num_repeats`` iterations: heat the tent, fill, run OCV, take an archive aliquot, drain.
-
-    Args:
-        plate_id: Plate ID of the solid sample library.
-        solid_sample_no: Solid-sample number on the plate to measure.
-        reservoir_liquid_sample_no: Liquid-sample number of the reservoir electrolyte.
-        volume_ul_cell_liquid: Cell liquid fill volume (µL).
-        Tval__s: Hold duration at the set value (s).
-        IErange: Potentiostat current (I/E) range setting.
-        liquid_flush_time: Duration of the liquid flush (s).
-        liquidDrain_time: Duration of the liquid drain (s).
-        target_temperature_degc: Target temperature (°C).
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    return _anec_seq_cell(
-        **locals(), tech="OCV", loop="once", setheat=True, heatoff="end"
-    )
-
-
-@sequence(version=3)
-def ANEC_repeat_TentHeatCA(
-    num_repeats: int = 1,
-    plate_id: int = 6284,
-    solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 1511,
-    volume_ul_cell_liquid: float = 1000,
-    WE_potential__V: float = 0.0,
-    WE_versus: str = "ref",
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    CA_duration_sec: float = 0.1,
-    SampleRate: float = 0.01,
-    IErange: str = "auto",
-    ref_offset__V: float = 0.0,
-    toolGC: str = "HS 2",
-    toolarchive: str = "LS 3",
-    volume_ul_GC: int = 300,
-    volume_ul_archive: int = 500,
-    wash1: bool = True,
-    wash2: bool = True,
-    wash3: bool = True,
-    wash4: bool = False,
-    liquid_flush_time: float = 70.0,
-    liquidDrain_time: float = 80.0,
-    target_temperature_degc: float = 25.0,
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Repeated tent-heated CA with combined GC+archive aliquots.
-
-    For ``num_repeats`` iterations: heat the tent, fill, run CA, take GC+archive aliquots, drain.
-
-    Args:
-        num_repeats: Number of repeats.
-        plate_id: Plate ID of the solid sample library.
-        solid_sample_no: Solid-sample number on the plate to measure.
-        reservoir_liquid_sample_no: Liquid-sample number of the reservoir electrolyte.
-        volume_ul_cell_liquid: Cell liquid fill volume (µL).
-        WE_potential__V: Working-electrode potential (V).
-        WE_versus: Potential reference the working-electrode values are quoted against.
-        ref_type: Reference-electrode type.
-        pH: Electrolyte pH.
-        CA_duration_sec: Chronoamperometry duration (s).
-        SampleRate: Data acquisition sample rate.
-        IErange: Potentiostat current (I/E) range setting.
-        ref_offset__V: Reference-electrode potential offset (V).
-        toolGC: PAL tool used for gas-chromatograph sampling.
-        toolarchive: PAL tool used for archive sampling.
-        volume_ul_GC: Volume sampled for gas chromatography (µL).
-        volume_ul_archive: Volume sampled to the archive (µL).
-        wash1: Whether to run wash step 1.
-        wash2: Whether to run wash step 2.
-        wash3: Whether to run wash step 3.
-        wash4: Whether to run wash step 4.
-        liquid_flush_time: Duration of the liquid flush (s).
-        liquidDrain_time: Duration of the liquid drain (s).
-        target_temperature_degc: Target temperature (°C).
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    return _anec_seq_cell(
-        **locals(),
-        tech="CA",
-        loop="repeat",
-        sampling="aliquot",
-        setheat=True,
-        heatoff="end",
-    )
-
-
-@sequence(version=3)
-def ANEC_repeat_HeatCA(
-    num_repeats: int = 1,
-    plate_id: int = 4534,
-    solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 1511,
-    volume_ul_cell_liquid: float = 1000,
-    WE_potential__V: float = 0.0,
-    WE_versus: str = "ref",
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    CA_duration_sec: float = 0.1,
-    SampleRate: float = 0.01,
-    IErange: str = "auto",
-    ref_offset__V: float = 0.0,
-    toolGC: str = "HS 2",
-    toolarchive: str = "LS 3",
-    volume_ul_GC: int = 300,
-    volume_ul_archive: int = 500,
-    wash1: bool = True,
-    wash2: bool = True,
-    wash3: bool = True,
-    wash4: bool = False,
-    liquid_flush_time: float = 70.0,
-    liquidDrain_time: float = 80.0,
-    target_temperature_degc: float = 25.0,
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Repeated heated CA without the tent step.
-
-    For ``num_repeats`` iterations: heat the cell, fill, run CA, take aliquots, drain.
-
-    Args:
-        num_repeats: Number of repeats.
-        plate_id: Plate ID of the solid sample library.
-        solid_sample_no: Solid-sample number on the plate to measure.
-        reservoir_liquid_sample_no: Liquid-sample number of the reservoir electrolyte.
-        volume_ul_cell_liquid: Cell liquid fill volume (µL).
-        WE_potential__V: Working-electrode potential (V).
-        WE_versus: Potential reference the working-electrode values are quoted against.
-        ref_type: Reference-electrode type.
-        pH: Electrolyte pH.
-        CA_duration_sec: Chronoamperometry duration (s).
-        SampleRate: Data acquisition sample rate.
-        IErange: Potentiostat current (I/E) range setting.
-        ref_offset__V: Reference-electrode potential offset (V).
-        toolGC: PAL tool used for gas-chromatograph sampling.
-        toolarchive: PAL tool used for archive sampling.
-        volume_ul_GC: Volume sampled for gas chromatography (µL).
-        volume_ul_archive: Volume sampled to the archive (µL).
-        wash1: Whether to run wash step 1.
-        wash2: Whether to run wash step 2.
-        wash3: Whether to run wash step 3.
-        wash4: Whether to run wash step 4.
-        liquid_flush_time: Duration of the liquid flush (s).
-        liquidDrain_time: Duration of the liquid drain (s).
-        target_temperature_degc: Target temperature (°C).
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    return _anec_seq_cell(**locals(), tech="HeatCA", loop="repeat", sampling="aliquot")
-
-
-@sequence(version=3)
 def ANEC_gasonly_CA(
     num_repeats: int = 1,
     plate_id: int = 4534,
@@ -1398,126 +1060,6 @@ def ANEC_repeat_CV(
         List of planned experiments to dispatch.
     """
     return _anec_seq_cell(**locals(), tech="CV", loop="repeat")
-
-
-@sequence(version=4)
-def ANEC_ferricyanide_simpleprotocol(
-    num_repeats: int = 1,
-    plate_id: int = 5740,
-    solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 1511,
-    volume_ul_cell_liquid: float = 1000,
-    WE_potential__V: float = -0.8,
-    WE_versus: str = "ref",
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    CA_duration_sec: float = 120.0,
-    SampleRate_CA: float = 0.5,
-    IErange: str = "3mA",
-    ref_offset__V: float = 0.0,
-    WE_potential_init__V: float = 0.5,
-    WE_potential_apex1__V: float = -1.0,
-    WE_potential_apex2__V: float = 0.5,
-    WE_potential_final__V: float = 0.5,
-    ScanRate_V_s: float = 0.1,
-    Cycles: int = 1,
-    SampleRate_CV: float = 0.1,
-    target_temperature_degc: float = 25.0,
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Simple ferricyanide diagnostic protocol.
-
-    Runs a fixed fill/CA/aliquot/drain protocol used to validate the ANEC potentiostat with a ferricyanide standard.
-
-    Args:
-        num_repeats: Number of repeats.
-        plate_id: Plate ID of the solid sample library.
-        solid_sample_no: Solid-sample number on the plate to measure.
-        reservoir_liquid_sample_no: Liquid-sample number of the reservoir electrolyte.
-        volume_ul_cell_liquid: Cell liquid fill volume (µL).
-        WE_potential__V: Working-electrode potential (V).
-        WE_versus: Potential reference the working-electrode values are quoted against.
-        ref_type: Reference-electrode type.
-        pH: Electrolyte pH.
-        CA_duration_sec: Chronoamperometry duration (s).
-        SampleRate_CA: Chronoamperometry data acquisition sample rate.
-        IErange: Potentiostat current (I/E) range setting.
-        ref_offset__V: Reference-electrode potential offset (V).
-        WE_potential_init__V: Working-electrode potential initial (V).
-        WE_potential_apex1__V: Working-electrode potential apex 1 (V).
-        WE_potential_apex2__V: Working-electrode potential apex 2 (V).
-        WE_potential_final__V: Working-electrode potential final (V).
-        ScanRate_V_s: Cyclic-voltammetry scan rate (V/s).
-        Cycles: Number of cycles to repeat.
-        SampleRate_CV: Cyclic-voltammetry data acquisition sample rate.
-        target_temperature_degc: Target temperature (°C).
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    return _anec_seq_ferricyanide(**locals(), simple=True)
-
-
-@sequence(version=4)
-def ANEC_ferricyanide_protocol(
-    plate_id: int = 5740,
-    solid_sample_no: int = 1,
-    reservoir_liquid_sample_no: int = 1511,
-    volume_ul_cell_liquid: float = 1000,
-    WE_potential__V: float = -0.8,
-    WE_versus: str = "ref",
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    CA_duration_sec: float = 120.0,
-    SampleRate_CA: float = 0.5,
-    IErange: str = "3mA",
-    ref_offset__V: float = 0.0,
-    WE_potential_init__V: float = 0.5,
-    WE_potential_apex1__V: float = -1.0,
-    WE_potential_apex2__V: float = 0.5,
-    WE_potential_final__V: float = 0.5,
-    ScanRate_V_s: float = 0.1,
-    Cycles: int = 1,
-    SampleRate_CV: float = 0.1,
-    liquidDrain_time: float = 80.0,
-    target_temperature_degc: list[float] = [25.0],
-    CV_only: str = "yes",
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Full ferricyanide validation protocol with multi-step CA/CV.
-
-    Extended ferricyanide diagnostic: fills the cell, runs CA and CV with archive aliquots, then drains and cleans.
-
-    Args:
-        plate_id: Plate ID of the solid sample library.
-        solid_sample_no: Solid-sample number on the plate to measure.
-        reservoir_liquid_sample_no: Liquid-sample number of the reservoir electrolyte.
-        volume_ul_cell_liquid: Cell liquid fill volume (µL).
-        WE_potential__V: Working-electrode potential (V).
-        WE_versus: Potential reference the working-electrode values are quoted against.
-        ref_type: Reference-electrode type.
-        pH: Electrolyte pH.
-        CA_duration_sec: Chronoamperometry duration (s).
-        SampleRate_CA: Chronoamperometry data acquisition sample rate.
-        IErange: Potentiostat current (I/E) range setting.
-        ref_offset__V: Reference-electrode potential offset (V).
-        WE_potential_init__V: Working-electrode potential initial (V).
-        WE_potential_apex1__V: Working-electrode potential apex 1 (V).
-        WE_potential_apex2__V: Working-electrode potential apex 2 (V).
-        WE_potential_final__V: Working-electrode potential final (V).
-        ScanRate_V_s: Cyclic-voltammetry scan rate (V/s).
-        Cycles: Number of cycles to repeat.
-        SampleRate_CV: Cyclic-voltammetry data acquisition sample rate.
-        liquidDrain_time: Duration of the liquid drain (s).
-        target_temperature_degc: Target temperature (°C).
-        CV_only: Whether to run only the cyclic-voltammetry step.
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Returns:
-        List of planned experiments to dispatch.
-    """
-    return _anec_seq_ferricyanide(**locals(), simple=False)
 
 
 @sequence(version=1)

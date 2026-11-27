@@ -3,7 +3,7 @@
 Defines sub-experiments that build action lists for an orchestrator. Each
 function takes an ``Experiment`` and returns the list of actions to enqueue.
 Action targets are referenced by ``server_key`` strings (e.g. ``PSTAT``,
-``MOTOR``, ``NI``, ``PAL``, ``IO``, ``TEC``, ``ORCH``) that must be present
+``MOTOR``, ``NI``, ``PAL``, ``IO``, ``ORCH``) that must be present
 in the orchestration config.
 """
 
@@ -21,10 +21,6 @@ EXPERIMENTS = [
     "ANEC_sub_GC_headspacealiquot_nomixing",
     "ANEC_sub_GC_preparation",
     "ANEC_sub_GCLiquid_analysis",
-    # Heat experiments disabled together with the TEC server (5c006b38).
-    # "ANEC_sub_HeatCA",
-    # "ANEC_sub_HeatCV",
-    # "ANEC_sub_heatoff",
     "ANEC_sub_HPLCLiquid_analysis",
     "ANEC_sub_liquidarchive",
     "ANEC_sub_load_solid",
@@ -36,7 +32,6 @@ EXPERIMENTS = [
     "ANEC_sub_photo_CP",
     "ANEC_sub_photo_CV",
     "ANEC_sub_photo_LSV",
-    # "ANEC_sub_setheat",
     "ANEC_sub_startup",
     "ANEC_sub_unload_cell",
     "ANEC_sub_unload_liquid",
@@ -69,7 +64,6 @@ ORCH_server = MachineModel(server_name="ORCH", machine_name=ORCH_HOST).as_dict()
 PAL_server = MachineModel(server_name="PAL", machine_name=ORCH_HOST).as_dict()
 SAMPLE_server = MachineModel(server_name="SAMPLE", machine_name=ORCH_HOST).as_dict()
 IO_server = MachineModel(server_name="IO", machine_name=ORCH_HOST).as_dict()
-TEC_server = MachineModel(server_name="TEC", machine_name=ORCH_HOST).as_dict()
 
 toggle_triggertype = TriggerType.fallingedge
 
@@ -235,60 +229,6 @@ def ANEC_sub_alloff() -> list:
     apm.add(NI_server, "liquidvalve", {"liquidvalve": "up", "on": 0})
     apm.add(NI_server, "liquidvalve", {"liquidvalve": "liquid", "on": 0})
     apm.add(NI_server, "gasvalve", {"gasvalve": "atm", "on": 0})
-    # apm.add(
-    #     TEC_server,
-    #     "cancel_record_tec",
-    #     {}
-    # )
-    # apm.add(TEC_server, "disable_tec", {})
-
-    return apm.planned_actions
-
-
-@experiment(version=2)
-def ANEC_sub_heatoff() -> list:
-    """Cancel TEC recording and disable the TEC controller.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-
-    apm = ActionPlanMaker()
-
-    apm.add(TEC_server, "cancel_record_tec", {})
-    apm.add(TEC_server, "disable_tec", {})
-
-    return apm.planned_actions
-
-
-@experiment(version=2)
-def ANEC_sub_setheat(
-    target_temperature_degc: float = 25.0,
-) -> list:
-    """Set a TEC setpoint, start non-blocking recording, enable TEC, wait until stable.
-
-    Args:
-        target_temperature_degc: TEC setpoint in degrees Celsius.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-
-    apm = ActionPlanMaker()
-    apm.add(
-        TEC_server,
-        "set_temperature",
-        {"target_temperature_degc": target_temperature_degc},
-    )
-    apm.add(
-        TEC_server,
-        "record_tec",
-        {"duration": -1, "acquisition_rate": 0.2},
-        nonblocking=True,
-    )
-    # =============================================================================
-    apm.add(TEC_server, "enable_tec", {})
-    apm.add(TEC_server, "wait_till_stable", {})
 
     return apm.planned_actions
 
@@ -805,10 +745,9 @@ def _anec_ocv_params(WE_versus, OCV_duration__s):
     return {}
 
 
-def _anec_run(apm, endpoint, params, technique, toggle=None, heat_degc=None):
+def _anec_run(apm, endpoint, params, technique, toggle=None):
     """Query the cell sample, then run one PSTAT technique, optionally under an
-    LED toggle cycle (toggle = (source, init_delay, duty, period, duration))
-    and/or TEC temperature control."""
+    LED toggle cycle (toggle = (source, init_delay, duty, period, duration))."""
     apm.add(
         SAMPLE_server,
         "archive_custom_query_sample",
@@ -833,16 +772,6 @@ def _anec_run(apm, endpoint, params, technique, toggle=None, heat_degc=None):
             process_finish=False,
             process_contrib=[ProcessContrib.files],
         )
-    if heat_degc is not None:
-        apm.add(TEC_server, "set_temperature", {"target_temperature_degc": heat_degc})
-        apm.add(
-            TEC_server,
-            "record_tec",
-            {"duration": -1, "acquisition_rate": 0.2},
-            nonblocking=True,
-        )
-        apm.add(TEC_server, "enable_tec", {})
-        apm.add(TEC_server, "wait_till_stable", {})
     apm.add(
         PSTAT_server,
         endpoint,
@@ -852,8 +781,6 @@ def _anec_run(apm, endpoint, params, technique, toggle=None, heat_degc=None):
         technique_name=technique,
         process_contrib=_ANEC_CONTRIB,
     )
-    if heat_degc is not None:
-        apm.add(TEC_server, "cancel_record_tec", {})
     if toggle is not None:
         apm.add(IO_server, "stop_digital_cycle", {})
     return apm.planned_actions
@@ -940,56 +867,6 @@ def ANEC_sub_CA(
             **_anec_ocv_params(WE_versus, OCV_duration__s),
         },
         "CA",
-    )
-
-
-@experiment(version=3)
-def ANEC_sub_HeatCA(
-    WE_potential__V: float = 0.0,
-    WE_versus: str = "ref",
-    CA_duration_sec: float = 0.1,
-    SampleRate: float = 0.01,
-    IErange: str = "auto",
-    ref_offset__V: float = 0.0,
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    target_temperature_degc: float = 25.0,
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Stabilize TEC at a target temperature then run a CA experiment.
-
-    Args:
-        WE_potential__V: Working-electrode potential (V).
-        WE_versus: ``"ref"``, ``"rhe"`` or ``"ocv"``.
-        CA_duration_sec: CA duration (s).
-        SampleRate: Acquisition interval (s).
-        IErange: Gamry current-range setting.
-        ref_offset__V: Reference offset (V).
-        ref_type: Reference electrode key into ``REF_TABLE``.
-        pH: Solution pH (used in RHE conversion).
-        target_temperature_degc: TEC setpoint (deg C).
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Raises:
-        ValueError: If ``WE_versus`` is not ``"ref"``, ``"rhe"`` or ``"ocv"``.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-    return _anec_run(
-        ActionPlanMaker(),
-        "run_CA",
-        {
-            "Vval__V": _anec_vs_ref(
-                WE_potential__V, WE_versus, ref_offset__V, pH, ref_type
-            ),
-            "Tval__s": CA_duration_sec,
-            "AcqInterval__s": SampleRate,
-            "IErange": IErange,
-            **_anec_ocv_params(WE_versus, OCV_duration__s),
-        },
-        "CA",
-        heat_degc=target_temperature_degc,
     )
 
 
@@ -1166,78 +1043,6 @@ def ANEC_sub_CV(
             **_anec_ocv_params(WE_versus, OCV_duration__s),
         },
         ["CV"],
-    )
-
-
-@experiment(version=3)
-def ANEC_sub_HeatCV(
-    WE_versus: str = "ref",
-    ref_type: str = "leakless",
-    pH: float = 6.8,
-    WE_potential_init__V: float = 0.0,
-    WE_potential_apex1__V: float = -1.0,
-    WE_potential_apex2__V: float = -0.5,
-    WE_potential_final__V: float = -0.5,
-    ScanRate_V_s: float = 0.01,
-    Cycles: int = 1,
-    SampleRate: float = 0.01,
-    IErange: str = "auto",
-    ref_offset__V: float = 0.0,
-    target_temperature_degc: float = 25.0,
-    OCV_duration__s: float = 2.0,
-) -> list:
-    """Stabilize TEC at a target temperature then run a CV experiment.
-
-    Args:
-        WE_versus: ``"ref"``, ``"rhe"`` or ``"ocv"``.
-        ref_type: Reference electrode key into ``REF_TABLE``.
-        pH: Solution pH (used in RHE conversion).
-        WE_potential_init__V: Initial potential (V).
-        WE_potential_apex1__V: Apex 1 potential (V).
-        WE_potential_apex2__V: Apex 2 potential (V).
-        WE_potential_final__V: Final potential (V).
-        ScanRate_V_s: Scan rate (V/s).
-        Cycles: CV cycle count.
-        SampleRate: Acquisition interval (s).
-        IErange: Gamry current-range setting.
-        ref_offset__V: Reference offset (V).
-        target_temperature_degc: TEC setpoint (deg C).
-        OCV_duration__s: OCV measurement time (s); used only when ``WE_versus="ocv"``.
-
-    Raises:
-        ValueError: If ``WE_versus`` is not ``"ref"``, ``"rhe"`` or ``"ocv"``.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-    return _anec_run(
-        ActionPlanMaker(),
-        "run_CV",
-        {
-            "Vinit__V": _anec_vs_ref(
-                WE_potential_init__V,
-                WE_versus,
-                ref_offset__V,
-                pH,
-                ref_type,
-            ),
-            "Vapex1__V": _anec_vs_ref(
-                WE_potential_apex1__V, WE_versus, ref_offset__V, pH, ref_type
-            ),
-            "Vapex2__V": _anec_vs_ref(
-                WE_potential_apex2__V, WE_versus, ref_offset__V, pH, ref_type
-            ),
-            "Vfinal__V": _anec_vs_ref(
-                WE_potential_final__V, WE_versus, ref_offset__V, pH, ref_type
-            ),
-            "ScanRate__V_s": ScanRate_V_s,
-            "Cycles": Cycles,
-            "AcqInterval__s": SampleRate,
-            "IErange": IErange,
-            **_anec_ocv_params(WE_versus, OCV_duration__s),
-        },
-        ["CV"],
-        heat_degc=target_temperature_degc,
     )
 
 

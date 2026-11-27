@@ -22,15 +22,6 @@ from helao.deploy.hte import experiments, sequences
 from helao.helpers.config_loader import read_config
 from helao.helpers.premodels import Experiment
 
-# Disabled together with the TEC server (5c006b38); shrink-only. Re-publish an
-# entry in EXPERIMENTS and delete it here (test_tec_disabled_has_no_stale_entries).
-TEC_DISABLED = {
-    "ANEC_sub_HeatCA",
-    "ANEC_sub_HeatCV",
-    "ANEC_sub_heatoff",
-    "ANEC_sub_setheat",
-}
-
 
 def _mods(pkg):
     return [
@@ -62,26 +53,13 @@ def test_queued_experiments_are_published(mod, seq, flip):
         else {flip: not inspect.signature(fn).parameters[flip].default}
     )
     names = {e.experiment_name for e in fn(**kw)}
-    assert names <= PUBLISHED | TEC_DISABLED, sorted(names - PUBLISHED - TEC_DISABLED)
-
-
-def test_tec_disabled_has_no_stale_entries():
-    assert not TEC_DISABLED & PUBLISHED, sorted(TEC_DISABLED & PUBLISHED)
+    assert names <= PUBLISHED, sorted(names - PUBLISHED)
 
 
 # Known config gaps: published sequences that queue a server the config does not
-# launch. anec: heat experiments, not runnable until the TEC server returns.
-# eche10: CALC analysis steps whose server the config does not define.
+# launch. eche10: CALC analysis steps whose server the config does not define.
 # Shrink-only: stale entries fail test_config_gap_allowlist_has_no_stale_entries.
 KNOWN_CONFIG_GAPS = {
-    "anec": {
-        "ANEC_ferricyanide_protocol",
-        "ANEC_ferricyanide_simpleprotocol",
-        "ANEC_heatOCV",
-        "ANEC_repeat_HeatCA",
-        "ANEC_repeat_TentHeatCA",
-        "ANEC_repeat_TentHeatCAgasonly",
-    },
     "eche10": {
         "ECHEUVIS_CA_led",
         "ECHEUVIS_CP_led",

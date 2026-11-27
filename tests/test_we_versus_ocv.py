@@ -31,10 +31,8 @@ VKEY = {
 }
 CASES = [
     (ANEC_exp.ANEC_sub_CA, "run_CA"),
-    (ANEC_exp.ANEC_sub_HeatCA, "run_CA"),
     (ANEC_exp.ANEC_sub_photo_CA, "run_CA"),
     (ANEC_exp.ANEC_sub_CV, "run_CV"),
-    (ANEC_exp.ANEC_sub_HeatCV, "run_CV"),
     (ANEC_exp.ANEC_sub_photo_CV, "run_CV"),
     (ANEC_exp.ANEC_sub_photo_LSV, "run_LSV"),
     (ECMS_exp.ECMS_sub_CA, "run_CA"),
