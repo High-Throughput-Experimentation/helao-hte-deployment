@@ -2,10 +2,12 @@
 
 * ECHEUVIS_CA_led never calibrates, so its CA spectra must use the operator's
   spec_int_time_ms, not a calibrated_int_time_ms global left by an earlier run.
+* HISPEC_EIS_only must not open with a bare HISPEC_sub_startup, which loads the
+  experiment's default solid (plate 4534, sample 1).
 """
 
 from helao.deploy.hte.experiments import ECHEUVIS_exp
-from helao.deploy.hte.sequences import ECHEUVIS_seq
+from helao.deploy.hte.sequences import ECHEUVIS_seq, HISPEC_seq
 from helao.helpers.premodels import Experiment
 
 
@@ -40,3 +42,15 @@ def test_ca_led_sequence_does_not_read_calibration():
     ca = [e for e in exps if e.experiment_name == "ECHEUVIS_sub_CA_led"]
     assert ca and "ECHEUVIS_sub_CA_led" in names
     assert all(e.experiment_params["use_calibrated_int_time"] is False for e in ca)
+
+
+def test_eis_only_loads_only_requested_samples():
+    exps = HISPEC_seq.HISPEC_EIS_only(plate_id=7, plate_sample_no_list=[3, 5])
+    names = [e.experiment_name for e in exps]
+    assert "HISPEC_sub_startup" not in names
+    loads = [
+        (e.experiment_params["solid_plate_id"], e.experiment_params["solid_sample_no"])
+        for e in exps
+        if "solid_sample_no" in e.experiment_params
+    ]
+    assert loads == [(7, 3), (7, 5)]

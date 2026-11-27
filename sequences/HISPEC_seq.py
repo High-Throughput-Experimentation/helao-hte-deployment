@@ -283,7 +283,7 @@ def HISPEC_CV(
     return epm.planned_experiments  # returns complete experiment list
 
 
-@sequence(version=4)
+@sequence(version=5)
 def HISPEC_EIS_only(
     plate_id: int = 1,  # @Dan - what is this? -- plate_id is the ID of the material library in our database. it's first assigned to a substrate after which we can use this ID to track the library's deposition, annealing, and experiment history
     plate_sample_no_list: list = [
@@ -362,9 +362,9 @@ def HISPEC_EIS_only(
     """
     epm = ExperimentPlanMaker()
 
-    epm.add(
-        "HISPEC_sub_startup", {}
-    )  # @Ben -- if you use this experiment, you'll need to update the hispec.yml config to include ECHEUVIS_exp under experiment_libraries
+    # Unload only: each sample's ECHE_sub_startup below loads it. A bare
+    # HISPEC_sub_startup would load its default solid (plate 4534, sample 1).
+    epm.add("HISPEC_sub_unloadall_customs", {})
 
     if use_z_motor:
         epm.add(
