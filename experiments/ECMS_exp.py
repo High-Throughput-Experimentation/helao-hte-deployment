@@ -17,11 +17,13 @@ EXPERIMENTS = [
     "ECMS_sub_CV",
     "ECMS_sub_drain",
     "ECMS_sub_drain_recirculation",
+    "ECMS_sub_empty_cell",
     "ECMS_sub_electrolyte_fill_cell",
     "ECMS_sub_electrolyte_fill_cell_recirculation",
     "ECMS_sub_electrolyte_fill_recirculationreservoir",
     "ECMS_sub_electrolyte_recirculation_off",
     "ECMS_sub_electrolyte_recirculation_on",
+    "ECMS_sub_fill",
     "ECMS_sub_final_clean_cell",
     "ECMS_sub_headspace_purge_and_Arbaseline",
     "ECMS_sub_headspace_purge_and_CO2baseline",
@@ -418,7 +420,7 @@ def ECMS_sub_electrolyte_fill_cell(
     # liquid_forward_time: float = 20,
     liquid_backward_time: float = 10,
     reservoir_liquid_sample_no: int = 1,
-    volume_ul_cell_liquid: int = 1,
+    volume_ul_cell_liquid: float = 1,
 ) -> list:
     """Reverse-pump electrolyte from reservoir into the cell and archive the addition.
 
@@ -720,17 +722,6 @@ def ECMS_sub_pulseCA(
         List of planned actions for the orchestrator.
     """
     apm = ActionPlanMaker()  # exposes function parameters via apm.pars
-    # =============================================================================
-    #     if WE_versus == "ref":
-    #         potential_vsRef = WE_potential__V - 1.0 * ref_offset__V
-    #     elif WE_versus == "rhe":
-    #         potential_vsRef = (
-    #             WE_potential__V
-    #             - 1.0 * ref_offset__V
-    #             - 0.059 * pH
-    #             - REF_TABLE[ref_type]
-    #         )
-    # =============================================================================
     apm.add(
         SAMPLE_server,
         "archive_custom_query_sample",
@@ -946,14 +937,13 @@ def ECMS_sub_drain_recirculation(
     return apm.planned_actions
 
 
-@experiment(version=2)
+@experiment(version=3)
 def ECMS_sub_clean_cell_recirculation(
     cleaning_times: int = 2,
     liquid_fill_time: float = 30,
-    volume_ul_cell_liquid: int = 1,
+    volume_ul_cell_liquid: float = 1,
     liquid_backward_time: float = 80,
     reservoir_liquid_sample_no: int = 2,
-    tube_clear_delaytime: float = 40.0,
     tube_clear_time: float = 20,
     liquid_drain_time: float = 80,
 ) -> list:
@@ -965,7 +955,6 @@ def ECMS_sub_clean_cell_recirculation(
         volume_ul_cell_liquid: Per-fill cell volume (uL forwarded).
         liquid_backward_time: Reverse-pump duration during fill (s).
         reservoir_liquid_sample_no: Liquid sample number in the reservoir.
-        tube_clear_delaytime: Unused tube-clearing delay (s); reserved.
         tube_clear_time: Tube-clearing pump duration during drain (s).
         liquid_drain_time: Drain pump duration (s).
 
@@ -988,28 +977,151 @@ def ECMS_sub_clean_cell_recirculation(
                 reservoir_liquid_sample_no=reservoir_liquid_sample_no,
             )
         )
-        # =============================================================================
-        #         apm.add(NI_server, "liquidvalve", {"liquidvalve": "4B", "on": 1})
-        #         apm.add(NI_server, "liquidvalve", {"liquidvalve": "5B", "on": 1})
-        #         apm.add(NI_server, "pump", {"pump": "RecirculatingPeriPump2-dir", "on": 0})
-        #         apm.add(NI_server, "pump", {"pump": "RecirculatingPeriPump2", "on": 1})
-        #         #apm.add(NI_server, "pump", {"pump": "RecirculatingPeriPump2-maxspd", "on": 1})
-        #         apm.add(ORCH_server, "wait", {"waittime": tube_clear_time+tube_clear_delaytime})
-        #         apm.add(NI_server, "liquidvalve", {"liquidvalve": "5A", "on": 1})
-        #         apm.add(NI_server, "liquidvalve", {"liquidvalve": "4B", "on": 0})
-        #         apm.add(NI_server, "pump", {"pump": "RecirculatingPeriPump2-dir", "on": 1})
-        #         apm.add(ORCH_server, "wait", {"waittime": liquid_drain_time-tube_clear_delaytime})
-        #         #apm.add(NI_server, "pump", {"pump": "RecirculatingPeriPump2-maxspd", "on": 0})
-        #         apm.add(NI_server, "pump", {"pump": "RecirculatingPeriPump2", "on": 0})
-        #         apm.add(NI_server, "liquidvalve", {"liquidvalve": "5A", "on": 0})
-        #         apm.add(NI_server, "liquidvalve", {"liquidvalve": "5B", "on": 0})
-        # =============================================================================
         apm.add_actions(
             ECMS_sub_drain_recirculation(
                 tube_clear_time=tube_clear_time,
                 liquid_drain_time=liquid_drain_time,
             )
         )
+    return apm.planned_actions
+
+
+@experiment(version=1)
+def ECMS_sub_fill(
+    recirculation: bool = False,
+    prevacuum: bool = False,
+    start_recirculation: bool = False,
+    liquid_fill_time: float = 30,
+    vacuum_time: float = 10,
+    liquid_backward_time: float = 10,
+    reservoir_liquid_sample_no: int = 1,
+    volume_ul_cell_liquid: float = 1,
+    CO2equilibrium_duration: float = 30,
+    flowrate_sccm: float = 10.0,
+    flow_ramp_sccm: float = 0,
+    MS_baseline_duration: float = 300,
+) -> list:
+    """Fill the cell and take the first CO2 baseline, in one experiment.
+
+    Runs, in order: the recirculation-reservoir fill (``recirculation``), the
+    prevacuum (``prevacuum``), the cell fill through the reservoir (4A) or the
+    recirculation (4B) inlet, a headspace purge with CO2 baseline, and the start
+    of recirculation (``start_recirculation``). Each step is the published
+    experiment of the same name, so the actions are identical to queueing them
+    one by one.
+
+    Args:
+        recirculation: Fill via the recirculation reservoir and inlet 4B.
+        prevacuum: Evacuate the gas side before filling the cell.
+        start_recirculation: Start recirculating after the baseline.
+        liquid_fill_time: Reservoir pump-on duration (s); recirculation only.
+        vacuum_time: Vacuum duration (s); prevacuum only.
+        liquid_backward_time: Cell-fill reverse pump duration (s).
+        reservoir_liquid_sample_no: Liquid sample number in the reservoir.
+        volume_ul_cell_liquid: Volume archived to the cell (uL).
+        CO2equilibrium_duration: Wait after starting CO2 flow (s).
+        flowrate_sccm: CO2 flow rate for the purge (sccm).
+        flow_ramp_sccm: MFC ramp rate (sccm/s).
+        MS_baseline_duration: Baseline wait once routed to MS (s).
+
+    Returns:
+        List of planned actions for the orchestrator.
+    """
+    apm = ActionPlanMaker()
+    if recirculation:
+        apm.add_actions(
+            ECMS_sub_electrolyte_fill_recirculationreservoir(
+                liquid_fill_time=liquid_fill_time
+            )
+        )
+    if prevacuum:
+        apm.add_actions(ECMS_sub_prevacuum_cell(vacuum_time=vacuum_time))
+    fill = (
+        ECMS_sub_electrolyte_fill_cell_recirculation
+        if recirculation
+        else ECMS_sub_electrolyte_fill_cell
+    )
+    apm.add_actions(
+        fill(
+            liquid_backward_time=liquid_backward_time,
+            reservoir_liquid_sample_no=reservoir_liquid_sample_no,
+            volume_ul_cell_liquid=volume_ul_cell_liquid,
+        )
+    )
+    apm.add_actions(
+        ECMS_sub_headspace_purge_and_CO2baseline(
+            CO2equilibrium_duration=CO2equilibrium_duration,
+            flowrate_sccm=flowrate_sccm,
+            flow_ramp_sccm=flow_ramp_sccm,
+            MS_baseline_duration=MS_baseline_duration,
+        )
+    )
+    if start_recirculation:
+        apm.add_actions(ECMS_sub_electrolyte_recirculation_on())
+    return apm.planned_actions
+
+
+@experiment(version=1)
+def ECMS_sub_empty_cell(
+    recirculation: bool = False,
+    stop_recirculation: bool = False,
+    cleaning_times: int = 0,
+    tube_clear_time: float = 20,
+    liquid_drain_time: float = 30,
+    liquid_fill_time: float = 30,
+    volume_ul_cell_liquid: float = 1,
+    liquid_backward_time: float = 80,
+    reservoir_liquid_sample_no: int = 2,
+) -> list:
+    """Return to the normal gas state, drain the cell, and optionally rinse it.
+
+    Runs, in order: stop recirculation (``stop_recirculation``), the normal
+    state, the drain (reservoir path, or the recirculation path with tube
+    clearing), and ``cleaning_times`` recirculation fill/drain rinses. Each step
+    is the published experiment of the same name.
+
+    Args:
+        recirculation: Drain via the recirculation path; required for rinses.
+        stop_recirculation: Stop the recirculation pump first.
+        cleaning_times: Recirculation rinse cycles after the drain.
+        tube_clear_time: Tube-clearing pump duration (s); recirculation only.
+        liquid_drain_time: Drain pump duration (s).
+        liquid_fill_time: Reservoir-fill pump duration per rinse (s).
+        volume_ul_cell_liquid: Volume archived to the cell per rinse (uL).
+        liquid_backward_time: Cell-fill reverse pump duration per rinse (s).
+        reservoir_liquid_sample_no: Liquid sample number used for rinsing.
+
+    Returns:
+        List of planned actions for the orchestrator.
+
+    Raises:
+        ValueError: If ``cleaning_times`` is set without ``recirculation``.
+    """
+    if cleaning_times and not recirculation:
+        raise ValueError("cleaning_times needs recirculation=True")
+    apm = ActionPlanMaker()
+    if stop_recirculation:
+        apm.add_actions(ECMS_sub_electrolyte_recirculation_off())
+    apm.add_actions(ECMS_sub_normal_state())
+    if not recirculation:
+        apm.add_actions(ECMS_sub_drain(liquid_drain_time=liquid_drain_time))
+        return apm.planned_actions
+    apm.add_actions(
+        ECMS_sub_drain_recirculation(
+            tube_clear_time=tube_clear_time, liquid_drain_time=liquid_drain_time
+        )
+    )
+    apm.add_actions(
+        ECMS_sub_clean_cell_recirculation(
+            cleaning_times=cleaning_times,
+            liquid_fill_time=liquid_fill_time,
+            volume_ul_cell_liquid=volume_ul_cell_liquid,
+            liquid_backward_time=liquid_backward_time,
+            reservoir_liquid_sample_no=reservoir_liquid_sample_no,
+            tube_clear_time=tube_clear_time,
+            liquid_drain_time=liquid_drain_time,
+        )
+    )
     return apm.planned_actions
 
 
