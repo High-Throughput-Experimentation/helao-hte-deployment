@@ -225,6 +225,18 @@ def _eche_cell_pstat(
     return apm.planned_actions
 
 
+def _eche_led(source, wait, send, delay, duty, period, illum_time, duration):
+    """TTL params and LED cycle for an illuminated technique; ``({}, None)`` dark.
+
+    ``illum_time`` -1 means the whole technique ``duration``.
+    """
+    if not source:
+        return {}, None
+    if int(round(illum_time)) == -1:
+        illum_time = duration
+    return {"TTLwait": wait, "TTLsend": send}, (source, delay, duty, period, illum_time)
+
+
 def _eche_ca_potential(
     CA_potential, potential_versus, ref_type, ref_offset__V, solution_ph
 ):
@@ -364,65 +376,9 @@ def ECHE_sub_CA_led(
     toggle_illum_time: float = -1,
     comment: str = "",
 ) -> list:
-    """Run a CA experiment with hardware-triggered LED toggling.
-
-    Args:
-        CA_potential: Applied potential before reference correction (V).
-        potential_versus: ``"rhe"`` or ``"oer"`` reference frame.
-        ref_type: Reference electrode key into ``REF_TABLE``.
-        ref_offset__V: Calibration offset of the reference electrode (V).
-        solution_ph: Solution pH used for the Nernst conversion.
-        reservoir_electrolyte: ``Electrolyte`` enum label (informational).
-        reservoir_liquid_sample_no: Liquid sample number (informational).
-        solution_bubble_gas: Bubbled gas label (informational).
-        measurement_area: Droplet contact area (informational).
-        samplerate_sec: Acquisition interval (s).
-        CA_duration_sec: CA duration (s).
-        gamry_i_range: Gamry current-range setting.
-        gamrychannelwait: TTL channel to wait on (-1 disables).
-        gamrychannelsend: TTL channel to send on (-1 disables).
-        illumination_source: IO output name driving the LED.
-        illumination_wavelength: LED wavelength (nm).
-        illumination_intensity: LED intensity setting.
-        illumination_intensity_date: Provenance date string for intensity.
-        illumination_side: ``"front"`` or ``"back"``.
-        toggle_dark_time_init: Initial dark delay (s).
-        toggle_illum_duty: Illumination duty cycle.
-        toggle_illum_period: Illumination toggle period (s).
-        toggle_illum_time: Total illumination duration (s); ``-1`` matches CA.
-        comment: Free-form comment (informational).
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-
-    apm = ActionPlanMaker()
-    if int(round(toggle_illum_time)) == -1:
-        toggle_illum_time = CA_duration_sec
-    potential = _eche_ca_potential(
-        CA_potential, potential_versus, ref_type, ref_offset__V, solution_ph
-    )
-    return _eche_cell_pstat(
-        apm,
-        "run_CA",
-        "CA",
-        {
-            "Vval__V": potential,
-            "Tval__s": CA_duration_sec,
-            "AcqInterval__s": samplerate_sec,
-            "TTLwait": gamrychannelwait,
-            "TTLsend": gamrychannelsend,
-            "IErange": gamry_i_range,
-        },
-        led=(
-            illumination_source,
-            toggle_dark_time_init,
-            toggle_illum_duty,
-            toggle_illum_period,
-            toggle_illum_time,
-        ),
-        led_contrib=[ProcessContrib.files],
-    )
+    """Alias of :func:`ECHE_sub_CA` with the LED on by default, published so
+    queued runs resolve."""
+    return ECHE_sub_CA(**locals())
 
 
 @experiment(version=2)
@@ -486,7 +442,7 @@ def ECHE_sub_preCV(
     )
 
 
-@experiment(version=3)
+@experiment(version=4)
 def ECHE_sub_CA(
     CA_potential: float = 0.0,
     potential_versus: str = "rhe",
@@ -500,9 +456,23 @@ def ECHE_sub_CA(
     samplerate_sec: float = 0.1,
     CA_duration_sec: float = 60,
     gamry_i_range: str = "auto",
+    gamrychannelwait: int = -1,
+    gamrychannelsend: int = 0,
+    illumination_source: str = "",
+    illumination_wavelength: float = 0.0,
+    illumination_intensity: float = 0.0,
+    illumination_intensity_date: str = "n/a",
+    illumination_side: str = "front",
+    toggle_dark_time_init: float = 0.0,
+    toggle_illum_duty: float = 0.5,
+    toggle_illum_period: float = 2.0,
+    toggle_illum_time: float = -1,
     comment: str = "",
 ) -> list:
-    """Run a CA experiment without illumination.
+    """Run a CA experiment, optionally under a hardware-triggered LED cycle.
+
+    An empty ``illumination_source`` runs it dark: no LED cycle and no TTL
+    params sent to the potentiostat.
 
     Args:
         CA_potential: Applied potential before reference correction (V).
@@ -517,26 +487,48 @@ def ECHE_sub_CA(
         samplerate_sec: Acquisition interval (s).
         CA_duration_sec: CA duration (s).
         gamry_i_range: Gamry current-range setting.
+        gamrychannelwait: TTL channel to wait on (-1 disables).
+        gamrychannelsend: TTL channel to send on (-1 disables).
+        illumination_source: IO output name driving the LED; ``""`` runs dark.
+        illumination_wavelength: LED wavelength (nm).
+        illumination_intensity: LED intensity setting.
+        illumination_intensity_date: Provenance date string for intensity.
+        illumination_side: ``"front"`` or ``"back"``.
+        toggle_dark_time_init: Initial dark delay (s).
+        toggle_illum_duty: Illumination duty cycle.
+        toggle_illum_period: Illumination toggle period (s).
+        toggle_illum_time: Total illumination duration (s); ``-1`` matches CA.
         comment: Free-form comment (informational).
 
     Returns:
         List of planned actions for the orchestrator.
     """
-
-    apm = ActionPlanMaker()
     potential = _eche_ca_potential(
         CA_potential, potential_versus, ref_type, ref_offset__V, solution_ph
     )
+    ttl, led = _eche_led(
+        illumination_source,
+        gamrychannelwait,
+        gamrychannelsend,
+        toggle_dark_time_init,
+        toggle_illum_duty,
+        toggle_illum_period,
+        toggle_illum_time,
+        CA_duration_sec,
+    )
     return _eche_cell_pstat(
-        apm,
+        ActionPlanMaker(),
         "run_CA",
         "CA",
         {
             "Vval__V": potential,
             "Tval__s": CA_duration_sec,
             "AcqInterval__s": samplerate_sec,
+            **ttl,
             "IErange": gamry_i_range,
         },
+        led=led,
+        led_contrib=[ProcessContrib.files],
     )
 
 
@@ -572,7 +564,47 @@ def ECHE_sub_CV_led(
     toggle_illum_time: float = -1,
     comment: str = "",
 ) -> list:
-    """Run a CV experiment with hardware-triggered LED toggling.
+    """Alias of :func:`ECHE_sub_CV` with the LED on by default, published so
+    queued runs resolve."""
+    return ECHE_sub_CV(**locals())
+
+
+@experiment(version=4)
+def ECHE_sub_CV(
+    Vinit_vsRHE: float = 0.0,  # Initial value in volts or amps.
+    Vapex1_vsRHE: float = 1.0,  # Apex 1 value in volts or amps.
+    Vapex2_vsRHE: float = -1.0,  # Apex 2 value in volts or amps.
+    Vfinal_vsRHE: float = 0.0,  # Final value in volts or amps.
+    scanrate_voltsec: Optional[
+        float
+    ] = 0.02,  # scan rate in volts/second or amps/second.
+    samplerate_sec: float = 0.1,
+    cycles: int = 1,
+    gamry_i_range: str = "auto",
+    gamrychannelwait: int = -1,
+    gamrychannelsend: int = 0,
+    solution_ph: float = 0,
+    reservoir_electrolyte: Electrolyte = "SLF10",
+    reservoir_liquid_sample_no: int = 1,  # currently liquid sample database number
+    solution_bubble_gas: str = "O2",
+    measurement_area: float = 0.071,  # 3mm diameter droplet
+    ref_type: str = "inhouse",
+    ref_offset__V: float = 0.0,
+    illumination_source: str = "",
+    illumination_wavelength: float = 0.0,
+    illumination_intensity: float = 0.0,
+    illumination_intensity_date: str = "n/a",
+    illumination_side: str = "front",
+    toggle_dark_time_init: float = 0.0,
+    toggle_illum_duty: float = 0.5,
+    toggle_illum_period: float = 2.0,
+    toggle_illum_time: float = -1,
+    comment: str = "",
+) -> list:
+    """Run a CV experiment, optionally under a hardware-triggered LED cycle.
+
+    An empty ``illumination_source`` runs it dark: no LED cycle and no TTL
+    params sent to the potentiostat.
 
     Computes the CV total duration from the four vertices and ``cycles`` to
     default ``toggle_illum_time`` when it is ``-1``, programs the Galil
@@ -596,7 +628,7 @@ def ECHE_sub_CV_led(
         measurement_area: Droplet contact area (informational).
         ref_type: Reference electrode key into ``REF_TABLE``.
         ref_offset__V: Calibration offset of the reference electrode (V).
-        illumination_source: IO output name driving the LED.
+        illumination_source: IO output name driving the LED; ``""`` runs dark.
         illumination_wavelength: LED wavelength (nm).
         illumination_intensity: LED intensity setting.
         illumination_intensity_date: Provenance date string for intensity.
@@ -610,16 +642,22 @@ def ECHE_sub_CV_led(
     Returns:
         List of planned actions for the orchestrator.
     """
-
-    apm = ActionPlanMaker()
     CV_duration_sec = abs(Vapex1_vsRHE - Vinit_vsRHE) / scanrate_voltsec
     CV_duration_sec += abs(Vfinal_vsRHE - Vapex2_vsRHE) / scanrate_voltsec
     CV_duration_sec += abs(Vapex2_vsRHE - Vapex1_vsRHE) / scanrate_voltsec
     CV_duration_sec += (
         abs(Vapex2_vsRHE - Vapex1_vsRHE) / scanrate_voltsec * 2.0 * (cycles - 1)
     )
-    if int(round(toggle_illum_time)) == -1:
-        toggle_illum_time = CV_duration_sec
+    ttl, led = _eche_led(
+        illumination_source,
+        gamrychannelwait,
+        gamrychannelsend,
+        toggle_dark_time_init,
+        toggle_illum_duty,
+        toggle_illum_period,
+        toggle_illum_time,
+        CV_duration_sec,
+    )
     params = _eche_cv_params(
         Vinit_vsRHE,
         Vapex1_vsRHE,
@@ -633,89 +671,13 @@ def ECHE_sub_CV_led(
         ScanRate__V_s=scanrate_voltsec,
         AcqInterval__s=samplerate_sec,
         Cycles=cycles,
-        TTLwait=gamrychannelwait,
-        TTLsend=gamrychannelsend,
+        **ttl,
         IErange=gamry_i_range,
     )
-    return _eche_cell_pstat(
-        apm,
-        "run_CV",
-        "CV",
-        params,
-        led=(
-            illumination_source,
-            toggle_dark_time_init,
-            toggle_illum_duty,
-            toggle_illum_period,
-            toggle_illum_time,
-        ),
-    )
+    return _eche_cell_pstat(ActionPlanMaker(), "run_CV", "CV", params, led=led)
 
 
-@experiment(version=3)
-def ECHE_sub_CV(
-    Vinit_vsRHE: float = 0.0,  # Initial value in volts or amps.
-    Vapex1_vsRHE: float = 1.0,  # Apex 1 value in volts or amps.
-    Vapex2_vsRHE: float = -1.0,  # Apex 2 value in volts or amps.
-    Vfinal_vsRHE: float = 0.0,  # Final value in volts or amps.
-    scanrate_voltsec: Optional[
-        float
-    ] = 0.020,  # scan rate in volts/second or amps/second.
-    samplerate_sec: float = 0.1,
-    cycles: int = 1,
-    gamry_i_range: str = "auto",
-    solution_ph: float = 0,
-    reservoir_electrolyte: Electrolyte = "SLF10",
-    reservoir_liquid_sample_no: int = 1,  # currently liquid sample database number
-    solution_bubble_gas: str = "O2",
-    measurement_area: float = 0.071,  # 3mm diameter droplet
-    ref_type: str = "inhouse",
-    ref_offset__V: float = 0.0,
-    comment: str = "",
-) -> list:
-    """Run a CV experiment without illumination.
-
-    Args:
-        Vinit_vsRHE: Initial CV potential vs RHE (V).
-        Vapex1_vsRHE: Apex 1 vs RHE (V).
-        Vapex2_vsRHE: Apex 2 vs RHE (V).
-        Vfinal_vsRHE: Final vs RHE (V).
-        scanrate_voltsec: Scan rate (V/s).
-        samplerate_sec: Acquisition interval (s).
-        cycles: CV cycle count.
-        gamry_i_range: Gamry current-range setting.
-        solution_ph: Solution pH used for the Nernst conversion.
-        reservoir_electrolyte: ``Electrolyte`` enum label (informational).
-        reservoir_liquid_sample_no: Liquid sample number (informational).
-        solution_bubble_gas: Bubbled gas label (informational).
-        measurement_area: Droplet contact area (informational).
-        ref_type: Reference electrode key into ``REF_TABLE``.
-        ref_offset__V: Calibration offset of the reference electrode (V).
-        comment: Free-form comment (informational).
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-
-    params = _eche_cv_params(
-        Vinit_vsRHE,
-        Vapex1_vsRHE,
-        Vapex2_vsRHE,
-        Vfinal_vsRHE,
-        ref_offset__V,
-        ref_type,
-        solution_ph,
-    )
-    params.update(
-        ScanRate__V_s=scanrate_voltsec,
-        AcqInterval__s=samplerate_sec,
-        Cycles=cycles,
-        IErange=gamry_i_range,
-    )
-    return _eche_cell_pstat(ActionPlanMaker(), "run_CV", "CV", params)
-
-
-@experiment(version=3)
+@experiment(version=4)
 def ECHE_sub_CP(
     CP_current: float = 0.0,
     solution_ph: float = 9.53,
@@ -728,9 +690,23 @@ def ECHE_sub_CP(
     samplerate_sec: float = 0.1,
     CP_duration_sec: float = 60,
     gamry_i_range: str = "auto",
+    gamrychannelwait: int = -1,
+    gamrychannelsend: int = 0,
+    illumination_source: str = "",
+    illumination_wavelength: float = 0.0,
+    illumination_intensity: float = 0.0,
+    illumination_intensity_date: str = "n/a",
+    illumination_side: str = "front",
+    toggle_dark_time_init: float = 0.0,
+    toggle_illum_duty: float = 0.5,
+    toggle_illum_period: float = 2.0,
+    toggle_illum_time: float = -1,
     comment: str = "",
 ) -> list:
-    """Run a CP experiment without illumination.
+    """Run a CP experiment, optionally under a hardware-triggered LED cycle.
+
+    An empty ``illumination_source`` runs it dark: no LED cycle and no TTL
+    params sent to the potentiostat.
 
     Args:
         CP_current: Applied current (A).
@@ -744,12 +720,32 @@ def ECHE_sub_CP(
         samplerate_sec: Acquisition interval (s).
         CP_duration_sec: CP duration (s).
         gamry_i_range: Gamry current-range setting.
+        gamrychannelwait: TTL channel to wait on (-1 disables).
+        gamrychannelsend: TTL channel to send on (-1 disables).
+        illumination_source: IO output name driving the LED; ``""`` runs dark.
+        illumination_wavelength: LED wavelength (nm).
+        illumination_intensity: LED intensity setting.
+        illumination_intensity_date: Provenance date string for intensity.
+        illumination_side: ``"front"`` or ``"back"``.
+        toggle_dark_time_init: Initial dark delay (s).
+        toggle_illum_duty: Illumination duty cycle.
+        toggle_illum_period: Illumination toggle period (s).
+        toggle_illum_time: Total illumination duration (s); ``-1`` matches CP.
         comment: Free-form comment (informational).
 
     Returns:
         List of planned actions for the orchestrator.
     """
-
+    ttl, led = _eche_led(
+        illumination_source,
+        gamrychannelwait,
+        gamrychannelsend,
+        toggle_dark_time_init,
+        toggle_illum_duty,
+        toggle_illum_period,
+        toggle_illum_time,
+        CP_duration_sec,
+    )
     return _eche_cell_pstat(
         ActionPlanMaker(),
         "run_CP",
@@ -758,8 +754,10 @@ def ECHE_sub_CP(
             "Ival__A": CP_current,
             "Tval__s": CP_duration_sec,
             "AcqInterval__s": samplerate_sec,
+            **ttl,
             "IErange": gamry_i_range,
         },
+        led=led,
     )
 
 
@@ -789,60 +787,9 @@ def ECHE_sub_CP_led(
     toggle_illum_time: float = -1,
     comment: str = "",
 ) -> list:
-    """Run a CP experiment with hardware-triggered LED toggling.
-
-    Args:
-        CP_current: Applied current (A).
-        solution_ph: Solution pH (informational here).
-        reservoir_electrolyte: ``Electrolyte`` enum label (informational).
-        reservoir_liquid_sample_no: Liquid sample number (informational).
-        solution_bubble_gas: Bubbled gas label (informational).
-        measurement_area: Droplet contact area (informational).
-        ref_type: Reference electrode label (informational).
-        ref_offset__V: Reference offset (informational here).
-        samplerate_sec: Acquisition interval (s).
-        CP_duration_sec: CP duration (s).
-        gamry_i_range: Gamry current-range setting.
-        gamrychannelwait: TTL channel to wait on (-1 disables).
-        gamrychannelsend: TTL channel to send on (-1 disables).
-        illumination_source: IO output name driving the LED.
-        illumination_wavelength: LED wavelength (nm).
-        illumination_intensity: LED intensity setting.
-        illumination_intensity_date: Provenance date string for intensity.
-        illumination_side: ``"front"`` or ``"back"``.
-        toggle_dark_time_init: Initial dark delay (s).
-        toggle_illum_duty: Illumination duty cycle.
-        toggle_illum_period: Illumination toggle period (s).
-        toggle_illum_time: Total illumination duration (s); ``-1`` matches CP.
-        comment: Free-form comment (informational).
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-
-    apm = ActionPlanMaker()
-    if int(round(toggle_illum_time)) == -1:
-        toggle_illum_time = CP_duration_sec
-    return _eche_cell_pstat(
-        apm,
-        "run_CP",
-        "CP",
-        {
-            "Ival__A": CP_current,
-            "Tval__s": CP_duration_sec,
-            "AcqInterval__s": samplerate_sec,
-            "TTLwait": gamrychannelwait,
-            "TTLsend": gamrychannelsend,
-            "IErange": gamry_i_range,
-        },
-        led=(
-            illumination_source,
-            toggle_dark_time_init,
-            toggle_illum_duty,
-            toggle_illum_period,
-            toggle_illum_time,
-        ),
-    )
+    """Alias of :func:`ECHE_sub_CP` with the LED on by default, published so
+    queued runs resolve."""
+    return ECHE_sub_CP(**locals())
 
 
 @experiment(version=1)

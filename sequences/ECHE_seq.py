@@ -61,185 +61,73 @@ def _eche_precv(epm, p, pre):
     )
 
 
-def _eche_cv(epm, p, pre, led=""):
-    """Queue one CV; led "" plain, "L" LED, "LG" LED + gamry channels."""
+def _eche_led_keys(p, pre, led, toggle):
+    """LED keys for one technique: led "" none, "L" LED, "LG" LED + gamry channels."""
     if not led:
-        epm.add(
-            "ECHE_sub_CV",
-            {
-                "Vinit_vsRHE": p[f"{pre}_Vinit_vsRHE"],
-                "Vapex1_vsRHE": p[f"{pre}_Vapex1_vsRHE"],
-                "Vapex2_vsRHE": p[f"{pre}_Vapex2_vsRHE"],
-                "Vfinal_vsRHE": p[f"{pre}_Vfinal_vsRHE"],
-                "scanrate_voltsec": p[f"{pre}_scanrate_voltsec"],
-                "samplerate_sec": p[f"{pre}_samplerate_mV"]
-                / (p[f"{pre}_scanrate_voltsec"] * 1000),
-                "cycles": p[f"{pre}_cycles"],
-                "gamry_i_range": p["gamry_i_range"],
-                "solution_ph": p["solution_ph"],
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "reservoir_electrolyte": p["reservoir_electrolyte"],
-                "solution_bubble_gas": p["solution_bubble_gas"],
-                "measurement_area": p["measurement_area"],
-                "ref_type": p["ref_type"],
-                "ref_offset__V": p["ref_offset__V"],
-            },
-        )
-    elif led == "L":
-        epm.add(
-            "ECHE_sub_CV_led",
-            {
-                "Vinit_vsRHE": p[f"{pre}_Vinit_vsRHE"],
-                "Vapex1_vsRHE": p[f"{pre}_Vapex1_vsRHE"],
-                "Vapex2_vsRHE": p[f"{pre}_Vapex2_vsRHE"],
-                "Vfinal_vsRHE": p[f"{pre}_Vfinal_vsRHE"],
-                "scanrate_voltsec": p[f"{pre}_scanrate_voltsec"],
-                "samplerate_sec": p[f"{pre}_samplerate_mV"]
-                / (p[f"{pre}_scanrate_voltsec"] * 1000),
-                "cycles": p[f"{pre}_cycles"],
-                "gamry_i_range": p["gamry_i_range"],
-                "solution_ph": p["solution_ph"],
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "reservoir_electrolyte": p["reservoir_electrolyte"],
-                "solution_bubble_gas": p["solution_bubble_gas"],
-                "measurement_area": p["measurement_area"],
-                "ref_type": p["ref_type"],
-                "ref_offset__V": p["ref_offset__V"],
-                "illumination_source": p[f"led_name_{pre}"],
-                "illumination_wavelength": p["led_wavelengths_nm"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity": p["led_intensities_mw"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity_date": p["led_date"],
-                "illumination_side": p["led_type"],
-                "toggle_illum_duty": p[f"toggle{pre}_illum_duty"],
-                "toggle_illum_period": p[f"toggle{pre}_illum_period"],
-                "toggle_illum_time": p[f"toggle{pre}_illum_time"],
-                "toggle_dark_time_init": p[f"toggle{pre}_dark_time_init"],
-            },
-        )
-    else:
-        epm.add(
-            "ECHE_sub_CV_led",
-            {
-                "Vinit_vsRHE": p[f"{pre}_Vinit_vsRHE"],
-                "Vapex1_vsRHE": p[f"{pre}_Vapex1_vsRHE"],
-                "Vapex2_vsRHE": p[f"{pre}_Vapex2_vsRHE"],
-                "Vfinal_vsRHE": p[f"{pre}_Vfinal_vsRHE"],
-                "scanrate_voltsec": p[f"{pre}_scanrate_voltsec"],
-                "samplerate_sec": p[f"{pre}_samplerate_mV"]
-                / (p[f"{pre}_scanrate_voltsec"] * 1000),
-                "cycles": p[f"{pre}_cycles"],
-                "gamry_i_range": p["gamry_i_range"],
-                "gamrychannelwait": p["gamrychannelwait"],
-                "gamrychannelsend": p["gamrychannelsend"],
-                "solution_ph": p["solution_ph"],
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "reservoir_electrolyte": p["reservoir_electrolyte"],
-                "solution_bubble_gas": p["solution_bubble_gas"],
-                "measurement_area": p["measurement_area"],
-                "ref_type": p["ref_type"],
-                "ref_offset__V": p["ref_offset__V"],
-                "illumination_source": p[f"led_name_{pre}"],
-                "illumination_wavelength": p["led_wavelengths_nm"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity": p["led_intensities_mw"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity_date": p["led_date"],
-                "illumination_side": p["led_type"],
-                "toggle_illum_duty": p[f"toggle{pre}_illum_duty"],
-                "toggle_illum_period": p[f"toggle{pre}_illum_period"],
-                "toggle_illum_time": p[f"toggle{pre}_illum_time"],
-                "toggle_dark_time_init": p[f"toggle{pre}_dark_time_init"],
-            },
-        )
+        return {}
+    name = p[f"led_name_{pre}"]
+    keys = {
+        "illumination_source": name,
+        "illumination_wavelength": p["led_wavelengths_nm"][p["led_names"].index(name)],
+        "illumination_intensity": p["led_intensities_mw"][p["led_names"].index(name)],
+        "illumination_intensity_date": p["led_date"],
+        "illumination_side": p["led_type"],
+        "toggle_illum_duty": p[f"toggle{toggle}_illum_duty"],
+        "toggle_illum_period": p[f"toggle{toggle}_illum_period"],
+        "toggle_illum_time": p[f"toggle{toggle}_illum_time"],
+        "toggle_dark_time_init": p[f"toggle{toggle}_dark_time_init"],
+    }
+    if led == "LG":
+        keys["gamrychannelwait"] = p["gamrychannelwait"]
+        keys["gamrychannelsend"] = p["gamrychannelsend"]
+    return keys
+
+
+def _eche_cv(epm, p, pre, led=""):
+    """Queue one CV, lit per ``led`` (see :func:`_eche_led_keys`)."""
+    epm.add(
+        "ECHE_sub_CV",
+        {
+            "Vinit_vsRHE": p[f"{pre}_Vinit_vsRHE"],
+            "Vapex1_vsRHE": p[f"{pre}_Vapex1_vsRHE"],
+            "Vapex2_vsRHE": p[f"{pre}_Vapex2_vsRHE"],
+            "Vfinal_vsRHE": p[f"{pre}_Vfinal_vsRHE"],
+            "scanrate_voltsec": p[f"{pre}_scanrate_voltsec"],
+            "samplerate_sec": p[f"{pre}_samplerate_mV"]
+            / (p[f"{pre}_scanrate_voltsec"] * 1000),
+            "cycles": p[f"{pre}_cycles"],
+            "gamry_i_range": p["gamry_i_range"],
+            "solution_ph": p["solution_ph"],
+            "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
+            "reservoir_electrolyte": p["reservoir_electrolyte"],
+            "solution_bubble_gas": p["solution_bubble_gas"],
+            "measurement_area": p["measurement_area"],
+            "ref_type": p["ref_type"],
+            "ref_offset__V": p["ref_offset__V"],
+            **_eche_led_keys(p, pre, led, pre),
+        },
+    )
 
 
 def _eche_ca(epm, p, pre, led=""):
-    """Queue one CA; led "" plain, "L" LED, "LG" LED + gamry channels."""
-    if not led:
-        epm.add(
-            "ECHE_sub_CA",
-            {
-                "CA_potential": p[f"{pre}_potential"],
-                "solution_ph": p["solution_ph"],
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "reservoir_electrolyte": p["reservoir_electrolyte"],
-                "solution_bubble_gas": p["solution_bubble_gas"],
-                "measurement_area": p["measurement_area"],
-                "ref_type": p["ref_type"],
-                "ref_offset__V": p["ref_offset__V"],
-                "samplerate_sec": p["CA_samplerate_sec"],
-                "CA_duration_sec": p[f"{pre}_duration_sec"],
-                "gamry_i_range": p["gamry_i_range"],
-            },
-        )
-    elif led == "L":
-        epm.add(
-            "ECHE_sub_CA_led",
-            {
-                "CA_potential": p[f"{pre}_potential"],
-                "solution_ph": p["solution_ph"],
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "reservoir_electrolyte": p["reservoir_electrolyte"],
-                "solution_bubble_gas": p["solution_bubble_gas"],
-                "measurement_area": p["measurement_area"],
-                "ref_type": p["ref_type"],
-                "ref_offset__V": p["ref_offset__V"],
-                "samplerate_sec": p["CA_samplerate_sec"],
-                "CA_duration_sec": p[f"{pre}_duration_sec"],
-                "gamry_i_range": p["gamry_i_range"],
-                "illumination_source": p[f"led_name_{pre}"],
-                "illumination_wavelength": p["led_wavelengths_nm"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity": p["led_intensities_mw"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity_date": p["led_date"],
-                "illumination_side": p["led_type"],
-                "toggle_illum_duty": p["toggleCA_illum_duty"],
-                "toggle_illum_period": p["toggleCA_illum_period"],
-                "toggle_illum_time": p["toggleCA_illum_time"],
-                "toggle_dark_time_init": p["toggleCA_dark_time_init"],
-            },
-        )
-    else:
-        epm.add(
-            "ECHE_sub_CA_led",
-            {
-                "CA_potential": p[f"{pre}_potential"],
-                "solution_ph": p["solution_ph"],
-                "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
-                "reservoir_electrolyte": p["reservoir_electrolyte"],
-                "solution_bubble_gas": p["solution_bubble_gas"],
-                "measurement_area": p["measurement_area"],
-                "ref_type": p["ref_type"],
-                "ref_offset__V": p["ref_offset__V"],
-                "samplerate_sec": p["CA_samplerate_sec"],
-                "CA_duration_sec": p[f"{pre}_duration_sec"],
-                "gamry_i_range": p["gamry_i_range"],
-                "gamrychannelwait": p["gamrychannelwait"],
-                "gamrychannelsend": p["gamrychannelsend"],
-                "illumination_source": p[f"led_name_{pre}"],
-                "illumination_wavelength": p["led_wavelengths_nm"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity": p["led_intensities_mw"][
-                    p["led_names"].index(p[f"led_name_{pre}"])
-                ],
-                "illumination_intensity_date": p["led_date"],
-                "illumination_side": p["led_type"],
-                "toggle_illum_duty": p["toggleCA_illum_duty"],
-                "toggle_illum_period": p["toggleCA_illum_period"],
-                "toggle_illum_time": p["toggleCA_illum_time"],
-                "toggle_dark_time_init": p["toggleCA_dark_time_init"],
-            },
-        )
+    """Queue one CA, lit per ``led`` (see :func:`_eche_led_keys`)."""
+    epm.add(
+        "ECHE_sub_CA",
+        {
+            "CA_potential": p[f"{pre}_potential"],
+            "solution_ph": p["solution_ph"],
+            "reservoir_liquid_sample_no": p["reservoir_liquid_sample_no"],
+            "reservoir_electrolyte": p["reservoir_electrolyte"],
+            "solution_bubble_gas": p["solution_bubble_gas"],
+            "measurement_area": p["measurement_area"],
+            "ref_type": p["ref_type"],
+            "ref_offset__V": p["ref_offset__V"],
+            "samplerate_sec": p["CA_samplerate_sec"],
+            "CA_duration_sec": p[f"{pre}_duration_sec"],
+            "gamry_i_range": p["gamry_i_range"],
+            **_eche_led_keys(p, pre, led, "CA"),
+        },
+    )
 
 
 def _eche_steps(p, steps, startup=_eche_startup):
@@ -323,7 +211,7 @@ def ECHE_move(
     return epm.planned_experiments  # returns complete experiment list
 
 
-@sequence(version=6)
+@sequence(version=7)
 def ECHE_4CA_led_1CV_led(
     plate_id: int = 1,
     plate_sample_no_list: list = [2],
@@ -648,7 +536,7 @@ def ECHE_CA(
     return _eche_steps(locals(), ((_eche_ocv,), (_eche_ca, "CA")))
 
 
-@sequence(version=5)
+@sequence(version=6)
 def ECHE_CA_led(
     plate_id: int = 1,
     plate_sample_no_list: list = [2],
@@ -717,7 +605,7 @@ def ECHE_CA_led(
     return _eche_steps(locals(), ((_eche_ocv,), (_eche_ca, "CA", "LG")))
 
 
-@sequence(version=5)
+@sequence(version=6)
 def ECHE_CV_led(
     plate_id: int = 1,
     plate_sample_no_list: list = [2],
@@ -794,7 +682,7 @@ def ECHE_CV_led(
     return _eche_steps(locals(), ((_eche_precv, "CV"), (_eche_cv, "CV", "LG")))
 
 
-@sequence(version=4)
+@sequence(version=5)
 def ECHE_CP(
     plate_id: int = 1,
     plate_sample_no_list: list = [2],
@@ -847,7 +735,6 @@ def ECHE_CP(
                         "reservoir_electrolyte": reservoir_electrolyte,  # currently liquid sample database number
                         "solution_bubble_gas": solution_bubble_gas,
                         "measurement_area": measurement_area,
-                        "reference_electrode_type": "NHE",
                         "ref_type": ref_type,
                         "ref_offset__V": ref_offset__V,
                         "samplerate_sec": CP_samplerate_sec,
@@ -860,7 +747,7 @@ def ECHE_CP(
     )
 
 
-@sequence(version=4)
+@sequence(version=5)
 def ECHE_CP_led(
     plate_id: int = 1,
     plate_sample_no_list: list = [2],
@@ -929,7 +816,7 @@ def ECHE_CP_led(
         (
             (
                 lambda epm, p: epm.add(
-                    "ECHE_sub_CP_led",
+                    "ECHE_sub_CP",
                     {
                         "CP_current": CP_current,
                         "solution_ph": solution_ph,
@@ -937,7 +824,6 @@ def ECHE_CP_led(
                         "reservoir_electrolyte": reservoir_electrolyte,  # currently liquid sample database number
                         "solution_bubble_gas": solution_bubble_gas,
                         "measurement_area": measurement_area,
-                        "reference_electrode_type": "NHE",
                         "ref_type": ref_type,
                         "ref_offset__V": ref_offset__V,
                         "samplerate_sec": CP_samplerate_sec,

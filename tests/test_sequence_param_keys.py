@@ -77,8 +77,6 @@ ALLOWED = {
         "ECHE_sub_startup",
         "reservoir_electrolyte",
     ),
-    ("ECHE_seq.py", "ECHE_CP", "ECHE_sub_CP", "reference_electrode_type"),
-    ("ECHE_seq.py", "ECHE_CP_led", "ECHE_sub_CP_led", "reference_electrode_type"),
     *{
         ("ECHEUVIS_seq.py", f, e, "reference_electrode_type")
         for f, e in (
