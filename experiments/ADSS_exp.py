@@ -953,7 +953,7 @@ def _adss_insitu_full(
     )
 
 
-@experiment(version=12)
+@experiment(version=13)
 def ADSS_sub_CA(
     CA_potential: float = 0.0,
     ph: float = 9.53,
@@ -963,7 +963,10 @@ def ADSS_sub_CA(
     gamry_i_range: str = "auto",
     samplerate_sec: float = 0.05,
     CA_duration_sec: float = 1800,
-    insert_electrolyte_bool: bool = False,  # rename this to insert_electrolyte_bool to avoid confusion
+    led_wavelength: str = "385",
+    toggle_illum_duty: float = 1,
+    illumination: bool = False,
+    insert_electrolyte_bool: bool = False,
     insert_electrolyte_volume_ul: int = 0,
     insert_electrolyte_time_sec: float = 1800,
     electrolyte_sample_no: int = 1,
@@ -1008,6 +1011,9 @@ def ADSS_sub_CA(
         washmod_in: Starting wash counter used to cycle PAL washes.
         PAL_Injector: PAL injector tool identifier.
         PAL_Injector_id: PAL injector serial-number string.
+        led_wavelength: LED wavelength label (recorded only).
+        toggle_illum_duty: LED duty cycle (recorded only).
+        illumination: Run under the LED (technique ``CA_photo``).
 
     Returns:
         List of planned actions for the orchestrator.
@@ -1025,7 +1031,7 @@ def ADSS_sub_CA(
             "AcqInterval__s": samplerate_sec,
             "IErange": gamry_i_range,
         },
-        "CA",
+        "CA_photo" if illumination else "CA",
         washmod_in,
         aliquot_pre,
         aliquot_post,
@@ -1040,6 +1046,7 @@ def ADSS_sub_CA(
             electrolyte_sample_no,
             aliquot_times_sec,
         ),
+        photo=illumination,
     )
 
 
@@ -1070,71 +1077,9 @@ def ADSS_sub_CA_photo(
     PAL_Injector: str = "LS 4",
     PAL_Injector_id: str = "fill serial number here",
 ) -> list:
-    """Run a CA experiment with LED illumination and optional PAL aliquots.
-
-    Same as ``ADSS_sub_CA`` but turns the NI LED on before CA and off after
-    in-situ actions. The pre/post aliquot timing and reference correction
-    match the non-photo CA variant.
-
-    Args:
-        CA_potential: Applied potential before reference correction (V).
-        ph: Solution pH used for Nernst conversion.
-        potential_versus: ``"rhe"`` or ``"oer"`` reference frame.
-        ref_type: Reference electrode key into ``REF_TABLE``.
-        ref_offset__V: Calibration offset of the reference electrode (V).
-        gamry_i_range: Gamry current-range setting.
-        samplerate_sec: Acquisition interval (s).
-        CA_duration_sec: Total CA duration (s).
-        led_wavelength: LED wavelength label.
-        toggle_illum_duty: Illumination duty cycle parameter.
-        insert_electrolyte_bool: Insert electrolyte mid-CA when True.
-        insert_electrolyte_volume_ul: Volume to insert (uL).
-        insert_electrolyte_time_sec: Time after CA start to insert (s).
-        electrolyte_sample_no: Liquid sample number of the electrolyte.
-        bubbler_gas: Informational label for bubbled gas.
-        previous_liquid_injected: Informational label for prior injection.
-        aliquot_volume_ul: Aliquot volume (uL).
-        aliquot_times_sec: Aliquot timestamps (s).
-        aliquot_insitu: Take aliquots concurrent with CA when True.
-        aliquot_pre: Take an aliquot before CA when True.
-        aliquot_post: Take an aliquot after CA when True.
-        washmod_in: Starting wash counter used to cycle PAL washes.
-        PAL_Injector: PAL injector tool identifier.
-        PAL_Injector_id: PAL injector serial-number string.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-    apm = ActionPlanMaker()
-    potential = _adss_ca_potential(
-        CA_potential, ph, potential_versus, ref_type, ref_offset__V
-    )
-    return _adss_echem(
-        apm,
-        "run_CA",
-        {
-            "Vval__V": potential,
-            "Tval__s": CA_duration_sec,
-            "AcqInterval__s": samplerate_sec,
-            "IErange": gamry_i_range,
-        },
-        "CA_photo",
-        washmod_in,
-        aliquot_pre,
-        aliquot_post,
-        aliquot_volume_ul,
-        PAL_Injector,
-        PAL_Injector_id,
-        insitu=_adss_insitu_full(
-            aliquot_insitu,
-            insert_electrolyte_bool,
-            insert_electrolyte_volume_ul,
-            insert_electrolyte_time_sec,
-            electrolyte_sample_no,
-            aliquot_times_sec,
-        ),
-        photo=True,
-    )
+    """Alias of :func:`ADSS_sub_CA` with ``illumination=True``, published so
+    queued runs resolve."""
+    return ADSS_sub_CA(**locals(), illumination=True)
 
 
 @experiment(version=9)

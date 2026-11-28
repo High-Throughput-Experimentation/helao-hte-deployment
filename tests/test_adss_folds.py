@@ -50,3 +50,24 @@ def test_clean_cell_moves_first():
     kw = dict(Clean_volume_ul=12000, DrainWait_s=5, ReturnLineWait_s=6)
     want = _flat(A.ADSS_sub_move_to_clean_cell) + _flat(A.ADSS_sub_clean_cell, **kw)
     assert _flat(A.ADSS_sub_clean_cell, move_first=True, **kw) == want
+
+
+def test_ca_photo_is_ca_illuminated():
+    kw = dict(CA_potential=0.4, CA_duration_sec=30, led_wavelength="450")
+    assert "ADSS_sub_CA_photo" in A.EXPERIMENTS
+    lit = _flat(A.ADSS_sub_CA, illumination=True, **kw)
+    assert _flat(A.ADSS_sub_CA_photo, **kw) == lit
+    assert lit != _flat(A.ADSS_sub_CA, **kw)
+    techniques = {a.get("technique_name") for a in lit} - {None}
+    assert "CA_photo" in techniques
+
+
+@pytest.mark.parametrize("led", [False, True])
+@pytest.mark.parametrize("aliquot_tf", [False, True])
+def test_ca_cell_ocvs_follow_aliquot_tf(led, aliquot_tf):
+    from helao.deploy.hte.sequences import ADSS_seq
+
+    exps = ADSS_seq.ADSS_CA_cell_1potential(led_illumination=led, aliquot_tf=aliquot_tf)
+    ocvs = [e for e in exps if e.experiment_name.startswith("ADSS_sub_OCV")]
+    assert len(ocvs) == 2
+    assert all(e.experiment_params["aliquot_insitu"] is aliquot_tf for e in ocvs)

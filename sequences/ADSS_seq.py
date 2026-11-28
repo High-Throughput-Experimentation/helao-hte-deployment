@@ -286,7 +286,7 @@ def _adss_move_clean_cell_prefill_nosampleload(
     )
 
 
-@sequence(version=11)
+@sequence(version=12)
 def ADSS_CA_cell_1potential(
     # solid_custom_position: str = "cell1_we",
     plate_id: int = 5917,
@@ -468,8 +468,9 @@ def ADSS_CA_cell_1potential(
             },
         )
         epm.add(
-            "ADSS_sub_CA_photo",
+            "ADSS_sub_CA",
             {
+                "illumination": True,
                 "CA_potential": CA_potential_vs,
                 "ph": ph,
                 "ref_type": ref_type,
@@ -565,7 +566,7 @@ def ADSS_CA_cell_1potential(
                 "ref_offset__V": ref_offset__V,
                 "aliquot_volume_ul": aliquot_volume_ul,
                 "aliquot_times_sec": OCValiquot_times_sec,
-                "aliquot_insitu": True,
+                "aliquot_insitu": aliquot_tf,
                 "PAL_Injector": PAL_Injector,
                 "PAL_Injector_id": PAL_Injector_id,
                 "rinse_1": 1,
