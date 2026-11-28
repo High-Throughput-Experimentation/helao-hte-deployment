@@ -319,12 +319,14 @@ def ADSS_sub_load_liquid_only(
 
 
 ######
-@experiment(version=1)
+@experiment(version=2)
 def ADSS_sub_PAL_load_gas(
     custom_position: str = "cell1_we",
     bubbled_gas: str = "N2",
     reservoir_gas_sample_no: int = 1,
     volume_ul_cell_gas: int = 1,
+    set_valve: bool = False,
+    unload_previous: bool = False,
 ) -> list:
     """Add gas volume to a cell position and finish a bubbling-gas process.
 
@@ -333,12 +335,18 @@ def ADSS_sub_PAL_load_gas(
         bubbled_gas: Label for the bubbled gas.
         reservoir_gas_sample_no: Gas sample number in the source reservoir.
         volume_ul_cell_gas: Volume to add in microliters.
+        set_valve: First set the O2/N2 toggle valve, open for ``"N2"``.
+        unload_previous: First unload the previous gas sample from the cell.
 
     Returns:
         List of planned actions for the orchestrator.
     """
 
     apm = ActionPlanMaker()
+    if set_valve:
+        apm.add_actions(ADSS_sub_gasvalve_N2flow(open=bubbled_gas == "N2"))
+    if unload_previous:
+        apm.add_actions(ADSS_sub_unload_gas_only())
     apm.add(
         SAMPLE_server,
         "archive_custom_add_gas",
@@ -395,7 +403,7 @@ def ADSS_sub_unload_gas_only() -> list:
 #######
 
 
-@experiment(version=3)
+@experiment(version=4)
 def ADSS_sub_load(
     solid_custom_position: str = "cell1_we",
     solid_plate_id: int = 4534,
@@ -404,11 +412,14 @@ def ADSS_sub_load(
     liquid_custom_position: str = "cell1_we",
     liquid_sample_no: int = 1,
     liquid_sample_volume_ul: float = 4000,
+    reference_position_name: str = "",
 ) -> list:
     """Clear customs, load a solid plate sample, then add liquid to the cell.
 
     When ``previous_liquid`` is True the previously unloaded liquid is reused
-    instead of a freshly resolved liquid sample.
+    instead of a freshly resolved liquid sample. A ``reference_position_name``
+    first moves the cell to that reference position
+    (:func:`ADSS_sub_move_to_ref_measurement`).
 
     Args:
         solid_custom_position: PAL custom position for the solid.
@@ -418,11 +429,19 @@ def ADSS_sub_load(
         liquid_custom_position: Target PAL custom position for added liquid.
         liquid_sample_no: Liquid sample number on this host.
         liquid_sample_volume_ul: Liquid volume to add in microliters.
+        reference_position_name: Reference position to move to first; ``""``
+            stays put.
 
     Returns:
         List of planned actions for the orchestrator.
     """
     apm = ActionPlanMaker()
+    if reference_position_name:
+        apm.add_actions(
+            ADSS_sub_move_to_ref_measurement(
+                reference_position_name=reference_position_name
+            )
+        )
 
     # clear cell position and track unloaded liquid
     apm.add(
@@ -2076,7 +2095,7 @@ def ADSS_sub_keep_electrolyte(
 
 
 # need to move to clean spot first before beginning clean
-@experiment(version=5)
+@experiment(version=6)
 def ADSS_sub_clean_cell(
     Clean_volume_ul: float = 3000,
     Syringe_rate_ulsec: float = 300,
@@ -2086,7 +2105,7 @@ def ADSS_sub_clean_cell(
     ReturnLineReverseWait_s: float = 15,
     Watercleancycle: bool = True,
     lift: bool = False,
-    #    ResidualWait_s: float = 15,
+    move_first: bool = False,
 ) -> list:
     """Run a clean-water flush + drain, with an optional manual water-cleaning pause.
 
@@ -2104,11 +2123,15 @@ def ADSS_sub_clean_cell(
         ReturnLineReverseWait_s: Reverse pump time during drain (s).
         Watercleancycle: Run a second manual water-injection + drain pass.
         lift: Lift Z to load after cleaning when True.
+        move_first: Move to the clean-cell position first
+            (:func:`ADSS_sub_move_to_clean_cell`).
 
     Returns:
         List of planned actions for the orchestrator.
     """
     apm = ActionPlanMaker()
+    if move_first:
+        apm.add_actions(ADSS_sub_move_to_clean_cell())
 
     apm.add(NI_server, "gasvalve", {"gasvalve": "inlet", "on": 0})
     if Clean_volume_ul > 10000:
