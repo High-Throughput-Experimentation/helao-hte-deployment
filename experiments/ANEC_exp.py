@@ -410,22 +410,31 @@ def ANEC_sub_cleanup(
     return apm.planned_actions
 
 
-@experiment(version=1)
+@experiment(version=2)
 def ANEC_sub_GC_headspacealiquot_nomixing(
     toolGC: str = "HS 2",
     volume_ul_GC: int = 300,
+    mix: bool = False,
 ) -> list:
     """Stop PeriPump1 and sample the cell1_we headspace into the GC (no mixing pass).
 
     Args:
         toolGC: PAL headspace tool identifier.
         volume_ul_GC: GC injection volume (uL).
+        mix: First mix the cell liquid by reversing the flow twice.
 
     Returns:
         List of planned actions for the orchestrator.
     """
 
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
+    apm = ActionPlanMaker()
+    if mix:
+        # circulate the liquid back and forth to mix it before sampling
+        for _ in range(2):
+            apm.add(NI_server, "pump", {"pump": "Direction", "on": 1})
+            apm.add(ORCH_server, "wait", {"waittime": 60})
+            apm.add(NI_server, "pump", {"pump": "Direction", "on": 0})
+            apm.add(ORCH_server, "wait", {"waittime": 30})
     apm.add(NI_server, "pump", {"pump": "PeriPump1", "on": 0})
     apm.add(
         PAL_server,
@@ -452,31 +461,9 @@ def ANEC_sub_GC_preparation(
     toolGC: str = "HS 2",
     volume_ul_GC: int = 300,
 ) -> list:
-    """Cycle pump direction to mix cell contents and then sample headspace into GC.
-
-    Performs two reverse/forward direction cycles with intervening waits to
-    mix, stops PeriPump1, and runs ``PAL_ANEC_GC`` for the GC headspace
-    injection.
-
-    Args:
-        toolGC: PAL headspace tool identifier.
-        volume_ul_GC: GC injection volume (uL).
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-    apm = ActionPlanMaker()
-
-    for _ in range(2):
-        apm.add(NI_server, "pump", {"pump": "Direction", "on": 1})
-        apm.add(ORCH_server, "wait", {"waittime": 60})
-        apm.add(NI_server, "pump", {"pump": "Direction", "on": 0})
-        apm.add(ORCH_server, "wait", {"waittime": 30})
-
-    apm.add_actions(
-        ANEC_sub_GC_headspacealiquot_nomixing(toolGC=toolGC, volume_ul_GC=volume_ul_GC)
-    )
-    return apm.planned_actions
+    """Alias of :func:`ANEC_sub_GC_headspacealiquot_nomixing` with ``mix=True``, published so queued runs
+    resolve."""
+    return ANEC_sub_GC_headspacealiquot_nomixing(**locals(), mix=True)
 
 
 @experiment(version=1)
@@ -602,7 +589,7 @@ def ANEC_sub_liquidarchive(
     return apm.planned_actions
 
 
-@experiment(version=1)
+@experiment(version=2)
 def ANEC_sub_aliquot_nomixing(
     toolGC: str = "HS 2",
     toolarchive: str = "LS 3",
@@ -612,6 +599,7 @@ def ANEC_sub_aliquot_nomixing(
     wash2: bool = True,
     wash3: bool = True,
     wash4: bool = False,
+    mix: bool = False,
 ) -> list:
     """Take a combined GC + liquid-archive aliquot from the cell without pre-mixing.
 
@@ -624,11 +612,19 @@ def ANEC_sub_aliquot_nomixing(
         wash2: Enable PAL wash slot 2.
         wash3: Enable PAL wash slot 3.
         wash4: Enable PAL wash slot 4.
+        mix: First mix the cell liquid by reversing the flow twice.
 
     Returns:
         List of planned actions for the orchestrator.
     """
-    apm = ActionPlanMaker()  # exposes function parameters via apm.pars
+    apm = ActionPlanMaker()
+    if mix:
+        # circulate the liquid back and forth to mix it before sampling
+        for _ in range(2):
+            apm.add(NI_server, "pump", {"pump": "Direction", "on": 1})
+            apm.add(ORCH_server, "wait", {"waittime": 60})
+            apm.add(NI_server, "pump", {"pump": "Direction", "on": 0})
+            apm.add(ORCH_server, "wait", {"waittime": 30})
 
     # first circulate the liquid back and forth
     # e.g. mix it by reversing the flow a few times
@@ -676,42 +672,9 @@ def ANEC_sub_aliquot(
     wash3: bool = True,
     wash4: bool = False,
 ) -> list:
-    """Mix the cell by reversing the pump, then take a GC + liquid-archive aliquot.
-
-    Args:
-        toolGC: PAL headspace tool identifier.
-        toolarchive: PAL liquid archive tool identifier.
-        volume_ul_GC: GC injection volume (uL).
-        volume_ul_archive: Archived liquid volume (uL).
-        wash1: Enable PAL wash slot 1.
-        wash2: Enable PAL wash slot 2.
-        wash3: Enable PAL wash slot 3.
-        wash4: Enable PAL wash slot 4.
-
-    Returns:
-        List of planned actions for the orchestrator.
-    """
-    apm = ActionPlanMaker()
-
-    for _ in range(2):
-        apm.add(NI_server, "pump", {"pump": "Direction", "on": 1})
-        apm.add(ORCH_server, "wait", {"waittime": 60})
-        apm.add(NI_server, "pump", {"pump": "Direction", "on": 0})
-        apm.add(ORCH_server, "wait", {"waittime": 30})
-
-    apm.add_actions(
-        ANEC_sub_aliquot_nomixing(
-            toolGC=toolGC,
-            toolarchive=toolarchive,
-            volume_ul_GC=volume_ul_GC,
-            volume_ul_archive=volume_ul_archive,
-            wash1=wash1,
-            wash2=wash2,
-            wash3=wash3,
-            wash4=wash4,
-        )
-    )
-    return apm.planned_actions
+    """Alias of :func:`ANEC_sub_aliquot_nomixing` with ``mix=True``, published so queued runs
+    resolve."""
+    return ANEC_sub_aliquot_nomixing(**locals(), mix=True)
 
 
 _ANEC_CONTRIB = [

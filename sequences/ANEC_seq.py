@@ -207,24 +207,11 @@ def _anec_seq_cell(
 
         # literal dicts throughout: test_sequence_param_keys.py only checks
         # keys of a dict literal passed straight to epm.add
-        if sampling == "aliquot":
-            epm.add(
-                "ANEC_sub_aliquot",
-                {
-                    "toolGC": p["toolGC"],
-                    "toolarchive": p["toolarchive"],
-                    "volume_ul_GC": p["volume_ul_GC"],
-                    "volume_ul_archive": p["volume_ul_archive"],
-                    "wash1": p["wash1"],
-                    "wash2": p["wash2"],
-                    "wash3": p["wash3"],
-                    "wash4": p["wash4"],
-                },
-            )
-        elif sampling == "aliquot_nomixing":
+        if sampling in ("aliquot", "aliquot_nomixing"):
             epm.add(
                 "ANEC_sub_aliquot_nomixing",
                 {
+                    "mix": sampling == "aliquot",
                     "toolGC": p["toolGC"],
                     "toolarchive": p["toolarchive"],
                     "volume_ul_GC": p["volume_ul_GC"],
@@ -247,15 +234,14 @@ def _anec_seq_cell(
                     "wash4": p["wash4"],
                 },
             )
-        elif sampling == "GC_preparation":
-            epm.add(
-                "ANEC_sub_GC_preparation",
-                {"toolGC": p["toolGC"], "volume_ul_GC": p["volume_ul_GC"]},
-            )
-        elif sampling == "GC_headspacealiquot_nomixing":
+        elif sampling in ("GC_preparation", "GC_headspacealiquot_nomixing"):
             epm.add(
                 "ANEC_sub_GC_headspacealiquot_nomixing",
-                {"toolGC": p["toolGC"], "volume_ul_GC": p["volume_ul_GC"]},
+                {
+                    "mix": sampling == "GC_preparation",
+                    "toolGC": p["toolGC"],
+                    "volume_ul_GC": p["volume_ul_GC"],
+                },
             )
 
         epm.add("ANEC_sub_drain_cell", {"drain_time": p["liquidDrain_time"]})
